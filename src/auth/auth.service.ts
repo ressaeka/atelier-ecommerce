@@ -343,29 +343,42 @@ export class AuthService {
 
     const user = await this.usersService.findByEmail(dto.email);
 
-    /*
-     * Kalau user tidak ada, tetap response sukses
-     * untuk mencegah account enumeration.
-     */
-    if (user) {
-      const otp = randomInt(100000, 1000000).toString();
+    if (!user) {
+      this.logger.warn('Password reset requested for unknown email');
 
-      const hashedOtp = await hashPassword(otp);
+      return successResponse(
+        null,
+        'Jika email terdaftar, OTP reset password akan dikirim',
+      );
+    }
 
-      const expiresInMinutes = 10;
-      const ttl = expiresInMinutes * 60;
+    const otp = randomInt(100000, 1000000).toString();
+    const hashedOtp = await hashPassword(otp);
 
-      const otpKey = `otp:${user.email}`;
+    const expiresInMinutes = 10;
+    const ttl = expiresInMinutes * 60;
+    const otpKey = `otp:${user.email}`;
 
-      await this.otpRateLimitService.reset(user.email);
+    await this.otpRateLimitService.reset(user.email);
 
-      await this.redisService.set(otpKey, hashedOtp, ttl);
+    await this.redisService.set(otpKey, hashedOtp, ttl);
 
+    try {
       await this.mailService.sendResetPasswordOtp({
         to: user.email,
         otp,
         expiresInMinutes,
       });
+    } catch (error) {
+      this.logger.error(
+        'Failed to send password reset OTP',
+        error instanceof Error ? error.stack : String(error),
+      );
+
+      // OTP yang tidak berhasil dikirim jangan dibiarkan aktif.
+      await this.redisService.del(otpKey);
+
+      throw error;
     }
 
     return successResponse(

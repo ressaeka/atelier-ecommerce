@@ -5,24 +5,18 @@ import {
 } from '@nestjs/common';
 
 import { Prisma } from '../../generated/prisma/client.js';
-import { PrismaService } from '../prisma/prisma.service.js';
-
 import { UpdateUserDto } from './dto/update-user.dto.js';
 import { QueryUsersDto } from './dto/query-users.dto.js';
 import { User } from './entities/user.entity.js';
+import { UsersRepository } from './users.repository.js';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly usersRepository: UsersRepository) {}
 
   async updatePassword(id: number, hashedPassword: string): Promise<void> {
     try {
-      await this.prisma.user.update({
-        where: { id },
-        data: {
-          password: hashedPassword,
-        },
-      });
+      await this.usersRepository.updatePassword(id, hashedPassword);
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -36,11 +30,10 @@ export class UsersService {
   }
 
   async createUser(data: Prisma.UserCreateInput): Promise<User> {
-    const existing = await this.prisma.user.findFirst({
-      where: {
-        OR: [{ username: data.username }, { email: data.email }],
-      },
-    });
+    const existing = await this.usersRepository.findExisting(
+      data.username,
+      data.email,
+    );
 
     if (existing) {
       const field = existing.username === data.username ? 'username' : 'email';
@@ -48,45 +41,29 @@ export class UsersService {
       throw new ConflictException(`${field} sudah terdaftar`);
     }
 
-    const user = await this.prisma.user.create({
-      data,
-    });
+    const user = await this.usersRepository.create(data);
 
     return this.toEntity(user);
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    const user = await this.prisma.user.findUnique({
-      where: { email },
-    });
+    const user = await this.usersRepository.findByEmail(email);
 
     return user ? this.toEntity(user) : null;
   }
 
   async findByUsername(username: string): Promise<User | null> {
-    const user = await this.prisma.user.findUnique({
-      where: { username },
-    });
+    const user = await this.usersRepository.findByUsername(username);
 
     return user ? this.toEntity(user) : null;
   }
 
-  /*
-   * Dipakai AuthService untuk login.
-   *
-   * Password hash ikut diambil karena
-   * AuthService membutuhkan password untuk compare.
-   */
   async findByUsernameWithPassword(username: string) {
-    return this.prisma.user.findUnique({
-      where: { username },
-    });
+    return this.usersRepository.findByUsernameWithPassword(username);
   }
 
   async findById(id: number): Promise<User> {
-    const user = await this.prisma.user.findUnique({
-      where: { id },
-    });
+    const user = await this.usersRepository.findById(id);
 
     if (!user) {
       throw new NotFoundException(`User ${id} tidak ditemukan`);
@@ -98,46 +75,37 @@ export class UsersService {
   async findAll(query: QueryUsersDto) {
     const { page, limit, search } = query;
 
-    /*
-     * Contoh:
-     *
-     * page = 1, limit = 10
-     * skip = 0
-     *
-     * page = 2, limit = 10
-     * skip = 10
-     *
-     * page = 3, limit = 10
-     * skip = 20
-     */
     const skip = (page - 1) * limit;
 
     const where: Prisma.UserWhereInput = search
       ? {
           OR: [
-            { name: { contains: search, mode: 'insensitive' } },
-            { username: { contains: search, mode: 'insensitive' } },
-            { email: { contains: search, mode: 'insensitive' } },
+            {
+              name: {
+                contains: search,
+                mode: 'insensitive',
+              },
+            },
+            {
+              username: {
+                contains: search,
+                mode: 'insensitive',
+              },
+            },
+            {
+              email: {
+                contains: search,
+                mode: 'insensitive',
+              },
+            },
           ],
         }
       : {};
 
-    /*
-     * Query data dan total dilakukan secara paralel.
-     */
     const [users, total] = await Promise.all([
-      this.prisma.user.findMany({
-        where,
+      this.usersRepository.findMany(where, skip, limit),
 
-        skip,
-        take: limit,
-
-        orderBy: {
-          createdAt: 'desc',
-        },
-      }),
-
-      this.prisma.user.count({ where }),
+      this.usersRepository.count(where),
     ]);
 
     return {
@@ -157,26 +125,22 @@ export class UsersService {
       ...updateUserDto,
     };
 
-    /*
-     * Cek duplikat username/email sebelum update.
-     */
     if (updateUserDto.username || updateUserDto.email) {
       const or: Prisma.UserWhereInput[] = [];
 
       if (updateUserDto.username) {
-        or.push({ username: updateUserDto.username });
+        or.push({
+          username: updateUserDto.username,
+        });
       }
 
       if (updateUserDto.email) {
-        or.push({ email: updateUserDto.email });
+        or.push({
+          email: updateUserDto.email,
+        });
       }
 
-      const existing = await this.prisma.user.findFirst({
-        where: {
-          NOT: { id },
-          OR: or,
-        },
-      });
+      const existing = await this.usersRepository.findExistingForUpdate(id, or);
 
       if (existing) {
         const field =
@@ -187,10 +151,7 @@ export class UsersService {
     }
 
     try {
-      const user = await this.prisma.user.update({
-        where: { id },
-        data,
-      });
+      const user = await this.usersRepository.update(id, data);
 
       return this.toEntity(user);
     } catch (error) {
@@ -207,9 +168,7 @@ export class UsersService {
 
   async remove(id: number) {
     try {
-      await this.prisma.user.delete({
-        where: { id },
-      });
+      await this.usersRepository.remove(id);
     } catch (error) {
       if (
         error instanceof Prisma.PrismaClientKnownRequestError &&
