@@ -16,16 +16,41 @@ enum Role {
   USER
   ADMIN
 }
+
 model User {
-  id         Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  name       String   @db.VarChar(100)
-  username   String   @unique @db.VarChar(50)
-  email      String   @unique @db.VarChar(255)
-  password   String   @db.VarChar(255)
+  name     String @db.VarChar(100)
+  username String @unique @db.VarChar(50)
+  email    String @unique @db.VarChar(255)
+  password String @db.VarChar(255)
 
-  role       Role     @default(USER)
+  role Role @default(USER)
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Category {
+  id   Int    @id @default(autoincrement())
+  name String @unique @db.VarChar(50)
+
+  products Product[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Product {
+  id          Int     @id @default(autoincrement())
+  name        String  @db.VarChar(100)
+  description String?
+  price       Int
+  stock       Int
+
+  categoryId Int
+  category   Category @relation(fields: [categoryId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

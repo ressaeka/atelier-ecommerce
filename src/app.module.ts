@@ -4,6 +4,8 @@ import { PrismaModule } from './prisma/prisma.module.js';
 import { UsersModule } from './users/users.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { RedisModule } from './common/redis/redis.module.js';
+import { CategoryModule } from './category/category.module';
+import { ProductModule } from './product/product.module';
 
 @Module({
   imports: [
@@ -12,6 +14,8 @@ import { RedisModule } from './common/redis/redis.module.js';
     UsersModule,
     AuthModule,
     RedisModule,
+    CategoryModule,
+    ProductModule,
   ],
 })
 export class AppModule {}

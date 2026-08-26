@@ -51,14 +51,6 @@ export class UsersController {
     return successResponse(identity, 'Profil berhasil diperbarui');
   }
 
-  @Delete('me')
-  @UseGuards(JwtAuthGuard)
-  async deleteMe(@CurrentUser() user: AuthenticatedUser) {
-    const result = await this.usersService.remove(user.id);
-
-    return successResponse(result, 'Akun berhasil dihapus');
-  }
-
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
