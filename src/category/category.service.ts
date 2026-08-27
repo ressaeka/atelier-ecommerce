@@ -118,6 +118,23 @@ export class CategoryService {
     }
   }
 
+  async deleteCategory(id: number): Promise<Category> {
+    try {
+      const category = await this.categoryRepository.deleteCategory(id);
+
+      return this.toEntity(category);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundException(`Category dengan ${id} tidak ditemukan`);
+      }
+
+      throw error;
+    }
+  }
+
   private toEntity(category: {
     id: number;
     name: string;
