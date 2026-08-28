@@ -1,9 +1,9 @@
-// import { Product } from '../../product/entities/product.entity.js';
+import { Product } from '../../product/entities/product.entity.js';
 
 export class Category {
   id!: number;
   name!: string;
-  // products!: Product[];
+  products!: Product[];
   createdAt!: Date;
   updatedAt!: Date;
 }
