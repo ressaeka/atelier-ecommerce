@@ -4,6 +4,8 @@ import { CreateProductDto } from './dto/create-product.dto.js';
 import { ProductRepository } from './product.repository.js';
 import { Product } from './entities/product.entity.js';
 import { CategoryRepository } from '../category/category.repository.js';
+import { QueryProductDto } from './dto/query-product.js';
+import { Prisma } from '../../generated/prisma/client.js';
 
 @Injectable()
 export class ProductService {
@@ -36,22 +38,48 @@ export class ProductService {
     return this.toEntity(product);
   }
 
-  // findAll() {
-  //   return `This action returns all product`;
-  // }
+  async findAllProduct(query: QueryProductDto) {
+    const { page, limit, search, categoryId, minPrice, maxPrice } = query;
 
-  // findOne(id: number) {
-  //   return `This action returns a #${id} product`;
-  // }
+    const skip = (page - 1) * limit;
 
-  // update(id: number, updateProductDto: UpdateProductDto) {
-  //   return `This action updates a #${id} product`;
-  // }
+    const where: Prisma.ProductWhereInput = {
+      ...(search && {
+        name: {
+          contains: search,
+          mode: 'insensitive',
+        },
+      }),
 
-  // remove(id: number) {
-  //   return `This action removes a #${id} product`;
-  // }
+      ...(categoryId !== undefined && {
+        categoryId,
+      }),
 
+      ...(minPrice !== undefined || maxPrice !== undefined
+        ? {
+            price: {
+              ...(minPrice !== undefined && { gte: minPrice }),
+              ...(maxPrice !== undefined && { lte: maxPrice }),
+            },
+          }
+        : {}),
+    };
+
+    const [products, total] = await Promise.all([
+      this.productRepository.findAll(where, skip, limit),
+      this.productRepository.count(where),
+    ]);
+
+    return {
+      items: products.map((product) => this.toEntity(product)),
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
   private toEntity(product: {
     id: number;
     name: string;
