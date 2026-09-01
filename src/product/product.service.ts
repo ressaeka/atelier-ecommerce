@@ -80,6 +80,17 @@ export class ProductService {
       },
     };
   }
+
+  async findProductById(id: number): Promise<Product> {
+    const product = await this.productRepository.findById(id);
+
+    if (!product) {
+      throw new NotFoundException('Product tidak di temukan');
+    }
+
+    return this.toEntity(product);
+  }
+
   private toEntity(product: {
     id: number;
     name: string;
