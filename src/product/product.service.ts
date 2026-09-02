@@ -91,6 +91,23 @@ export class ProductService {
     return this.toEntity(product);
   }
 
+  async removeProduct(id: number): Promise<Product> {
+    try {
+      const product = await this.productRepository.remove(id);
+
+      return this.toEntity(product);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2025'
+      ) {
+        throw new NotFoundException(`Product dengan ${id} tidak ditemukan`);
+      }
+
+      throw error;
+    }
+  }
+
   private toEntity(product: {
     id: number;
     name: string;

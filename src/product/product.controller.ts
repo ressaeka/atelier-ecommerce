@@ -6,7 +6,7 @@ import {
   // Patch,
   Param,
   ParseIntPipe,
-  // Delete,
+  Delete,
   UseGuards,
   Query,
 } from '@nestjs/common';
@@ -24,7 +24,7 @@ import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 import { successResponse } from '../common/helpers/response.helper.js';
 
 @Controller('product')
-export class ProductController {
+export default class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Post()
@@ -62,8 +62,13 @@ export class ProductController {
   //   return this.productService.update(+id, updateProductDto);
   // }
 
-  // @Delete(':id')
-  // remove(@Param('id') id: string) {
-  //   return this.productService.remove(+id);
-  // }
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('ADMIN')
+  @Permissions(PERMISSIONS.PRODUCT_DELETE)
+  async remove(@Param('id', ParseIntPipe) id: number) {
+    const product = await this.productService.removeProduct(id);
+
+    return successResponse(product, 'Product berhasil dihapus');
+  }
 }
