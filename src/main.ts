@@ -7,6 +7,8 @@ async function bootstrap() {
 
   const config = app.get(ConfigService);
 
+  app.setGlobalPrefix('api/v1');
+
   const host = config.get<string>('HOST') ?? 'localhost';
   const port = config.get<number>('PORT') ?? 3000;
 

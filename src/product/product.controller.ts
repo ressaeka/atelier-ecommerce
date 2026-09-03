@@ -3,7 +3,7 @@ import {
   Get,
   Post,
   Body,
-  // Patch,
+  Patch,
   Param,
   ParseIntPipe,
   Delete,
@@ -12,8 +12,14 @@ import {
 } from '@nestjs/common';
 import { QueryProductDto, queryProductSchema } from './dto/query-product.js';
 import { ProductService } from './product.service.js';
-import { CreateProductDto } from './dto/create-product.dto.js';
-// import { UpdateProductDto } from './dto/update-product.dto.js';
+import {
+  CreateProductDto,
+  createProductSchema,
+} from './dto/create-product.dto.js';
+import {
+  UpdateProductDto,
+  UpdateProductSchema,
+} from './dto/update-product.dto.js';
 import { Permissions } from '../common/decorators/permissions.decorator.js';
 import { PERMISSIONS } from '../common/permissions/permission.js';
 import { PermissionsGuard } from '../common/guards/permissions.guard.js';
@@ -24,14 +30,17 @@ import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 import { successResponse } from '../common/helpers/response.helper.js';
 
 @Controller('product')
-export default class ProductController {
+export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
-  @Permissions(PERMISSIONS.CATEGORY_CREATE)
-  async create(@Body() createProductDto: CreateProductDto) {
+  @Permissions(PERMISSIONS.PRODUCT_CREATE)
+  async create(
+    @Body(new ZodValidationPipe(createProductSchema))
+    createProductDto: CreateProductDto,
+  ) {
     const product = await this.productService.create(createProductDto);
 
     return successResponse(product, 'Product berhasil dibuat');
@@ -54,13 +63,25 @@ export default class ProductController {
   async findOne(@Param('id', ParseIntPipe) id: number) {
     const product = await this.productService.findProductById(id);
 
-    return successResponse(product, 'Category berhasil diambil');
+    return successResponse(product, 'Product berhasil diambil');
   }
 
-  // @Patch(':id')
-  // update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
-  //   return this.productService.update(+id, updateProductDto);
-  // }
+  @Patch(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @Roles('ADMIN')
+  @Permissions(PERMISSIONS.PRODUCT_UPDATE)
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body(new ZodValidationPipe(UpdateProductSchema))
+    updateProductDto: UpdateProductDto,
+  ) {
+    const product = await this.productService.updateProduct(
+      id,
+      updateProductDto,
+    );
+
+    return successResponse(product, 'Product berhasil diperbarui');
+  }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)

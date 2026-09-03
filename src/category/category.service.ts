@@ -124,11 +124,16 @@ export class CategoryService {
 
       return this.toEntity(category);
     } catch (error) {
-      if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === 'P2025'
-      ) {
-        throw new NotFoundException(`Category dengan ${id} tidak ditemukan`);
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new NotFoundException(`Category dengan ${id} tidak ditemukan`);
+        }
+
+        if (error.code === 'P2003') {
+          throw new ConflictException(
+            `Category dengan ${id} tidak bisa dihapus karena masih memiliki product`,
+          );
+        }
       }
 
       throw error;

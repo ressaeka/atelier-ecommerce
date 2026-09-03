@@ -2,13 +2,10 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
-
-import { Role } from '../../../generated/prisma/enums.js';
+import { AuthenticatedUser } from '../../users/entities/authenticated-user.js';
 
 export interface JwtPayload {
   sub: number;
-  username: string;
-  role: Role;
 }
 
 @Injectable()
@@ -20,7 +17,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  validate(payload: JwtPayload): JwtPayload {
+  validate(payload: AuthenticatedUser): AuthenticatedUser {
     return payload;
   }
 }

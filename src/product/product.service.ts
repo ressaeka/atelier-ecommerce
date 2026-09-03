@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto.js';
-// import { UpdateProductDto } from './dto/update-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto.js';
 import { ProductRepository } from './product.repository.js';
 import { Product } from './entities/product.entity.js';
 import { CategoryRepository } from '../category/category.repository.js';
@@ -102,6 +102,42 @@ export class ProductService {
         error.code === 'P2025'
       ) {
         throw new NotFoundException(`Product dengan ${id} tidak ditemukan`);
+      }
+
+      throw error;
+    }
+  }
+
+  async updateProduct(
+    id: number,
+    updateProductDto: UpdateProductDto,
+  ): Promise<Product> {
+    const { categoryId, ...rest } = updateProductDto;
+
+    const data: Prisma.ProductUpdateInput = {
+      ...rest,
+      ...(categoryId !== undefined && {
+        category: {
+          connect: { id: categoryId },
+        },
+      }),
+    };
+
+    try {
+      const product = await this.productRepository.update(id, data);
+
+      return this.toEntity(product);
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2025') {
+          throw new NotFoundException(`Product dengan ${id} tidak ditemukan`);
+        }
+
+        if (error.code === 'P2003') {
+          throw new NotFoundException(
+            `Category dengan id ${categoryId} tidak ditemukan`,
+          );
+        }
       }
 
       throw error;

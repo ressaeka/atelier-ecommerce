@@ -8,7 +8,7 @@ export class RedisService implements OnModuleDestroy {
   private readonly redis: Redis;
 
   constructor(private readonly configService: ConfigService) {
-    const redisUrl = this.configService.getOrThrow<string>('REDIS_URL');
+    const redisUrl = this.configService.getOrThrow<string>('redis.url');
 
     this.logger.log(`Connecting to Redis: ${redisUrl}`);
 
@@ -106,6 +106,23 @@ export class RedisService implements OnModuleDestroy {
     } while (cursor !== '0');
 
     return keys;
+  }
+
+  /*
+   * Tambahkan member ke Redis Set.
+   *
+   * Dipakai untuk menyimpan daftar session (family + refresh token)
+   * per user, agar tidak perlu SCAN seluruh keyspace.
+   */
+  async sAdd(key: string, ...members: string[]): Promise<number> {
+    return this.redis.sadd(key, ...members);
+  }
+
+  /*
+   * Ambil semua member dari Redis Set.
+   */
+  async sMembers(key: string): Promise<string[]> {
+    return this.redis.smembers(key);
   }
 
   async onModuleDestroy() {

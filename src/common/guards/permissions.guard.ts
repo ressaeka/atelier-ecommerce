@@ -11,12 +11,6 @@ import { ROLE_PERMISSIONS } from '../permissions/role-permissions.js';
 import { Permission } from '../permissions/permission.js';
 import { Role } from '../../../generated/prisma/enums.js';
 
-interface AuthenticatedRequest {
-  user: {
-    role: Role;
-  };
-}
-
 @Injectable()
 export class PermissionsGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
@@ -31,9 +25,17 @@ export class PermissionsGuard implements CanActivate {
       return true;
     }
 
-    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const request = context.switchToHttp().getRequest<{
+      user?: { role: Role };
+    }>();
 
-    const userRole = request.user.role;
+    const user = request.user;
+
+    if (!user || !user.role) {
+      throw new ForbiddenException('User tidak memiliki akses');
+    }
+
+    const userRole = user.role;
 
     const userPermissions = ROLE_PERMISSIONS[userRole] ?? [];
 

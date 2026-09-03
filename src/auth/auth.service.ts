@@ -146,6 +146,16 @@ export class AuthService {
       ttl,
     );
 
+    /*
+     * Track session keys di per-user set
+     * agar revoke tidak perlu SCAN seluruh Redis.
+     */
+    await this.redisService.sAdd(
+      `user_sessions:${user.id}`,
+      `family:${familyId}`,
+      `refresh:${refreshTokenJti}`,
+    );
+
     return successResponse(
       {
         user: {
@@ -313,6 +323,14 @@ export class AuthService {
         7 * 24 * 60 * 60,
       );
 
+      /*
+       * Track refresh token baru di per-user set.
+       */
+      await this.redisService.sAdd(
+        `user_sessions:${user.id}`,
+        `refresh:${newJti}`,
+      );
+
       return successResponse(
         {
           access_token: newAccessToken,
@@ -456,58 +474,62 @@ export class AuthService {
   }
 
   async resetPassword(dto: ResetPasswordDto) {
+    /*
+     * Verify reset token terlebih dahulu.
+     * Dipisah dari operasi DB/Redis agar error JWT
+     * tidak menelan error dari operasi lainnya.
+     */
+    let payload: {
+      sub: number;
+      purpose: string;
+    };
+
     try {
-      /*
-       * Verify reset token.
-       */
-      const payload = await this.jwtService.verifyAsync<{
+      payload = await this.jwtService.verifyAsync<{
         sub: number;
         purpose: string;
       }>(dto.resetToken, {
         secret: this.configService.getOrThrow<string>('JWT_RESET_SECRET'),
       });
-
-      /*
-       * Pastikan token memang dibuat
-       * khusus untuk password reset.
-       */
-      if (payload.purpose !== 'password-reset') {
-        throw new UnauthorizedException('Reset token tidak valid');
-      }
-
-      /*
-       * Pastikan user masih ada.
-       */
-      const user = await this.usersService.findById(payload.sub);
-
-      if (!user) {
-        throw new UnauthorizedException('Reset token tidak valid');
-      }
-
-      /*
-       * Hash password baru.
-       */
-      const hashedPassword = await hashPassword(dto.newPassword);
-
-      /*
-       * Update password.
-       */
-      await this.usersService.updatePassword(user.id, hashedPassword);
-
-      /*
-       * Password berubah = semua session lama tidak valid.
-       */
-      await this.revokeAllUserSessions(user.id);
-
-      return successResponse(null, 'Password berhasil direset');
     } catch {
-      /*
-       * Jangan expose detail JWT error.
-       */
       throw new UnauthorizedException(
         'Reset token tidak valid atau sudah kadaluarsa',
       );
     }
+
+    /*
+     * Pastikan token memang dibuat
+     * khusus untuk password reset.
+     */
+    if (payload.purpose !== 'password-reset') {
+      throw new UnauthorizedException('Reset token tidak valid');
+    }
+
+    /*
+     * Pastikan user masih ada.
+     */
+    const user = await this.usersService.findById(payload.sub);
+
+    if (!user) {
+      throw new UnauthorizedException('Reset token tidak valid');
+    }
+
+    /*
+     * Hash password baru.
+     */
+    const hashedPassword = await hashPassword(dto.newPassword);
+
+    /*
+     * Update password.
+     */
+    await this.usersService.updatePassword(user.id, hashedPassword);
+
+    /*
+     * Password berubah = semua session lama tidak valid.
+     */
+    await this.revokeAllUserSessions(user.id);
+
+    return successResponse(null, 'Password berhasil direset');
   }
 
   async logout(dto: RefreshTokenDto) {
@@ -566,25 +588,23 @@ export class AuthService {
    * Hapus semua session user (family + refresh token).
    */
   private async revokeAllUserSessions(userId: number): Promise<void> {
-    const [familyKeys, refreshKeys] = await Promise.all([
-      this.redisService.scanKeys('family:*'),
-      this.redisService.scanKeys('refresh:*'),
-    ]);
+    const sessionSetKey = `user_sessions:${userId}`;
 
-    for (const key of familyKeys) {
-      const value = await this.redisService.get(key);
+    const keys = await this.redisService.sMembers(sessionSetKey);
 
-      if (value && value.endsWith(`:${userId}`)) {
-        await this.redisService.del(key);
-      }
+    if (keys.length === 0) {
+      return;
     }
 
-    for (const key of refreshKeys) {
-      const value = await this.redisService.get(key);
+    /*
+     * Hapus semua session keys (family + refresh token)
+     * yang terdaftar di set milik user ini.
+     */
+    await Promise.all(keys.map((key) => this.redisService.del(key)));
 
-      if (value && value.includes(`:${userId}:`)) {
-        await this.redisService.del(key);
-      }
-    }
+    /*
+     * Hapus set itu sendiri.
+     */
+    await this.redisService.del(sessionSetKey);
   }
 }

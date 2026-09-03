@@ -11,8 +11,14 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { CategoryService } from './category.service.js';
-import { CreateCategoryDto } from './dto/create-category.dto.js';
-import { UpdateCategoryDto } from './dto/update-category.dto.js';
+import {
+  CreateCategoryDto,
+  CategorySchema,
+} from './dto/create-category.dto.js';
+import {
+  UpdateCategoryDto,
+  updateCategorySchema,
+} from './dto/update-category.dto.js';
 import { QueryCategoryDto, queryCategorySchema } from './dto/query-category.js';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 import { successResponse } from '../common/helpers/response.helper.js';
@@ -31,7 +37,10 @@ export class CategoryController {
   @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
   @Permissions(PERMISSIONS.CATEGORY_CREATE)
-  async create(@Body() createCategoryDto: CreateCategoryDto) {
+  async create(
+    @Body(new ZodValidationPipe(CategorySchema))
+    createCategoryDto: CreateCategoryDto,
+  ) {
     const category = await this.categoryService.create(createCategoryDto);
 
     return successResponse(category, 'Category berhasil dibuat');
@@ -64,7 +73,8 @@ export class CategoryController {
   @Permissions(PERMISSIONS.CATEGORY_UPDATE)
   async update(
     @Param('id', ParseIntPipe) id: number,
-    @Body() updateCategoryDto: UpdateCategoryDto,
+    @Body(new ZodValidationPipe(updateCategorySchema))
+    updateCategoryDto: UpdateCategoryDto,
   ) {
     const category = await this.categoryService.updateCategory(
       id,

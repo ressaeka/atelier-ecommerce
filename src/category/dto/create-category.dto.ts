@@ -4,7 +4,7 @@ export const CategorySchema = z.object({
   name: z
     .string()
     .trim()
-    .min(20, 'Nama minimal 20 karakter')
+    .min(1, 'Nama wajib diisi')
     .max(50, 'Nama maksimal 50 karakter'),
 });
 

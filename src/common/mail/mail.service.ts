@@ -16,10 +16,10 @@ export class MailService {
 
   constructor(private readonly configService: ConfigService) {
     this.resend = new Resend(
-      this.configService.getOrThrow<string>('RESEND_API_KEY'),
+      this.configService.getOrThrow<string>('resend.apiKey'),
     );
 
-    this.fromEmail = this.configService.getOrThrow<string>('MAIL_FROM');
+    this.fromEmail = this.configService.getOrThrow<string>('resend.from');
   }
 
   async sendWelcomeEmail(email: string, username: string): Promise<void> {

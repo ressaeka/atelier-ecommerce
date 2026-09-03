@@ -22,7 +22,7 @@ import { updateUserSchema, UpdateUserDto } from './dto/update-user.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { queryUsersSchema, QueryUsersDto } from './dto/query-users.dto.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
-import { AuthenticatedUser } from './entities/authenticated-user.js';
+import { JwtPayload } from '../auth/strategies/jwt.strategy.js';
 
 @Controller('users')
 export class UsersController {
@@ -31,8 +31,8 @@ export class UsersController {
   @Get('me')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions(PERMISSIONS.PROFILE_READ)
-  async findMe(@CurrentUser() user: AuthenticatedUser) {
-    const identity = await this.usersService.findById(user.id);
+  async findMe(@CurrentUser() user: JwtPayload) {
+    const identity = await this.usersService.findById(user.sub);
 
     return successResponse(identity, 'Profil berhasil diambil');
   }
@@ -41,12 +41,11 @@ export class UsersController {
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions(PERMISSIONS.PROFILE_UPDATE)
   async updateMe(
-    @CurrentUser() user: AuthenticatedUser,
-
+    @CurrentUser() user: JwtPayload,
     @Body(new ZodValidationPipe(updateUserSchema))
     updateUserDto: UpdateUserDto,
   ) {
-    const identity = await this.usersService.update(user.id, updateUserDto);
+    const identity = await this.usersService.update(user.sub, updateUserDto);
 
     return successResponse(identity, 'Profil berhasil diperbarui');
   }
@@ -73,13 +72,13 @@ export class UsersController {
 
     return successResponse(users, 'Users berhasil diambil');
   }
+
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
   @Permissions(PERMISSIONS.USER_UPDATE)
   async update(
     @Param('id', ParseIntPipe) id: number,
-
     @Body(new ZodValidationPipe(updateUserSchema))
     updateUserDto: UpdateUserDto,
   ) {
