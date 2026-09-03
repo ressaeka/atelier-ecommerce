@@ -23,6 +23,7 @@ model User {
   name     String @db.VarChar(100)
   username String @unique @db.VarChar(50)
   email    String @unique @db.VarChar(255)
+  phone    String? @unique @db.VarChar(50)
   password String @db.VarChar(255)
 
   role Role @default(USER)

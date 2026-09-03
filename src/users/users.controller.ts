@@ -9,6 +9,15 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiParam,
+  ApiQuery,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 
 import { UsersService } from './users.service.js';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
@@ -23,7 +32,18 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { queryUsersSchema, QueryUsersDto } from './dto/query-users.dto.js';
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 import { JwtPayload } from '../auth/strategies/jwt.strategy.js';
+import {
+  queryUsersLimit,
+  queryUsersPage,
+  queryUsersSearch,
+  updateUserApiBody,
+  userDeleteResponseSchema,
+  userResponseSchema,
+  usersListResponseSchema,
+} from './users.swagger.js';
 
+@ApiTags('Users')
+@ApiBearerAuth()
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
@@ -31,6 +51,9 @@ export class UsersController {
   @Get('me')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions(PERMISSIONS.PROFILE_READ)
+  @ApiOperation({ summary: 'Ambil profil pengguna yang sedang login' })
+  @ApiResponse(userResponseSchema)
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async findMe(@CurrentUser() user: JwtPayload) {
     const identity = await this.usersService.findById(user.sub);
 
@@ -40,6 +63,11 @@ export class UsersController {
   @Patch('me')
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions(PERMISSIONS.PROFILE_UPDATE)
+  @ApiOperation({ summary: 'Perbarui profil pengguna yang sedang login' })
+  @ApiBody(updateUserApiBody)
+  @ApiResponse(userResponseSchema)
+  @ApiResponse({ status: 400, description: 'Validasi input gagal' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async updateMe(
     @CurrentUser() user: JwtPayload,
     @Body(new ZodValidationPipe(updateUserSchema))
@@ -54,6 +82,14 @@ export class UsersController {
   @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
   @Permissions(PERMISSIONS.USER_READ)
+  @ApiOperation({ summary: 'Ambil data user berdasarkan ID (Admin only)' })
+  @ApiParam({ name: 'id', type: Number, description: 'ID User' })
+  @ApiResponse(userResponseSchema)
+  @ApiResponse({ status: 404, description: 'User tidak ditemukan' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden (Role ADMIN & permission USER_READ)',
+  })
   async findById(@Param('id', ParseIntPipe) id: number) {
     const user = await this.usersService.findById(id);
 
@@ -64,6 +100,22 @@ export class UsersController {
   @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
   @Permissions(PERMISSIONS.USER_READ)
+  @ApiOperation({
+    summary:
+      'Ambil daftar semua user dengan paginasi dan pencarian (Admin only)',
+  })
+  @ApiQuery(queryUsersPage)
+  @ApiQuery(queryUsersLimit)
+  @ApiQuery(queryUsersSearch)
+  @ApiResponse(usersListResponseSchema)
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden (Role ADMIN & permission USER_READ)',
+  })
   async findAll(
     @Query(new ZodValidationPipe(queryUsersSchema))
     query: QueryUsersDto,
@@ -77,6 +129,17 @@ export class UsersController {
   @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
   @Permissions(PERMISSIONS.USER_UPDATE)
+  @ApiOperation({ summary: 'Perbarui user berdasarkan ID (Admin only)' })
+  @ApiParam({ name: 'id', type: Number, description: 'ID User' })
+  @ApiBody(updateUserApiBody)
+  @ApiResponse(userResponseSchema)
+  @ApiResponse({ status: 400, description: 'Validasi input gagal' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User tidak ditemukan' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden (Role ADMIN & permission USER_UPDATE)',
+  })
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Body(new ZodValidationPipe(updateUserSchema))
@@ -91,6 +154,15 @@ export class UsersController {
   @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
   @Permissions(PERMISSIONS.USER_DELETE)
+  @ApiOperation({ summary: 'Hapus user berdasarkan ID (Admin only)' })
+  @ApiParam({ name: 'id', type: Number, description: 'ID User' })
+  @ApiResponse(userDeleteResponseSchema)
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'User tidak ditemukan' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden (Role ADMIN & permission USER_DELETE)',
+  })
   async remove(@Param('id', ParseIntPipe) id: number) {
     const result = await this.usersService.remove(id);
 

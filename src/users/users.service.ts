@@ -9,6 +9,7 @@ import { UpdateUserDto } from './dto/update-user.dto.js';
 import { QueryUsersDto } from './dto/query-users.dto.js';
 import { User } from './entities/user.entity.js';
 import { UsersRepository } from './users.repository.js';
+import { normalizePhone } from '../common/helpers/phone.helpers.js';
 
 @Injectable()
 export class UsersService {
@@ -30,22 +31,76 @@ export class UsersService {
   }
 
   async createUser(data: Prisma.UserCreateInput): Promise<User> {
+    const normalizedPhone = data.phone ? normalizePhone(data.phone) : undefined;
+
     const existing = await this.usersRepository.findExisting(
       data.username,
       data.email,
+      normalizedPhone,
     );
 
     if (existing) {
-      const field = existing.username === data.username ? 'username' : 'email';
+      let field: string;
+
+      if (existing.username === data.username) {
+        field = 'username';
+      } else if (existing.email === data.email) {
+        field = 'email';
+      } else {
+        field = 'phone';
+      }
 
       throw new ConflictException(`${field} sudah terdaftar`);
     }
 
-    const user = await this.usersRepository.create(data);
+    const userData: Prisma.UserCreateInput = {
+      ...data,
+      ...(normalizedPhone && {
+        phone: normalizedPhone,
+      }),
+    };
 
-    return this.toEntity(user);
+    try {
+      const user = await this.usersRepository.create(userData);
+
+      return this.toEntity(user);
+    } catch (error) {
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException('Data user sudah terdaftar');
+      }
+
+      throw error;
+    }
+  }
+  async findByIdentifier(identifier: string): Promise<User | null> {
+    const normalizedIdentifier =
+      identifier.startsWith('0') ||
+      identifier.startsWith('62') ||
+      identifier.startsWith('+62')
+        ? normalizePhone(identifier)
+        : identifier;
+
+    const user =
+      await this.usersRepository.findByIdentifier(normalizedIdentifier);
+
+    return user ? this.toEntity(user) : null;
   }
 
+  async findByIdentifierWithPassword(identifier: string) {
+    const normalizedIdentifier =
+      identifier.startsWith('0') ||
+      identifier.startsWith('62') ||
+      identifier.startsWith('+62')
+        ? normalizePhone(identifier)
+        : identifier;
+
+    return this.usersRepository.findByIdentifierWithPassword(
+      normalizedIdentifier,
+    );
+  }
   async findByEmail(email: string): Promise<User | null> {
     const user = await this.usersRepository.findByEmail(email);
 
@@ -56,10 +111,6 @@ export class UsersService {
     const user = await this.usersRepository.findByUsername(username);
 
     return user ? this.toEntity(user) : null;
-  }
-
-  async findByUsernameWithPassword(username: string) {
-    return this.usersRepository.findByUsernameWithPassword(username);
   }
 
   async findById(id: number): Promise<User> {
@@ -74,7 +125,6 @@ export class UsersService {
 
   async findAll(query: QueryUsersDto) {
     const { page, limit, search } = query;
-
     const skip = (page - 1) * limit;
 
     const where: Prisma.UserWhereInput = search
@@ -98,19 +148,23 @@ export class UsersService {
                 mode: 'insensitive',
               },
             },
+            {
+              phone: {
+                contains: search,
+                mode: 'insensitive',
+              },
+            },
           ],
         }
       : {};
 
     const [users, total] = await Promise.all([
       this.usersRepository.findMany(where, skip, limit),
-
       this.usersRepository.count(where),
     ]);
 
     return {
       items: users.map((user) => this.toEntity(user)),
-
       meta: {
         page,
         limit,
@@ -121,11 +175,18 @@ export class UsersService {
   }
 
   async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
+    const normalizedPhone = updateUserDto.phone
+      ? normalizePhone(updateUserDto.phone)
+      : undefined;
+
     const data: Prisma.UserUpdateInput = {
       ...updateUserDto,
+      ...(normalizedPhone && {
+        phone: normalizedPhone,
+      }),
     };
 
-    if (updateUserDto.username || updateUserDto.email) {
+    if (updateUserDto.username || updateUserDto.email || normalizedPhone) {
       const or: Prisma.UserWhereInput[] = [];
 
       if (updateUserDto.username) {
@@ -140,11 +201,24 @@ export class UsersService {
         });
       }
 
+      if (normalizedPhone) {
+        or.push({
+          phone: normalizedPhone,
+        });
+      }
+
       const existing = await this.usersRepository.findExistingForUpdate(id, or);
 
       if (existing) {
-        const field =
-          existing.username === updateUserDto.username ? 'username' : 'email';
+        let field: string;
+
+        if (existing.username === updateUserDto.username) {
+          field = 'username';
+        } else if (existing.email === updateUserDto.email) {
+          field = 'email';
+        } else {
+          field = 'phone';
+        }
 
         throw new ConflictException(`${field} sudah terdaftar`);
       }
@@ -162,10 +236,18 @@ export class UsersService {
         throw new NotFoundException(`User ${id} tidak ditemukan`);
       }
 
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          'Username, email, atau nomor telepon sudah terdaftar',
+        );
+      }
+
       throw error;
     }
   }
-
   async remove(id: number) {
     try {
       await this.usersRepository.remove(id);
@@ -190,6 +272,7 @@ export class UsersService {
     name: string;
     username: string;
     email: string;
+    phone: string | null;
     role: 'USER' | 'ADMIN';
     createdAt: Date;
     updatedAt: Date;
@@ -200,6 +283,7 @@ export class UsersService {
     entity.name = user.name;
     entity.username = user.username;
     entity.email = user.email;
+    entity.phone = user.phone;
     entity.role = user.role;
     entity.createdAt = user.createdAt;
     entity.updatedAt = user.updatedAt;

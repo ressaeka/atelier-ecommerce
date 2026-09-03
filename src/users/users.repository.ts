@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
-
 @Injectable()
 export class UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -21,10 +20,45 @@ export class UsersRepository {
     });
   }
 
-  async findExisting(username: string, email: string) {
+  async findExisting(username: string, email: string, phone?: string) {
     return this.prisma.user.findFirst({
       where: {
-        OR: [{ username }, { email }],
+        OR: [{ username }, { email }, ...(phone ? [{ phone }] : [])],
+      },
+    });
+  }
+
+  async findByIdentifier(identifier: string) {
+    return this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { username: identifier },
+          { email: identifier },
+          { phone: identifier },
+        ],
+      },
+    });
+  }
+
+  async findByIdentifierWithPassword(identifier: string) {
+    return this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { username: identifier },
+          { email: identifier },
+          { phone: identifier },
+        ],
+      },
+      select: {
+        id: true,
+        name: true,
+        username: true,
+        email: true,
+        phone: true,
+        role: true,
+        password: true,
+        createdAt: true,
+        updatedAt: true,
       },
     });
   }
@@ -36,12 +70,6 @@ export class UsersRepository {
   }
 
   async findByUsername(username: string) {
-    return this.prisma.user.findUnique({
-      where: { username },
-    });
-  }
-
-  async findByUsernameWithPassword(username: string) {
     return this.prisma.user.findUnique({
       where: { username },
     });

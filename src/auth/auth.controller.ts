@@ -7,8 +7,24 @@ import {
   Req,
 } from '@nestjs/common';
 
-import { AuthService } from './auth.service.js';
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 
+import {
+  authSuccessResponse,
+  forgotPasswordApiBody,
+  generalMessageResponseSchema,
+  loginApiBody,
+  logoutApiBody,
+  refreshTokenApiBody,
+  refreshTokenResponseSchema,
+  registerApiBody,
+  registerResponseSchema,
+  resetPasswordApiBody,
+  verifyOtpApiBody,
+  verifyOtpResponseSchema,
+} from './auth.swagger.js';
+
+import { AuthService } from './auth.service.js';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 
 import { registerSchema, RegisterDto } from './dto/register.js';
@@ -16,7 +32,9 @@ import { registerSchema, RegisterDto } from './dto/register.js';
 import { loginSchema, LoginDto } from './dto/login.js';
 
 import { RefreshTokenDto, refreshTokenSchema } from './dto/refresh.token.js';
+
 import type { Request } from 'express';
+
 import {
   ForgotPasswordDto,
   forgotPasswordSchema,
@@ -26,11 +44,25 @@ import { VerifyDto, verifyOtpSchema } from './dto/verify.otp.js';
 
 import { ResetPasswordDto, resetPasswordSchema } from './dto/reset.password.js';
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
+  @ApiOperation({
+    summary: 'Registrasi pengguna baru',
+  })
+  @ApiBody(registerApiBody)
+  @ApiResponse(registerResponseSchema)
+  @ApiResponse({
+    status: 400,
+    description: 'Validasi input gagal',
+  })
+  @ApiResponse({
+    status: 409,
+    description: 'Username, email, atau nomor telepon sudah terdaftar',
+  })
   register(
     @Body(new ZodValidationPipe(registerSchema))
     dto: RegisterDto,
@@ -40,6 +72,15 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Login menggunakan username, email, atau nomor telepon',
+  })
+  @ApiBody(loginApiBody)
+  @ApiResponse(authSuccessResponse)
+  @ApiResponse({
+    status: 401,
+    description: 'Username, email, nomor telepon, atau password salah',
+  })
   login(
     @Body(new ZodValidationPipe(loginSchema))
     dto: LoginDto,
@@ -50,6 +91,16 @@ export class AuthController {
 
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Refresh access token menggunakan refresh token',
+  })
+  @ApiBody(refreshTokenApiBody)
+  @ApiResponse(refreshTokenResponseSchema)
+  @ApiResponse({
+    status: 401,
+    description:
+      'Refresh token tidak valid, reuse terdeteksi, atau sudah kadaluarsa',
+  })
   refresh(
     @Body(new ZodValidationPipe(refreshTokenSchema))
     dto: RefreshTokenDto,
@@ -58,6 +109,15 @@ export class AuthController {
   }
 
   @Post('forgot')
+  @ApiOperation({
+    summary: 'Permintaan OTP reset password melalui email',
+  })
+  @ApiBody(forgotPasswordApiBody)
+  @ApiResponse(generalMessageResponseSchema)
+  @ApiResponse({
+    status: 429,
+    description: 'Terlalu banyak permintaan reset password',
+  })
   forgot(
     @Body(new ZodValidationPipe(forgotPasswordSchema))
     dto: ForgotPasswordDto,
@@ -68,6 +128,19 @@ export class AuthController {
 
   @Post('verify-otp')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Verifikasi OTP reset password',
+  })
+  @ApiBody(verifyOtpApiBody)
+  @ApiResponse(verifyOtpResponseSchema)
+  @ApiResponse({
+    status: 401,
+    description: 'OTP tidak valid atau sudah kadaluarsa',
+  })
+  @ApiResponse({
+    status: 429,
+    description: 'Terlalu banyak percobaan OTP',
+  })
   verifyOtp(
     @Body(new ZodValidationPipe(verifyOtpSchema))
     dto: VerifyDto,
@@ -78,6 +151,15 @@ export class AuthController {
 
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Reset password menggunakan resetToken',
+  })
+  @ApiBody(resetPasswordApiBody)
+  @ApiResponse(generalMessageResponseSchema)
+  @ApiResponse({
+    status: 401,
+    description: 'Reset token tidak valid atau sudah kadaluarsa',
+  })
   resetPassword(
     @Body(new ZodValidationPipe(resetPasswordSchema))
     dto: ResetPasswordDto,
@@ -87,6 +169,15 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Logout akun dan revoke session',
+  })
+  @ApiBody(logoutApiBody)
+  @ApiResponse(generalMessageResponseSchema)
+  @ApiResponse({
+    status: 401,
+    description: 'Refresh token tidak valid',
+  })
   logout(
     @Body(new ZodValidationPipe(refreshTokenSchema))
     dto: RefreshTokenDto,

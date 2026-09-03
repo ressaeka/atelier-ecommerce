@@ -25,6 +25,12 @@ export const updateUserSchema = z.object({
     .toLowerCase()
     .max(255, 'Email maksimal 255 karakter')
     .optional(),
+
+  phone: z
+    .string()
+    .trim()
+    .regex(/^(?:\+62|62|0)8[1-9][0-9]{7,11}$/, 'Nomor telepon tidak valid')
+    .optional(),
 });
 
 export type UpdateUserDto = z.infer<typeof updateUserSchema>;

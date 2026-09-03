@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
 export const loginSchema = z.object({
+  identifier: z
+    .string('Email, username, atau nomor telepon wajib diisi')
+    .trim()
+    .min(1, 'Email, username, atau nomor telepon wajib diisi'),
+
   username: z
     .string('Username wajib diisi')
     .trim()
