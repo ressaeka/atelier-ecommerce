@@ -81,6 +81,22 @@ export class RedisService implements OnModuleDestroy {
   }
 
   /*
+   * Set value baru dan kembalikan value sebelumnya secara atomik.
+   * Cocok untuk claim/rotasi token yang aman dari race condition.
+   */
+  async getSet(
+    key: string,
+    value: string,
+    ttlInSeconds?: number,
+  ): Promise<string | null> {
+    if (ttlInSeconds !== undefined) {
+      return this.redis.set(key, value, 'EX', ttlInSeconds, 'GET');
+    }
+
+    return this.redis.getset(key, value);
+  }
+
+  /*
    * Scan key dengan pattern.
    *
    * Dipakai saat perlu mencari key

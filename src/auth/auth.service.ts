@@ -255,16 +255,16 @@ export class AuthService {
       /*
        * Claim refresh token secara atomik.
        *
-       * Kalau request lain lebih dulu berhasil
-       * claim token yang sama, request ini dianggap reuse.
+       * Kalau token sudah pernah di-revoke sebelumnya oleh request lain,
+       * anggap ini reuse/race condition dan cabut seluruh family.
        */
-      const claimed = await this.redisService.setIfNotExists(
+      const previousSession = await this.redisService.getSet(
         oldKey,
         `revoked:${user.id}`,
         7 * 24 * 60 * 60,
       );
 
-      if (!claimed) {
+      if (!previousSession || previousSession.startsWith('revoked:')) {
         await this.redisService.set(
           familyKey,
           `revoked:${payload.sub}`,

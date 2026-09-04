@@ -2,9 +2,14 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
 import { ConfigService } from '@nestjs/config';
 import { setupSwagger } from './config/swagger.config.js';
+import { setupCors } from './config/cors.config.js';
+import { setupHelmet } from './config/helmet.config.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  setupHelmet(app);
+  setupCors(app);
 
   const config = app.get(ConfigService);
 
