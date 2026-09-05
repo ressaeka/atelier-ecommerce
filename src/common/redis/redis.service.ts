@@ -10,8 +10,6 @@ export class RedisService implements OnModuleDestroy {
   constructor(private readonly configService: ConfigService) {
     const redisUrl = this.configService.getOrThrow<string>('redis.url');
 
-    this.logger.log(`Connecting to Redis: ${redisUrl}`);
-
     this.redis = new Redis(redisUrl, {
       lazyConnect: true,
       maxRetriesPerRequest: 1,
