@@ -141,7 +141,7 @@ Global URL Prefix: `/api/v1`
 | `POST` | `/auth/forgot` | Mengirim OTP reset password ke email | Public (Rate-limited) |
 | `POST` | `/auth/verify-otp` | Verifikasi OTP reset password | Public (Rate-limited) |
 | `POST` | `/auth/reset-password`| Mereset password dengan resetToken | Public |
-| `POST` | `/auth/logout` | Logout dan mencabut sesi refresh token | Public |
+| `POST` | `/auth/logout` | Logout dan mencabut session/family menggunakan refresh token | Public |
 
 ### 👤 Users (`/users`)
 | Method | Endpoint | Deskripsi | Akses |
