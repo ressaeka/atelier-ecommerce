@@ -5,19 +5,13 @@ import type { StringValue } from 'ms';
 import { randomInt, randomUUID } from 'crypto';
 
 import { UsersService } from '../users/users.service.js';
-import { successResponse } from '../common/helpers/response.helper.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 
+import { successResponse } from '../common/helpers/response.helper.js';
 import {
   comparePassword,
   hashPassword,
 } from '../common/helpers/password.helper.js';
-
-import { type RegisterDto } from './dto/register.js';
-import { type LoginDto } from './dto/login.js';
-import { type RefreshTokenDto } from './dto/refresh.token.js';
-import { type ForgotPasswordDto } from './dto/forgot.password.js';
-import { type VerifyDto } from './dto/verify.otp.js';
-import { type ResetPasswordDto } from './dto/reset.password.js';
 
 import { RedisService } from '../common/redis/redis.service.js';
 import { MailService } from '../common/mail/mail.service.js';
@@ -26,7 +20,20 @@ import { LoginRateLimitService } from './services/login-rate-limit.service.js';
 import { ForgotRateLimitService } from './services/forgot-rate-limit.service.js';
 import { OtpRateLimitService } from './services/otp-rate-limit.service.js';
 
+import { type RegisterDto } from './dto/register.js';
+import { type LoginDto } from './dto/login.js';
+import { type RefreshTokenDto } from './dto/refresh.token.js';
+import { type ForgotPasswordDto } from './dto/forgot.password.js';
+import { type VerifyDto } from './dto/verify.otp.js';
+import { type ResetPasswordDto } from './dto/reset.password.js';
+
 import type { JwtPayload } from './strategies/jwt.strategy.js';
+
+type GoogleUser = {
+  googleId: string;
+  email?: string;
+  name?: string;
+};
 
 @Injectable()
 export class AuthService {
@@ -41,7 +48,125 @@ export class AuthService {
     private readonly loginRateLimitService: LoginRateLimitService,
     private readonly forgotRateLimitService: ForgotRateLimitService,
     private readonly otpRateLimitService: OtpRateLimitService,
+    private readonly prisma: PrismaService,
   ) {}
+
+  // ============================================================
+  // GOOGLE OAUTH
+  // ============================================================
+
+  async googleLogin(googleUser: GoogleUser) {
+    if (!googleUser.googleId || !googleUser.email) {
+      throw new UnauthorizedException('Data akun Google tidak lengkap');
+    }
+
+    /**
+     * 1. Cari Google identity.
+     *
+     * providerAccountId menggunakan Google ID/sub,
+     * bukan email.
+     */
+    const identity = await this.prisma.userIdentity.findUnique({
+      where: {
+        provider_providerAccountId: {
+          provider: 'GOOGLE',
+          providerAccountId: googleUser.googleId,
+        },
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    /**
+     * 2. Google account sudah terhubung.
+     *
+     * Langsung login menggunakan User yang terhubung.
+     */
+    if (identity) {
+      return this.issueTokensAndSession(identity.user);
+    }
+
+    /**
+     * 3. Google identity belum ada.
+     *
+     * Cari User berdasarkan email untuk account linking.
+     */
+    let user = await this.prisma.user.findUnique({
+      where: {
+        email: googleUser.email,
+      },
+    });
+
+    /**
+     * 4. User belum ada.
+     *
+     * Buat User Atelier baru.
+     */
+    if (!user) {
+      const username = await this.generateUniqueUsername(googleUser.email);
+
+      user = await this.prisma.user.create({
+        data: {
+          name: googleUser.name ?? 'Google User',
+          username,
+          email: googleUser.email,
+          password: null,
+          role: 'USER',
+        },
+      });
+    }
+
+    /**
+     * 5. Hubungkan Google account dengan User Atelier.
+     */
+    await this.prisma.userIdentity.create({
+      data: {
+        provider: 'GOOGLE',
+        providerAccountId: googleUser.googleId,
+        userId: user.id,
+      },
+    });
+
+    /**
+     * 6. Gunakan sistem authentication Atelier.
+     *
+     * Google hanya digunakan untuk verifikasi identity.
+     * Token tetap dibuat oleh sistem Atelier.
+     */
+    return this.issueTokensAndSession(user);
+  }
+
+  // ============================================================
+  // USERNAME
+  // ============================================================
+
+  private async generateUniqueUsername(email: string) {
+    const base =
+      email
+        .split('@')[0]
+        .toLowerCase()
+        .replace(/[^a-z0-9_]/g, '')
+        .slice(0, 40) || 'user';
+
+    let username = base;
+
+    const existing = await this.prisma.user.findUnique({
+      where: {
+        username,
+      },
+    });
+
+    if (existing) {
+      username = `${base}_${randomInt(1000, 9999)}`;
+    }
+
+    return username;
+  }
+
+  // ============================================================
+  // REGISTER
+  // ============================================================
 
   async register(dto: RegisterDto) {
     const hashedPassword = await hashPassword(dto.password);
@@ -67,6 +192,10 @@ export class AuthService {
     return successResponse(user, 'User berhasil didaftarkan');
   }
 
+  // ============================================================
+  // LOGIN
+  // ============================================================
+
   async login(dto: LoginDto, ip: string) {
     const identifier = dto.identifier.trim();
 
@@ -74,6 +203,17 @@ export class AuthService {
       await this.usersService.findByIdentifierWithPassword(identifier);
 
     if (!user) {
+      await this.loginRateLimitService.handleFailure(identifier, ip);
+
+      throw new UnauthorizedException(
+        'Username, email, nomor telepon, atau password salah',
+      );
+    }
+
+    /**
+     * OAuth user tidak mempunyai password.
+     */
+    if (!user.password) {
       await this.loginRateLimitService.handleFailure(identifier, ip);
 
       throw new UnauthorizedException(
@@ -93,7 +233,23 @@ export class AuthService {
 
     await this.loginRateLimitService.resetUsername(identifier);
 
-    /*
+    return this.issueTokensAndSession(user);
+  }
+
+  // ============================================================
+  // ISSUE TOKEN + REDIS SESSION
+  // ============================================================
+
+  private async issueTokensAndSession(user: {
+    id: number;
+    name: string;
+    username: string;
+    email: string;
+    phone: string | null;
+    role: string;
+    password: string | null;
+  }) {
+    /**
      * Access Token
      *
      * Hanya menyimpan identity user.
@@ -111,16 +267,19 @@ export class AuthService {
       },
     );
 
-    /*
+    /**
      * Refresh Token Family
      */
     const familyId = randomUUID();
 
-    /*
-     * Unique JTI untuk refresh token
+    /**
+     * Unique JTI
      */
     const refreshTokenJti = randomUUID();
 
+    /**
+     * Refresh Token
+     */
     const refreshToken = await this.jwtService.signAsync(
       {
         sub: user.id,
@@ -137,13 +296,13 @@ export class AuthService {
 
     const ttl = 7 * 24 * 60 * 60;
 
-    /*
-     * Simpan session/family
+    /**
+     * Session / Family
      */
     await this.redisService.set(`family:${familyId}`, `active:${user.id}`, ttl);
 
-    /*
-     * Simpan refresh token
+    /**
+     * Refresh Token
      */
     await this.redisService.set(
       `refresh:${refreshTokenJti}`,
@@ -151,10 +310,8 @@ export class AuthService {
       ttl,
     );
 
-    /*
+    /**
      * Track session berdasarkan user.
-     *
-     * Digunakan saat revoke seluruh session user.
      */
     await this.redisService.sAdd(
       `user_sessions:${user.id}`,
@@ -179,9 +336,13 @@ export class AuthService {
     );
   }
 
+  // ============================================================
+  // REFRESH TOKEN
+  // ============================================================
+
   async refresh(dto: RefreshTokenDto) {
     try {
-      /*
+      /**
        * Verify signature dan expiration refresh token.
        */
       const payload = await this.jwtService.verifyAsync<{
@@ -192,7 +353,7 @@ export class AuthService {
         secret: this.configService.getOrThrow<string>('jwt.refreshSecret'),
       });
 
-      /*
+      /**
        * Pastikan claim security tersedia.
        */
       if (!payload.jti || !payload.familyId) {
@@ -201,7 +362,7 @@ export class AuthService {
 
       const familyKey = `family:${payload.familyId}`;
 
-      /*
+      /**
        * Ambil status session/family.
        */
       const family = await this.redisService.get(familyKey);
@@ -212,7 +373,7 @@ export class AuthService {
         );
       }
 
-      /*
+      /**
        * Family sudah direvoke.
        */
       if (family.startsWith('revoked:')) {
@@ -221,7 +382,7 @@ export class AuthService {
 
       const oldKey = `refresh:${payload.jti}`;
 
-      /*
+      /**
        * Cek refresh token.
        */
       const session = await this.redisService.get(oldKey);
@@ -232,10 +393,10 @@ export class AuthService {
         );
       }
 
-      /*
+      /**
        * Token lama sudah revoked.
        *
-       * Berarti kemungkinan terjadi reuse.
+       * Kemungkinan reuse.
        */
       if (session.startsWith('revoked:')) {
         await this.redisService.set(
@@ -247,16 +408,13 @@ export class AuthService {
         throw new UnauthorizedException('Refresh token reuse detected');
       }
 
-      /*
+      /**
        * Pastikan user masih ada.
        */
       const user = await this.usersService.findById(payload.sub);
 
-      /*
+      /**
        * Claim refresh token secara atomik.
-       *
-       * Kalau token sudah pernah di-revoke sebelumnya oleh request lain,
-       * anggap ini reuse/race condition dan cabut seluruh family.
        */
       const previousSession = await this.redisService.getSet(
         oldKey,
@@ -274,10 +432,8 @@ export class AuthService {
         throw new UnauthorizedException('Refresh token reuse detected');
       }
 
-      /*
-       * Generate access token baru.
-       *
-       * Minimal payload: sub.
+      /**
+       * Access token baru.
        */
       const newAccessToken = await this.jwtService.signAsync(
         {
@@ -291,16 +447,11 @@ export class AuthService {
         },
       );
 
-      /*
-       * Generate JTI baru.
+      /**
+       * Refresh token baru.
        */
       const newJti = randomUUID();
 
-      /*
-       * Generate refresh token baru.
-       *
-       * Family ID tetap sama.
-       */
       const newRefreshToken = await this.jwtService.signAsync(
         {
           sub: user.id,
@@ -317,7 +468,7 @@ export class AuthService {
 
       const ttl = 7 * 24 * 60 * 60;
 
-      /*
+      /**
        * Simpan refresh token baru.
        */
       await this.redisService.set(
@@ -326,7 +477,7 @@ export class AuthService {
         ttl,
       );
 
-      /*
+      /**
        * Track refresh token baru.
        */
       await this.redisService.sAdd(
@@ -342,9 +493,6 @@ export class AuthService {
         'Token berhasil diperbarui',
       );
     } catch (error) {
-      /*
-       * Jangan bungkus ulang UnauthorizedException.
-       */
       if (error instanceof UnauthorizedException) {
         throw error;
       }
@@ -355,12 +503,16 @@ export class AuthService {
     }
   }
 
+  // ============================================================
+  // FORGOT PASSWORD
+  // ============================================================
+
   async forgot(dto: ForgotPasswordDto, ip: string) {
     await this.forgotRateLimitService.handleRequest(dto.email, ip);
 
     const user = await this.usersService.findByEmail(dto.email);
 
-    /*
+    /**
      * Generic response untuk mencegah
      * user enumeration.
      */
@@ -374,11 +526,11 @@ export class AuthService {
     }
 
     const otp = randomInt(100000, 1000000).toString();
-
     const hashedOtp = await hashPassword(otp);
 
     const expiresInMinutes = 10;
     const ttl = expiresInMinutes * 60;
+
     const otpKey = `otp:${user.email}`;
 
     await this.otpRateLimitService.reset(user.email);
@@ -397,9 +549,9 @@ export class AuthService {
         error instanceof Error ? error.stack : String(error),
       );
 
-      /*
-       * OTP gagal dikirim → jangan biarkan
-       * OTP tetap aktif.
+      /**
+       * OTP gagal dikirim →
+       * jangan biarkan OTP tetap aktif.
        */
       await this.redisService.del(otpKey);
 
@@ -411,6 +563,10 @@ export class AuthService {
       'Jika email terdaftar, OTP reset password akan dikirim',
     );
   }
+
+  // ============================================================
+  // VERIFY OTP
+  // ============================================================
 
   async verifyOtp(dto: VerifyDto, ip: string) {
     const user = await this.usersService.findByEmail(dto.email);
@@ -435,7 +591,7 @@ export class AuthService {
       throw new UnauthorizedException('OTP tidak valid atau sudah kadaluarsa');
     }
 
-    /*
+    /**
      * OTP valid → buat reset token.
      */
     const resetToken = await this.jwtService.signAsync(
@@ -449,7 +605,7 @@ export class AuthService {
       },
     );
 
-    /*
+    /**
      * OTP single-use.
      */
     await this.redisService.del(otpKey);
@@ -464,13 +620,17 @@ export class AuthService {
     );
   }
 
+  // ============================================================
+  // RESET PASSWORD
+  // ============================================================
+
   async resetPassword(dto: ResetPasswordDto) {
     let payload: {
       sub: number;
       purpose: string;
     };
 
-    /*
+    /**
      * Verify reset token.
      */
     try {
@@ -486,30 +646,29 @@ export class AuthService {
       );
     }
 
-    /*
-     * Pastikan token memang untuk
-     * password reset.
+    /**
+     * Pastikan token memang untuk password reset.
      */
     if (payload.purpose !== 'password-reset') {
       throw new UnauthorizedException('Reset token tidak valid');
     }
 
-    /*
+    /**
      * Pastikan user masih ada.
      */
     const user = await this.usersService.findById(payload.sub);
 
-    /*
+    /**
      * Hash password baru.
      */
     const hashedPassword = await hashPassword(dto.newPassword);
 
-    /*
+    /**
      * Update password.
      */
     await this.usersService.updatePassword(user.id, hashedPassword);
 
-    /*
+    /**
      * Password berubah →
      * semua session lama dicabut.
      */
@@ -518,9 +677,13 @@ export class AuthService {
     return successResponse(null, 'Password berhasil direset');
   }
 
+  // ============================================================
+  // LOGOUT
+  // ============================================================
+
   async logout(dto: RefreshTokenDto) {
     try {
-      /*
+      /**
        * Verify refresh token.
        */
       const payload = await this.jwtService.verifyAsync<{
@@ -537,7 +700,7 @@ export class AuthService {
 
       const familyKey = `family:${payload.familyId}`;
 
-      /*
+      /**
        * Pastikan family masih ada.
        */
       const family = await this.redisService.get(familyKey);
@@ -548,7 +711,7 @@ export class AuthService {
         );
       }
 
-      /*
+      /**
        * Revoke seluruh family.
        */
       await this.redisService.set(
@@ -567,9 +730,10 @@ export class AuthService {
     }
   }
 
-  /*
-   * Hapus seluruh session user.
-   */
+  // ============================================================
+  // REVOKE ALL SESSIONS
+  // ============================================================
+
   private async revokeAllUserSessions(userId: number): Promise<void> {
     const sessionSetKey = `user_sessions:${userId}`;
 
