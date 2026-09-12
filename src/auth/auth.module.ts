@@ -5,13 +5,13 @@ import { PassportModule } from '@nestjs/passport';
 
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
-
 import { UsersModule } from '../users/users.module.js';
 import { JwtStrategy } from './strategies/jwt.strategy.js';
 import { MailModule } from '../common/mail/mail.module.js';
 import { LoginRateLimitService } from './services/login-rate-limit.service.js';
 import { ForgotRateLimitService } from './services/forgot-rate-limit.service.js';
 import { OtpRateLimitService } from './services/otp-rate-limit.service.js';
+import { GoogleStrategy } from './strategies/google.strategy.js';
 
 @Module({
   imports: [
@@ -38,6 +38,7 @@ import { OtpRateLimitService } from './services/otp-rate-limit.service.js';
   providers: [
     AuthService,
     JwtStrategy,
+    GoogleStrategy,
     LoginRateLimitService,
     ForgotRateLimitService,
     OtpRateLimitService,

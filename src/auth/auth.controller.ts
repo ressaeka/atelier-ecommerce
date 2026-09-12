@@ -5,6 +5,8 @@ import {
   HttpStatus,
   Post,
   Req,
+  Get,
+  UseGuards,
 } from '@nestjs/common';
 
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
@@ -43,11 +45,28 @@ import {
 import { VerifyDto, verifyOtpSchema } from './dto/verify.otp.js';
 
 import { ResetPasswordDto, resetPasswordSchema } from './dto/reset.password.js';
+import { AuthGuard } from '@nestjs/passport';
+
+type GoogleUser = {
+  googleId: string;
+  email?: string;
+  name?: string;
+};
 
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Get('google')
+  @UseGuards(AuthGuard('google'))
+  googleLogin() {}
+
+  @Get('google/callback')
+  @UseGuards(AuthGuard('google'))
+  googleCallback(@Req() req: Request) {
+    return this.authService.googleLogin(req.user as GoogleUser);
+  }
 
   @Post('register')
   @ApiOperation({

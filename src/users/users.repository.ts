@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '../../generated/prisma/client.js';
+import { AuthProvider, Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+
 @Injectable()
 export class UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -17,6 +18,37 @@ export class UsersRepository {
   async create(data: Prisma.UserCreateInput) {
     return this.prisma.user.create({
       data,
+    });
+  }
+
+  async findIndentity(provider: AuthProvider, providerAccountId: string) {
+    return this.prisma.userIdentity.findUnique({
+      where: {
+        provider_providerAccountId: {
+          provider,
+          providerAccountId,
+        },
+      },
+      include: {
+        user: true,
+      },
+    });
+  }
+
+  async createIdentity(
+    userId: number,
+    provider: AuthProvider,
+    providerAccountId: string,
+  ) {
+    return this.prisma.userIdentity.create({
+      data: {
+        userId,
+        provider,
+        providerAccountId,
+      },
+      include: {
+        user: true,
+      },
     });
   }
 
