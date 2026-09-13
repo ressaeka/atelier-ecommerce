@@ -7,6 +7,7 @@ import { RedisModule } from './common/redis/redis.module.js';
 import { CategoryModule } from './category/category.module.js';
 import { ProductModule } from './product/product.module.js';
 import { validateEnv } from './config/env.validation.js';
+import { AddressModule } from './address/address.module.js';
 import configuration from './config/configuration.js';
 
 @Module({
@@ -22,6 +23,7 @@ import configuration from './config/configuration.js';
     RedisModule,
     CategoryModule,
     ProductModule,
+    AddressModule,
   ],
 })
 export class AppModule {}
