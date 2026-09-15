@@ -18,6 +18,15 @@ export class AddressRepository {
     });
   }
 
+  async findByIdAndUserId(id: number, userId: number) {
+    return this.prisma.address.findFirst({
+      where: {
+        id,
+        userId,
+      },
+    });
+  }
+
   async findAll(where: Prisma.AddressWhereInput, skip: number, take: number) {
     return this.prisma.address.findMany({
       where,

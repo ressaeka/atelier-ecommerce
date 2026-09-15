@@ -3,10 +3,10 @@ import { AddressService } from './address.service.js';
 import { AddressController } from './address.controller.js';
 import { AddressRepository } from './address.repository.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
-import { UsersRepository } from '../users/users.repository.js';
+
 @Module({
   controllers: [AddressController],
-  providers: [AddressService, AddressRepository, UsersRepository],
+  providers: [AddressService, AddressRepository],
   exports: [AddressRepository],
   imports: [PrismaModule],
 })
