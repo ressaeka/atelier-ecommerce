@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AuthModule } from '../auth/auth.module.js';
+import { CartModule } from '../cart/cart.module.js';
 import { CategoryModule } from '../category/category.module.js';
 import { ProductModule } from '../product/product.module.js';
 import { UsersModule } from '../users/users.module.js';
@@ -42,6 +43,13 @@ export const usersSwaggerConfig = new DocumentBuilder()
   .setDescription(
     'Dokumentasi API untuk profil pengguna dan administrasi akun.',
   )
+  .setVersion('1.0')
+  .addBearerAuth()
+  .build();
+
+export const cartSwaggerConfig = new DocumentBuilder()
+  .setTitle('Ecommerce API - Cart Domain')
+  .setDescription('Dokumentasi API untuk manajemen keranjang belanja.')
   .setVersion('1.0')
   .addBearerAuth()
   .build();
@@ -95,7 +103,17 @@ export function setupSwagger(app: INestApplication): void {
     },
   });
 
-  // 5. Main Docs (All Domains with top-bar dropdown switcher)
+  // 5. Domain Docs: Cart
+  const cartDocument = SwaggerModule.createDocument(app, cartSwaggerConfig, {
+    include: [CartModule],
+  });
+  SwaggerModule.setup('api/docs/cart', app, cartDocument, {
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+  });
+
+  // 6. Main Docs (All Domains with top-bar dropdown switcher)
   const allDocument = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('api/docs', app, allDocument, {
     swaggerOptions: {
@@ -106,6 +124,7 @@ export function setupSwagger(app: INestApplication): void {
         { url: '/api/docs/category-json', name: 'Category Domain' },
         { url: '/api/docs/product-json', name: 'Product Domain' },
         { url: '/api/docs/users-json', name: 'Users Domain' },
+        { url: '/api/docs/cart-json', name: 'Cart Domain' },
       ],
     },
   });

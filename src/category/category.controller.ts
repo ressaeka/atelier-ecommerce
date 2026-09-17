@@ -76,8 +76,6 @@ export class CategoryController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard, PermissionsGuard)
-  @Permissions(PERMISSIONS.CATEGORY_READ)
   @ApiOperation({
     summary: 'Ambil daftar kategori dengan paginasi dan pencarian',
   })
@@ -96,8 +94,6 @@ export class CategoryController {
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard, PermissionsGuard)
-  @Permissions(PERMISSIONS.CATEGORY_READ)
   @ApiOperation({ summary: 'Ambil detail kategori berdasarkan ID' })
   @ApiParam({ name: 'id', type: Number, description: 'ID Kategori' })
   @ApiResponse(categoryResponseSchema)

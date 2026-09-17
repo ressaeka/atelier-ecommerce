@@ -145,6 +145,7 @@ export class CategoryService {
     name: string;
     createdAt: Date;
     updatedAt: Date;
+    _count?: { products: number };
   }): Category {
     const entity = new Category();
 
@@ -152,6 +153,8 @@ export class CategoryService {
     entity.name = category.name;
     entity.createdAt = category.createdAt;
     entity.updatedAt = category.updatedAt;
+    (entity as Category & { productCount: number }).productCount =
+      category._count?.products ?? 0;
 
     return entity;
   }

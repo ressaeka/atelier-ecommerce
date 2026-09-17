@@ -1,14 +1,11 @@
 import { z } from 'zod';
 
 export const createProductSchema = z.object({
-  name: z.string().trim().min(1, 'Nama product wajib diisi').max(100),
-
-  description: z.string().trim().optional(),
-
+  name: z.string().min(1),
+  description: z.string().optional(),
   price: z.number().int().positive(),
-
   stock: z.number().int().nonnegative(),
-
+  image: z.string().url(),
   categoryId: z.number().int().positive(),
 });
 

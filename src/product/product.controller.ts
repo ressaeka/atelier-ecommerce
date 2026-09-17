@@ -27,7 +27,7 @@ import {
 } from './dto/create-product.dto.js';
 import {
   UpdateProductDto,
-  UpdateProductSchema,
+  updateProductSchema,
 } from './dto/update-product.dto.js';
 import { Permissions } from '../common/decorators/permissions.decorator.js';
 import { PERMISSIONS } from '../common/permissions/permission.js';
@@ -79,8 +79,6 @@ export class ProductController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard, PermissionsGuard)
-  @Permissions(PERMISSIONS.PRODUCT_READ)
   @ApiOperation({
     summary: 'Ambil daftar produk dengan filter pencarian dan paginasi',
   })
@@ -101,8 +99,6 @@ export class ProductController {
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard, PermissionsGuard)
-  @Permissions(PERMISSIONS.PRODUCT_READ)
   @ApiOperation({ summary: 'Ambil detail produk berdasarkan ID' })
   @ApiParam({ name: 'id', type: Number, description: 'ID Produk' })
   @ApiResponse(productResponseSchema)
@@ -130,7 +126,7 @@ export class ProductController {
   })
   async update(
     @Param('id', ParseIntPipe) id: number,
-    @Body(new ZodValidationPipe(UpdateProductSchema))
+    @Body(new ZodValidationPipe(updateProductSchema))
     updateProductDto: UpdateProductDto,
   ) {
     const product = await this.productService.updateProduct(

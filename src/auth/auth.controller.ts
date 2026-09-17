@@ -6,6 +6,7 @@ import {
   Post,
   Req,
   Get,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 
@@ -35,7 +36,7 @@ import { loginSchema, LoginDto } from './dto/login.js';
 
 import { RefreshTokenDto, refreshTokenSchema } from './dto/refresh.token.js';
 
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 
 import {
   ForgotPasswordDto,
@@ -46,6 +47,7 @@ import { VerifyDto, verifyOtpSchema } from './dto/verify.otp.js';
 
 import { ResetPasswordDto, resetPasswordSchema } from './dto/reset.password.js';
 import { AuthGuard } from '@nestjs/passport';
+import { ConfigService } from '@nestjs/config';
 
 type GoogleUser = {
   googleId: string;
@@ -56,7 +58,10 @@ type GoogleUser = {
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Get('google')
   @UseGuards(AuthGuard('google'))
@@ -64,8 +69,25 @@ export class AuthController {
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  googleCallback(@Req() req: Request) {
-    return this.authService.googleLogin(req.user as GoogleUser);
+  async googleCallback(@Req() req: Request, @Res() res: Response) {
+    const result = await this.authService.googleLogin(req.user as GoogleUser);
+
+    const frontendUrl = this.configService.get<string>(
+      'GOOGLE_FRONTEND_URL',
+      'http://localhost:5173',
+    );
+
+    const data = result.data as {
+      access_token: string;
+      refresh_token: string;
+    };
+
+    const params = new URLSearchParams({
+      access_token: data.access_token,
+      refresh_token: data.refresh_token,
+    });
+
+    return res.redirect(`${frontendUrl}/auth/callback?${params.toString()}`);
   }
 
   @Post('register')

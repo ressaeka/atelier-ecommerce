@@ -4,7 +4,9 @@ export class Product {
   description!: string | null;
   price!: number;
   stock!: number;
+  image!: string;
   categoryId!: number;
+  variants?: any[];
   createdAt!: Date;
   updatedAt!: Date;
 }

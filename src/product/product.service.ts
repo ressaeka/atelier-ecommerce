@@ -28,6 +28,7 @@ export class ProductService {
       description: dto.description,
       price: dto.price,
       stock: dto.stock,
+      image: dto.image,
       category: {
         connect: {
           id: dto.categoryId,
@@ -85,7 +86,7 @@ export class ProductService {
     const product = await this.productRepository.findById(id);
 
     if (!product) {
-      throw new NotFoundException('Product tidak di temukan');
+      throw new NotFoundException('Product tidak ditemukan');
     }
 
     return this.toEntity(product);
@@ -150,9 +151,11 @@ export class ProductService {
     description: string | null;
     price: number;
     stock: number;
+    image: string;
     categoryId: number;
     createdAt: Date;
     updatedAt: Date;
+    variants?: any[];
   }): Product {
     const entity = new Product();
 
@@ -161,9 +164,13 @@ export class ProductService {
     entity.description = product.description;
     entity.price = product.price;
     entity.stock = product.stock;
+    entity.image = product.image;
     entity.categoryId = product.categoryId;
     entity.createdAt = product.createdAt;
     entity.updatedAt = product.updatedAt;
+    if (product.variants) {
+      entity.variants = product.variants;
+    }
 
     return entity;
   }

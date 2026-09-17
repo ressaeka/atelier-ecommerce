@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -31,10 +29,12 @@ model User {
   password String? @db.VarChar(255)
   role     Role    @default(USER)
 
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
   userIdentities UserIdentity[]
   addresses      Address[]
+  cart           Cart?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model UserIdentity {
@@ -63,17 +63,40 @@ model Category {
 }
 
 model Product {
-  id          Int     @id @default(autoincrement())
-  name        String  @db.VarChar(100)
+  id          Int    @id @default(autoincrement())
+  name        String @db.VarChar(100)
   description String?
   price       Int
   stock       Int
+  image       String
 
   categoryId Int
   category   Category @relation(fields: [categoryId], references: [id])
 
+  cartItems CartItem[]
+  variants  ProductVariant[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model ProductVariant {
+  id        Int    @id @default(autoincrement())
+  productId Int
+  color     String? @db.VarChar(50)
+  size      String? @db.VarChar(20)
+  price     Int
+  stock     Int
+  sku       String? @db.VarChar(100)
+
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  cartItems CartItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([productId, color, size])
+  @@index([productId])
 }
 
 model Address {
@@ -97,4 +120,36 @@ model Address {
 
   @@index([userId])
   @@index([userId, isDefault])
+}
+
+model Cart {
+  id Int @id @default(autoincrement())
+
+  userId Int @unique
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  items CartItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CartItem {
+  id Int @id @default(autoincrement())
+
+  cartId    Int
+  productId Int
+  variantId Int?
+  quantity  Int
+
+  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+  variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([cartId, productId, variantId])
+  @@index([productId])
+  @@index([variantId])
 }

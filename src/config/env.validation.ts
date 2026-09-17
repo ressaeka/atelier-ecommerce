@@ -30,6 +30,7 @@ export const envSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().min(1),
   GOOGLE_CLIENT_SECRET: z.string().min(1),
   GOOGLE_CALLBACK_URL: z.string().url(),
+  GOOGLE_FRONTEND_URL: z.string().url().default('http://localhost:5173'),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

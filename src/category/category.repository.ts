@@ -30,6 +30,11 @@ export class CategoryRepository {
       orderBy: {
         createdAt: 'desc',
       },
+      include: {
+        _count: {
+          select: { products: true },
+        },
+      },
     });
   }
 

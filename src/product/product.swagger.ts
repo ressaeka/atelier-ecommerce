@@ -8,7 +8,7 @@ export const createProductApiBody: ApiBodyOptions = {
   description: 'Data produk baru yang akan dibuat',
   schema: {
     type: 'object',
-    required: ['name', 'price', 'stock', 'categoryId'],
+    required: ['name', 'price', 'stock', 'image', 'categoryId'],
     properties: {
       name: {
         type: 'string',
@@ -33,6 +33,12 @@ export const createProductApiBody: ApiBodyOptions = {
         minimum: 0,
         example: 15,
         description: 'Jumlah stok produk',
+      },
+      image: {
+        type: 'string',
+        format: 'uri',
+        example: 'https://example.com/product.jpg',
+        description: 'URL gambar produk',
       },
       categoryId: {
         type: 'integer',
@@ -66,6 +72,11 @@ export const updateProductApiBody: ApiBodyOptions = {
       stock: {
         type: 'integer',
         example: 20,
+      },
+      image: {
+        type: 'string',
+        format: 'uri',
+        example: 'https://example.com/product-new.jpg',
       },
       categoryId: {
         type: 'integer',
@@ -139,6 +150,7 @@ export const productResponseSchema: ApiResponseOptions = {
           description: { type: 'string', example: 'Laptop gaming' },
           price: { type: 'number', example: 25000000 },
           stock: { type: 'number', example: 15 },
+          image: { type: 'string', example: 'https://example.com/product.jpg' },
           categoryId: { type: 'number', example: 1 },
           createdAt: { type: 'string', format: 'date-time' },
           updatedAt: { type: 'string', format: 'date-time' },
@@ -169,6 +181,10 @@ export const productsListResponseSchema: ApiResponseOptions = {
                 description: { type: 'string', example: 'Laptop gaming' },
                 price: { type: 'number', example: 25000000 },
                 stock: { type: 'number', example: 15 },
+                image: {
+                  type: 'string',
+                  example: 'https://example.com/product.jpg',
+                },
                 categoryId: { type: 'number', example: 1 },
                 createdAt: { type: 'string', format: 'date-time' },
                 updatedAt: { type: 'string', format: 'date-time' },
