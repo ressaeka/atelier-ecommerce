@@ -32,6 +32,7 @@ model User {
   userIdentities UserIdentity[]
   addresses      Address[]
   cart           Cart?
+  wishlist       Wishlist?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -63,8 +64,8 @@ model Category {
 }
 
 model Product {
-  id          Int    @id @default(autoincrement())
-  name        String @db.VarChar(100)
+  id          Int     @id @default(autoincrement())
+  name        String  @db.VarChar(100)
   description String?
   price       Int
   stock       Int
@@ -73,15 +74,16 @@ model Product {
   categoryId Int
   category   Category @relation(fields: [categoryId], references: [id])
 
-  cartItems CartItem[]
-  variants  ProductVariant[]
+  cartItems     CartItem[]
+  variants      ProductVariant[]
+  wishlistItems WishlistItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model ProductVariant {
-  id        Int    @id @default(autoincrement())
+  id        Int     @id @default(autoincrement())
   productId Int
   color     String? @db.VarChar(50)
   size      String? @db.VarChar(20)
@@ -89,7 +91,7 @@ model ProductVariant {
   stock     Int
   sku       String? @db.VarChar(100)
 
-  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product   Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
   cartItems CartItem[]
 
   createdAt DateTime @default(now())
@@ -105,13 +107,13 @@ model Address {
   userId Int
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  label         String  @db.VarChar(50)
-  recipientName String  @db.VarChar(100)
-  phone         String  @db.VarChar(50)
-  addressLine   String  @db.VarChar(255)
-  city          String  @db.VarChar(100)
-  province      String  @db.VarChar(100)
-  postalCode    String  @db.VarChar(20)
+  label         String @db.VarChar(50)
+  recipientName String @db.VarChar(100)
+  phone         String @db.VarChar(50)
+  addressLine   String @db.VarChar(255)
+  city          String @db.VarChar(100)
+  province      String @db.VarChar(100)
+  postalCode    String @db.VarChar(20)
 
   isDefault Boolean @default(false)
 
@@ -125,7 +127,7 @@ model Address {
 model Cart {
   id Int @id @default(autoincrement())
 
-  userId Int @unique
+  userId Int  @unique
   user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   items CartItem[]
@@ -142,8 +144,8 @@ model CartItem {
   variantId Int?
   quantity  Int
 
-  cart    Cart    @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
+  cart    Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product Product         @relation(fields: [productId], references: [id])
   variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
@@ -152,4 +154,31 @@ model CartItem {
   @@unique([cartId, productId, variantId])
   @@index([productId])
   @@index([variantId])
+}
+
+model Wishlist {
+  id Int @id @default(autoincrement())
+
+  userId Int   @unique
+  user   User? @relation(fields: [userId], references: [id])
+
+  items WishlistItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WishlistItem {
+  id Int @id @default(autoincrement())
+
+  wishlistId Int
+  productId  Int
+
+  wishlist Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([wishlistId, productId])
+  @@index([productId])
 }
