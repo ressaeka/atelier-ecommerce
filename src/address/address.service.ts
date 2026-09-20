@@ -1,10 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-
 import { Prisma } from '../../generated/prisma/client.js';
-
 import { AddressRepository } from './address.repository.js';
 import { Address } from './entities/address.entity.js';
-
 import { AddressDto } from './dto/create-address.dto.js';
 import { UpdateAddressDto } from './dto/update-address.dto.js';
 import { QueryAddressDto } from './dto/query-address.dto.js';
@@ -20,13 +17,14 @@ export class AddressService {
   /**
    * CREATE
    * userId diambil dari JWT, bukan dari request body.
-   * Uses transaction to ensure atomic operation when setting default.
+   *
+   * Business rule:
+   * - Jika address baru menjadi default,
+   *   default address lama harus di-unset.
    */
   async create(currentUserId: number, dto: AddressDto): Promise<Address> {
-    // Use transaction for atomic unset + create
     const address = await this.prisma.$transaction(async (tx) => {
-      // Jika isDefault=true, unset default address lama milik user ini
-      if (dto.isDefault) {
+      if (dto.isDefault === true) {
         await tx.address.updateMany({
           where: {
             userId: currentUserId,
@@ -38,8 +36,7 @@ export class AddressService {
         });
       }
 
-      // Create new address
-      return await tx.address.create({
+      return tx.address.create({
         data: {
           label: dto.label,
           recipientName: dto.recipientName,
@@ -49,8 +46,11 @@ export class AddressService {
           province: dto.province,
           postalCode: dto.postalCode,
           isDefault: dto.isDefault ?? false,
+
           user: {
-            connect: { id: currentUserId },
+            connect: {
+              id: currentUserId,
+            },
           },
         },
       });
@@ -61,8 +61,7 @@ export class AddressService {
 
   /**
    * FIND ALL
-   * Selalu filter berdasarkan currentUserId.
-   * User tidak bisa melihat address user lain.
+   * User hanya boleh melihat address miliknya sendiri.
    */
   async findAllAddress(
     currentUserId: number,
@@ -83,15 +82,42 @@ export class AddressService {
     const where: Prisma.AddressWhereInput = {
       userId: currentUserId,
 
-      ...(search && {
-        OR: [
-          { label: { contains: search, mode: 'insensitive' } },
-          { recipientName: { contains: search, mode: 'insensitive' } },
-          { city: { contains: search, mode: 'insensitive' } },
-          { province: { contains: search, mode: 'insensitive' } },
-          { postalCode: { contains: search, mode: 'insensitive' } },
-        ],
-      }),
+      ...(search
+        ? {
+            OR: [
+              {
+                label: {
+                  contains: search,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                recipientName: {
+                  contains: search,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                city: {
+                  contains: search,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                province: {
+                  contains: search,
+                  mode: 'insensitive',
+                },
+              },
+              {
+                postalCode: {
+                  contains: search,
+                  mode: 'insensitive',
+                },
+              },
+            ],
+          }
+        : {}),
     };
 
     const [addresses, total] = await Promise.all([
@@ -101,6 +127,7 @@ export class AddressService {
 
     return {
       items: addresses.map((address) => this.toEntity(address)),
+
       meta: {
         page,
         limit,
@@ -112,8 +139,8 @@ export class AddressService {
 
   /**
    * FIND ONE BY ID
-   * Ownership check: addressId + currentUserId.
-   * Jika bukan milik user, return NotFoundException.
+   * Ownership check menggunakan:
+   * addressId + currentUserId
    */
   async findAddressById(
     currentUserId: number,
@@ -133,7 +160,7 @@ export class AddressService {
 
   /**
    * FIND DEFAULT ADDRESS
-   * Hanya cari default address milik currentUserId.
+   * Hanya mencari default address milik user tersebut.
    */
   async findDefaultAddress(currentUserId: number): Promise<Address> {
     const address =
@@ -148,16 +175,19 @@ export class AddressService {
 
   /**
    * UPDATE
-   * Ownership check: addressId + currentUserId.
-   * userId tidak bisa diubah (ownership tetap).
-   * Uses transaction to ensure atomic operation when setting default.
+   *
+   * Ownership:
+   * address harus milik currentUserId.
+   *
+   * Business rule:
+   * jika address ini dijadikan default,
+   * default address lain harus di-unset.
    */
   async updateAddress(
     currentUserId: number,
     addressId: number,
     dto: UpdateAddressDto,
   ): Promise<Address> {
-    // Cek ownership dulu
     const existingAddress = await this.addressRepository.findByIdAndUserId(
       addressId,
       currentUserId,
@@ -167,14 +197,15 @@ export class AddressService {
       throw new NotFoundException('Address tidak ditemukan');
     }
 
-    // Use transaction for atomic unset + update
     const address = await this.prisma.$transaction(async (tx) => {
-      // Jika isDefault=true, unset default address lama milik user ini
       if (dto.isDefault === true) {
         await tx.address.updateMany({
           where: {
             userId: currentUserId,
             isDefault: true,
+            NOT: {
+              id: addressId,
+            },
           },
           data: {
             isDefault: false,
@@ -182,10 +213,44 @@ export class AddressService {
         });
       }
 
-      // Update address
-      const data: Prisma.AddressUpdateInput = { ...dto };
-      return await tx.address.update({
-        where: { id: addressId },
+      const data: Prisma.AddressUpdateInput = {
+        ...(dto.label !== undefined && {
+          label: dto.label,
+        }),
+
+        ...(dto.recipientName !== undefined && {
+          recipientName: dto.recipientName,
+        }),
+
+        ...(dto.phone !== undefined && {
+          phone: dto.phone,
+        }),
+
+        ...(dto.addressLine !== undefined && {
+          addressLine: dto.addressLine,
+        }),
+
+        ...(dto.city !== undefined && {
+          city: dto.city,
+        }),
+
+        ...(dto.province !== undefined && {
+          province: dto.province,
+        }),
+
+        ...(dto.postalCode !== undefined && {
+          postalCode: dto.postalCode,
+        }),
+
+        ...(dto.isDefault !== undefined && {
+          isDefault: dto.isDefault,
+        }),
+      };
+
+      return tx.address.update({
+        where: {
+          id: addressId,
+        },
         data,
       });
     });
@@ -195,13 +260,13 @@ export class AddressService {
 
   /**
    * DELETE
-   * Ownership check: addressId + currentUserId.
+   *
+   * Ownership tetap diverifikasi sebelum delete.
    */
   async removeAddress(
     currentUserId: number,
     addressId: number,
   ): Promise<Address> {
-    // Cek ownership dulu
     const existingAddress = await this.addressRepository.findByIdAndUserId(
       addressId,
       currentUserId,
@@ -216,6 +281,9 @@ export class AddressService {
     return this.toEntity(address);
   }
 
+  /**
+   * Prisma model -> application entity
+   */
   private toEntity(address: {
     id: number;
     userId: number;
