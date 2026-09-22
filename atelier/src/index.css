@@ -1,0 +1,289 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Libre+Bodoni:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family:
+      'Inter',
+      'Plus Jakarta Sans',
+      system-ui,
+      sans-serif;
+
+    background-color: #FAF9F5;
+    color: #1A1A1A;
+
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+.font-editorial {
+  font-family:
+    'Libre Bodoni',
+    'Bodoni Moda',
+    'Playfair Display',
+    Georgia,
+    serif;
+}
+
+input:focus,
+button:focus {
+  outline: none;
+}
+
+.transition-luxury {
+  transition:
+    all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+*,
+::before,
+::after {
+  box-sizing: border-box;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+
+/* =========================================================
+   ATELIER BRAND MARQUEE
+========================================================= */
+
+.brand-marquee {
+  width: 100%;
+  overflow: hidden;
+}
+
+.brand-marquee-track {
+  display: flex;
+  width: max-content;
+
+  animation:
+    atelier-marquee 32s linear infinite;
+
+  will-change: transform;
+}
+
+.brand-marquee-item {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+
+  gap: 2rem;
+  padding: 1.35rem 1.5rem;
+}
+
+
+/* =========================================================
+   BRAND
+========================================================= */
+
+.brand-marquee-logo {
+  white-space: nowrap;
+
+  font-family:
+    'Libre Bodoni',
+    'Bodoni Moda',
+    'Playfair Display',
+    Georgia,
+    serif;
+
+  font-size: 22px;
+  font-weight: 400;
+
+  line-height: 1;
+  letter-spacing: -0.025em;
+
+  color: #1A1A1A;
+}
+
+.brand-marquee-logo sup {
+  margin-left: 2px;
+
+  font-family:
+    'Inter',
+    'Plus Jakarta Sans',
+    system-ui,
+    sans-serif;
+
+  font-size: 6px;
+  font-weight: 500;
+
+  vertical-align: super;
+}
+
+
+/* =========================================================
+   DIVIDER
+========================================================= */
+
+.brand-marquee-divider {
+  width: 2.75rem;
+  height: 1px;
+
+  flex-shrink: 0;
+
+  background-color: #C8C4BB;
+}
+
+
+/* =========================================================
+   MODERN ESSENTIALS
+========================================================= */
+
+.brand-marquee-text {
+  white-space: nowrap;
+
+  font-family:
+    'Inter',
+    'Plus Jakarta Sans',
+    system-ui,
+    sans-serif;
+
+  font-size: 9px;
+  font-weight: 500;
+
+  line-height: 1;
+  letter-spacing: 0.2em;
+
+  color: #77736C;
+}
+
+
+/* =========================================================
+   SEASON
+========================================================= */
+
+.brand-marquee-season {
+  white-space: nowrap;
+
+  font-family:
+    'Libre Bodoni',
+    'Bodoni Moda',
+    'Playfair Display',
+    Georgia,
+    serif;
+
+  font-size: 13px;
+  font-style: italic;
+  font-weight: 400;
+
+  line-height: 1;
+  letter-spacing: 0.04em;
+
+  color: #88847C;
+}
+
+
+/* =========================================================
+   SYMBOL
+========================================================= */
+
+.brand-marquee-symbol {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  font-size: 11px;
+
+  color: #AAA69D;
+}
+
+
+/* =========================================================
+   ANIMATION
+========================================================= */
+
+@keyframes atelier-marquee {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+
+/* =========================================================
+   REDUCE MOTION
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-marquee-track {
+    animation: none;
+    transform: translateX(0);
+  }
+}
+
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+
+@media (min-width: 640px) {
+  .brand-marquee-item {
+    gap: 2.5rem;
+    padding: 1.5rem 1.75rem;
+  }
+
+  .brand-marquee-logo {
+    font-size: 25px;
+  }
+
+  .brand-marquee-divider {
+    width: 3.5rem;
+  }
+
+  .brand-marquee-text {
+    font-size: 9.5px;
+  }
+
+  .brand-marquee-season {
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .brand-marquee-item {
+    gap: 3rem;
+    padding: 1.65rem 2rem;
+  }
+
+  .brand-marquee-logo {
+    font-size: 27px;
+  }
+
+  .brand-marquee-text {
+    font-size: 10px;
+  }
+
+  .brand-marquee-season {
+    font-size: 15px;
+  }
+
+  .brand-marquee-symbol {
+    font-size: 12px;
+  }
+}
