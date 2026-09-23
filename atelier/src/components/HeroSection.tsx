@@ -91,6 +91,23 @@ const HeroSection: React.FC = () => {
             in Form
           </h1>
 
+          {/* STYLE TAGLINE */}
+
+          <p
+            className="
+              font-signature
+              mb-3
+              text-[24px]
+              font-normal
+              tracking-wide
+              text-[#8B7355]
+              sm:text-[30px]
+              lg:text-[34px]
+            "
+          >
+            Style for a Better You
+          </p>
+
           {/* SEASON */}
 
           <p
@@ -155,7 +172,7 @@ const HeroSection: React.FC = () => {
                 fontFamily: BODY_FONT,
               }}
             >
-              JELAJAHI KOLEKSI
+              KOLEKSI WANITA
             </Link>
 
             <Link
@@ -183,7 +200,7 @@ const HeroSection: React.FC = () => {
                 fontFamily: BODY_FONT,
               }}
             >
-              LIHAT KOLEKSI PRIA
+              KOLEKSI PRIA
             </Link>
           </div>
         </div>
@@ -235,6 +252,147 @@ const HeroSection: React.FC = () => {
                 "
                 loading="eager"
               />
+            </div>
+
+            {/* ===============================================
+                PROMO OVERLAY — SPECIAL PROMO UP TO 50%
+            ================================================ */}
+
+            <div
+              className="
+                absolute
+                left-0
+                top-0
+                z-10
+                flex
+                pointer-events-none
+                flex-col
+                items-center
+                justify-center
+                bg-[#8B7355]/95
+                backdrop-blur-sm
+                shadow-sm
+              "
+              style={{
+                padding: '10px 14px',
+                borderRadius: '0px 8px 0px 8px',
+              }}
+            >
+              <div className="flex flex-col items-center text-center text-white">
+                <p
+                  className="
+                    text-[5px]
+                    font-medium
+                    uppercase
+                    tracking-[0.25em]
+                    opacity-95
+                    sm:text-[7px]
+                    lg:text-[8px]
+                  "
+                  style={{ fontFamily: BODY_FONT }}
+                >
+                  Special Promo
+                </p>
+
+                <div className="mt-1.5 flex flex-col items-center sm:mt-2">
+                  <p
+                    className="
+                      text-[4.5px]
+                      font-medium
+                      uppercase
+                      tracking-[0.2em]
+                      opacity-85
+                      sm:text-[5px]
+                      lg:text-[6px]
+                    "
+                    style={{ fontFamily: BODY_FONT }}
+                  >
+                    Up To
+                  </p>
+                  <p
+                    className="
+                      -mt-0.5
+                      text-[28px]
+                      font-bold
+                      leading-none
+                      sm:text-[34px]
+                      lg:text-[40px]
+                    "
+                    style={{
+                      fontFamily: DISPLAY_FONT,
+                      letterSpacing: '-0.02em',
+                    }}
+                  >
+                    50
+                    <span
+                      className="
+                        text-[12px]
+                        sm:text-[14px]
+                        lg:text-[16px]
+                      "
+                      style={{
+                        verticalAlign: 'super',
+                        marginLeft: '1px',
+                      }}
+                    >
+                      %
+                    </span>
+                  </p>
+                </div>
+
+                <p
+                  className="
+                    mt-1
+                    text-[4.5px]
+                    font-medium
+                    uppercase
+                    tracking-[0.25em]
+                    opacity-85
+                    sm:text-[5px]
+                    lg:text-[6px]
+                  "
+                  style={{ fontFamily: BODY_FONT }}
+                >
+                  All Items
+                </p>
+              </div>
+            </div>
+
+            {/* ===============================================
+                TAGLINE OVERLAY — Tampil Elegan Setiap Hari
+            ================================================ */}
+
+            <div
+              className="
+                absolute
+                right-[5%]
+                top-[6%]
+                z-10
+                pointer-events-none
+                text-right
+              "
+            >
+              <p
+                className="
+                  font-signature
+                  text-[14px]
+                  font-normal
+                  leading-[1.2]
+                  text-[#5C4033]
+                  sm:text-[18px]
+                  lg:text-[22px]
+                "
+              >
+                Tampil Elegan
+                <br />
+                Setiap Hari
+                <span
+                  className="ml-2 inline-block font-sans"
+                  style={{ color: '#C8A88E', fontSize: '0.6em' }}
+                >
+                  ♥
+                </span>
+              </p>
             </div>
           </div>
 
