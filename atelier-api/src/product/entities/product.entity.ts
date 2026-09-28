@@ -1,3 +1,5 @@
+import { ProductVariant } from './product-variant.entity.js';
+
 export class Product {
   id!: number;
   name!: string;
@@ -6,7 +8,7 @@ export class Product {
   stock!: number;
   image!: string;
   categoryId!: number;
-  variants?: any[];
+  variants?: ProductVariant[];
   createdAt!: Date;
   updatedAt!: Date;
 }

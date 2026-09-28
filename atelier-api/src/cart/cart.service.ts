@@ -10,6 +10,9 @@ import { AddCartItemDto } from './dto/create-cart.dto.js';
 import { UpdateCartItemDto } from './dto/update-cart.dto.js';
 import { Cart } from './entities/cart.entity.js';
 import { CartItem } from './entities/cart-item.entity.js';
+import { Product } from '../product/entities/product.entity.js';
+import { ProductVariant } from '../product/entities/product-variant.entity.js';
+import { Prisma } from '../../generated/prisma/client.js';
 
 @Injectable()
 export class CartService {
@@ -67,6 +70,10 @@ export class CartService {
 
     let stock = product.stock;
 
+    if (product.variants && product.variants.length > 0 && !dto.variantId) {
+      throw new BadRequestException('Varian produk harus dipilih');
+    }
+
     if (dto.variantId) {
       const variant = product.variants?.find((v) => v.id === dto.variantId);
       if (!variant) {
@@ -79,7 +86,7 @@ export class CartService {
       throw new BadRequestException('Quantity melebihi stock produk');
     }
 
-    const createData: any = {
+    const createData: Prisma.CartItemCreateInput = {
       cart: { connect: { id: cart.id } },
       product: { connect: { id: dto.productId } },
       quantity: dto.quantity,
@@ -190,6 +197,8 @@ export class CartService {
       quantity: number;
       createdAt: Date;
       updatedAt: Date;
+      product?: Product;
+      variant?: ProductVariant | null;
     }>;
     createdAt: Date;
     updatedAt: Date;
@@ -213,8 +222,8 @@ export class CartService {
     quantity: number;
     createdAt: Date;
     updatedAt: Date;
-    product?: any;
-    variant?: any;
+    product?: Product;
+    variant?: ProductVariant | null;
   }): CartItem {
     const entity = new CartItem();
 
