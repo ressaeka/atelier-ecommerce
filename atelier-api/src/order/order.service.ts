@@ -13,7 +13,8 @@ import { Order } from './entities/order.entity.js';
 import { CartRepository } from '../cart/cart.repository.js';
 import { AddressRepository } from '../address/address.repository.js';
 
-import { Prisma } from '../../generated/prisma/client.js';
+import { OrderStatus, Prisma } from '../../generated/prisma/client.js';
+import { OrderQueryDto } from './dto/query-order.dto.js';
 
 @Injectable()
 export class OrderService {
@@ -130,5 +131,98 @@ export class OrderService {
     }
 
     return order;
+  }
+
+  async findOrderById(orderId: number): Promise<Order> {
+    const order =
+      await this.orderRepository.findOrderById(orderId);
+
+    if (!order) {
+      throw new NotFoundException(
+        'Order tidak ditemukan',
+      );
+    }
+
+    return order;
+  }
+
+  async findOrderByIdAndUserId(userId:number, orderId:number) :Promise<Order> {
+    const order = await this.orderRepository.findOrderByIdAndUserId(userId, orderId);
+
+    if(!order) {
+      throw new NotFoundException('Order user tidak ditemukan')
+    }
+
+    return order
+  }
+
+  async findAllOrder(query: OrderQueryDto) {
+    const {
+      page,
+      limit,
+      search,
+      userId,
+      status,
+      sortBy,
+      sortOrder,
+    } = query;
+
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.OrderWhereInput = {
+      ...(search && {
+        recipientName: {
+          contains: search,
+          mode: 'insensitive',
+        },
+      }),
+
+      ...(userId !== undefined && {
+        userId,
+      }),
+
+      ...(status && {
+        status,
+      }),
+    };
+
+    const [orders, total] = await Promise.all([
+      this.orderRepository.findOrders(
+        where,
+        skip,
+        limit,
+        sortBy,
+        sortOrder,
+      ),
+
+      this.orderRepository.countOrders(where),
+    ]);
+
+    return {
+      data: orders,
+
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  async updateOrderStatus(
+    orderId: number,
+    dto: UpdateOrderStatusDto,
+  ): Promise<Order> {
+    const order = await this.orderRepository.findOrderById(orderId);
+
+    if (!order) {
+      throw new NotFoundException('Order tidak ditemukan');
+    }
+
+    return this.orderRepository.updateOrderStatus(
+      orderId,
+      dto.status,
+    );
   }
 }

@@ -53,7 +53,13 @@ export class OrderRepository {
     });
   }
 
-  async findOrders(where: Prisma.OrderWhereInput, skip: number, take: number) {
+  async findOrders(
+    where: Prisma.OrderWhereInput,
+    skip: number,
+    take: number,
+    sortBy: 'createdAt' | 'total' | 'status',
+    sortOrder: 'asc' | 'desc',
+  ) {
     return this.prisma.order.findMany({
       where,
       skip,
@@ -66,9 +72,16 @@ export class OrderRepository {
           },
         },
       },
+
       orderBy: {
-        createdAt: 'desc',
+        [sortBy]: sortOrder,
       },
+    });
+  }
+
+  async countOrders(where: Prisma.OrderWhereInput) {
+    return this.prisma.order.count({
+      where,
     });
   }
 
@@ -79,6 +92,14 @@ export class OrderRepository {
       },
       data: {
         status,
+      },
+      include: {
+        items: {
+          include: {
+            product: true,
+            variant: true,
+          },
+        },
       },
     });
   }
