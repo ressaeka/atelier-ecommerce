@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Heart } from 'lucide-react';
+import { Heart, X, AlertCircle } from 'lucide-react';
 
 import AnnouncementBar from '../components/AnnouncementBar';
 import Navbar from '../components/Navbar';
@@ -18,6 +18,243 @@ import { useWishlist } from '../contexts/WishlistContext';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 import { resolveImageUrl } from '../lib/utils';
+import { api } from '../lib/api';
+import type { Product, ProductVariant } from '../types/api';
+
+/* =========================================================
+   VARIANT SELECTION MODAL
+========================================================= */
+
+interface VariantModalProps {
+  product: Product;
+  queueIndex?: number;
+  queueTotal?: number;
+  onClose: () => void;
+  onConfirm: (variantId: number) => Promise<void>;
+  submitting: boolean;
+  error: string | null;
+}
+
+const VariantModal: React.FC<VariantModalProps> = ({
+  product,
+  queueIndex,
+  queueTotal,
+  onClose,
+  onConfirm,
+  submitting,
+  error,
+}) => {
+  const variants = product.variants ?? [];
+  const colors = useMemo(
+    () => [...new Set(variants.map((v) => v.color).filter(Boolean))] as string[],
+    [variants],
+  );
+  const sizes = useMemo(
+    () => [...new Set(variants.map((v) => v.size).filter(Boolean))] as string[],
+    [variants],
+  );
+
+  const [selectedColor, setSelectedColor] = useState<string | null>(colors[0] ?? null);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+
+  // Set default size available for selected color
+  useEffect(() => {
+    if (sizes.length > 0) {
+      const match =
+        variants.find(
+          (v) =>
+            (selectedColor === null || v.color === selectedColor) &&
+            v.size !== null &&
+            v.stock > 0,
+        ) ??
+        variants.find(
+          (v) =>
+            (selectedColor === null || v.color === selectedColor) &&
+            v.size !== null,
+        );
+      if (match?.size) {
+        setSelectedSize(match.size);
+      }
+    }
+  }, [selectedColor, sizes.length, variants]);
+
+  const selectedVariant = useMemo((): ProductVariant | null => {
+    return (
+      variants.find(
+        (v) =>
+          (selectedColor === null || v.color === selectedColor) &&
+          (selectedSize === null || v.size === selectedSize),
+      ) ?? null
+    );
+  }, [variants, selectedColor, selectedSize]);
+
+  const currentPrice = selectedVariant?.price ?? product.price;
+  const currentStock = selectedVariant?.stock ?? 0;
+  const isOutOfStock = selectedVariant ? selectedVariant.stock <= 0 : false;
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200"
+    >
+      <div className="relative w-full max-w-[460px] bg-[#FAF9F5] border border-[#E3E0D9] p-5 sm:p-6 shadow-2xl">
+        {/* Header */}
+        <div className="flex items-start justify-between pb-3.5 border-b border-[#ECEAE4]">
+          <div className="pr-4">
+            <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-[#888]">
+              {queueTotal && queueTotal > 1
+                ? `PILIH VARIAN (${(queueIndex ?? 0) + 1} DARI ${queueTotal})`
+                : 'PILIH VARIAN PRODUK'}
+            </p>
+            <Serif bold as="h3" className="mt-1 text-[16px] text-[#1A1A1A] leading-tight">
+              {product.name}
+            </Serif>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Tutup"
+            className="text-[#888] hover:text-[#1A1A1A] p-1 transition-colors"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Product preview */}
+        <div className="flex gap-4 py-3.5 border-b border-[#ECEAE4]">
+          <div className="h-[80px] w-[62px] shrink-0 overflow-hidden bg-[#ECEAE4]">
+            <img
+              src={resolveImageUrl(product.image, 100, 130, product.name)}
+              alt={product.name}
+              className="h-full w-full object-cover"
+            />
+          </div>
+          <div className="flex-1 flex flex-col justify-center">
+            <p className="text-[14px] font-bold text-[#1A1A1A]" style={{ fontFamily: SERIF }}>
+              {formatRp(currentPrice)}
+            </p>
+            <p
+              className={`mt-1 text-[11px] ${
+                isOutOfStock ? 'text-[#C1603C] font-semibold' : 'text-[#777]'
+              }`}
+            >
+              {selectedVariant
+                ? isOutOfStock
+                  ? 'Stok varian ini habis'
+                  : `Stok tersedia: ${currentStock}`
+                : 'Pilih warna & ukuran'}
+            </p>
+          </div>
+        </div>
+
+        {/* Error banner */}
+        {error && (
+          <div className="mt-3 flex items-start gap-2 bg-[#FBD9D3] p-2.5 text-[11px] text-[#8C3A1E]">
+            <AlertCircle size={14} className="mt-0.5 shrink-0 text-[#C1603C]" />
+            <p>{error}</p>
+          </div>
+        )}
+
+        {/* Colors */}
+        {colors.length > 0 && (
+          <div className="mt-4">
+            <p
+              className="text-[10px] uppercase tracking-[0.12em] text-[#666] font-medium mb-1.5"
+              style={{ fontFamily: SERIF }}
+            >
+              Warna: <span className="text-[#1A1A1A] font-bold">{selectedColor ?? '-'}</span>
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {colors.map((color) => {
+                const isSelected = selectedColor === color;
+                return (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => setSelectedColor(color)}
+                    className={`px-3 py-1.5 text-[10px] uppercase tracking-[0.08em] border transition-colors ${
+                      isSelected
+                        ? 'border-[#1A1A1A] bg-[#1A1A1A] text-white'
+                        : 'border-[#CECBC3] text-[#1A1A1A] hover:border-[#1A1A1A] bg-white'
+                    }`}
+                  >
+                    {color}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Sizes */}
+        {sizes.length > 0 && (
+          <div className="mt-3.5">
+            <p
+              className="text-[10px] uppercase tracking-[0.12em] text-[#666] font-medium mb-1.5"
+              style={{ fontFamily: SERIF }}
+            >
+              Ukuran: <span className="text-[#1A1A1A] font-bold">{selectedSize ?? '-'}</span>
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {sizes.map((size) => {
+                const variantExists = variants.some(
+                  (v) =>
+                    v.size === size &&
+                    (selectedColor === null || v.color === selectedColor),
+                );
+                const isSelected = selectedSize === size;
+                return (
+                  <button
+                    key={size}
+                    type="button"
+                    disabled={!variantExists}
+                    onClick={() => variantExists && setSelectedSize(size)}
+                    className={`min-w-[36px] px-3 py-1.5 text-[10px] uppercase tracking-[0.08em] border transition-colors ${
+                      isSelected
+                        ? 'border-[#1A1A1A] bg-[#1A1A1A] text-white'
+                        : variantExists
+                          ? 'border-[#CECBC3] text-[#1A1A1A] hover:border-[#1A1A1A] bg-white'
+                          : 'border-[#E5E3DE] text-[#CCC] cursor-not-allowed bg-[#F3F2EE]'
+                    }`}
+                  >
+                    {size}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="mt-5 flex items-center gap-3">
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={submitting}
+            className="flex-1 border border-[#CECBC3] px-4 py-2.5 text-[10px] uppercase font-bold tracking-[0.08em] text-[#555] hover:border-[#1A1A1A] hover:text-[#1A1A1A] transition-colors"
+            style={{ fontFamily: SERIF }}
+          >
+            BATAL
+          </button>
+          <button
+            type="button"
+            disabled={!selectedVariant || isOutOfStock || submitting}
+            onClick={() => selectedVariant && onConfirm(selectedVariant.id)}
+            className="flex-1 bg-[#1A1A1A] px-4 py-2.5 text-[10px] uppercase font-bold tracking-[0.08em] text-white hover:bg-[#333] transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+            style={{ fontFamily: SERIF }}
+          >
+            {submitting ? 'MEMPROSES...' : 'MASUKKAN KERANJANG'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+/* =========================================================
+   WISHLIST COMPONENT
+========================================================= */
 
 const Wishlist: React.FC = () => {
   const { items, loading, remove } = useWishlist();
@@ -27,6 +264,14 @@ const Wishlist: React.FC = () => {
   const [selected, setSelected] = useState<number[]>([]);
   const [adding, setAdding] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+
+  // Variant Modal State
+  const [activeModalProduct, setActiveModalProduct] = useState<Product | null>(null);
+  const [pendingQueue, setPendingQueue] = useState<number[]>([]);
+  const [queueTotal, setQueueTotal] = useState(1);
+  const [queueIndex, setQueueIndex] = useState(0);
+  const [modalSubmitting, setModalSubmitting] = useState(false);
+  const [modalError, setModalError] = useState<string | null>(null);
 
   if (!user) {
     return (
@@ -98,36 +343,92 @@ const Wishlist: React.FC = () => {
       setSelected((prev) =>
         prev.filter((id) => id !== productId),
       );
-    } catch {
-      setNotice('Gagal menghapus item dari favorit.');
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Gagal menghapus item dari favorit.';
+      console.error('Error removing wishlist item:', err);
+      setNotice(msg);
     }
   };
 
-  const handleAddToCart = async () => {
-    if (selected.length === 0 || adding) {
+  const processQueue = async (queue: number[]) => {
+    if (queue.length === 0) {
+      setAdding(false);
       return;
     }
 
     setAdding(true);
     setNotice(null);
 
+    const [currentId, ...rest] = queue;
+    setPendingQueue(rest);
+
     try {
-      for (const productId of selected) {
-        await addItem(productId, 1);
+      const p = await api.get<Product>(`/product/${currentId}`);
+      if (!p.variants || p.variants.length === 0) {
+        // Direct add if product has no variants
+        await addItem(p.id, 1, null);
+        setSelected((prev) => prev.filter((id) => id !== p.id));
+        setNotice(`"${p.name}" ditambahkan ke keranjang.`);
+        if (rest.length > 0) {
+          setQueueIndex((idx) => idx + 1);
+          await processQueue(rest);
+        } else {
+          setAdding(false);
+        }
+      } else {
+        // Needs variant selection
+        setActiveModalProduct(p);
       }
-
-      setNotice(
-        `${selected.length} item ditambahkan ke keranjang.`,
-      );
-
-      setSelected([]);
-    } catch {
-      setNotice(
-        'Gagal menambahkan ke keranjang. Silakan coba lagi.',
-      );
-    } finally {
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Gagal memproses item favorit.';
+      console.error('Error processing wishlist queue:', err);
+      setNotice(msg);
       setAdding(false);
+      setActiveModalProduct(null);
     }
+  };
+
+  const handleStartQueue = async (ids: number[]) => {
+    if (ids.length === 0 || adding) return;
+    setQueueTotal(ids.length);
+    setQueueIndex(0);
+    setModalError(null);
+    await processQueue(ids);
+  };
+
+  const handleConfirmModal = async (variantId: number) => {
+    if (!activeModalProduct) return;
+    setModalSubmitting(true);
+    setModalError(null);
+    try {
+      await addItem(activeModalProduct.id, 1, variantId);
+      const productName = activeModalProduct.name;
+      const finishedId = activeModalProduct.id;
+      setSelected((prev) => prev.filter((id) => id !== finishedId));
+      setNotice(`"${productName}" berhasil ditambahkan ke keranjang.`);
+
+      const nextQueue = pendingQueue;
+      setPendingQueue([]);
+      if (nextQueue.length > 0) {
+        setQueueIndex((idx) => idx + 1);
+        await processQueue(nextQueue);
+      } else {
+        setActiveModalProduct(null);
+        setAdding(false);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Gagal menambahkan ke keranjang.';
+      console.error('Error adding variant to cart:', err);
+      setModalError(msg);
+    } finally {
+      setModalSubmitting(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setActiveModalProduct(null);
+    setPendingQueue([]);
+    setAdding(false);
   };
 
   return (
@@ -240,20 +541,34 @@ const Wishlist: React.FC = () => {
                       </Link>
 
                       {/* Product detail */}
-                      <div className="min-w-0 flex-1">
-                        <Link to={`/product/${product.id}`}>
-                          <Serif
-                            bold
-                            as="h3"
-                            className="break-words text-[13px] uppercase leading-snug tracking-[0.03em] text-[#1A1A1A] transition-colors hover:text-[#555] sm:text-[15px]"
-                          >
-                            {product.name}
-                          </Serif>
-                        </Link>
+                      <div className="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div>
+                          <Link to={`/product/${product.id}`}>
+                            <Serif
+                              bold
+                              as="h3"
+                              className="break-words text-[13px] uppercase leading-snug tracking-[0.03em] text-[#1A1A1A] transition-colors hover:text-[#555] sm:text-[15px]"
+                            >
+                              {product.name}
+                            </Serif>
+                          </Link>
 
-                        <Serif className="mt-4 block text-[12px] text-[#2A2A2A] sm:text-[13px]">
-                          {formatRp(product.price)}
-                        </Serif>
+                          <Serif className="mt-2 block text-[12px] text-[#2A2A2A] sm:text-[13px]">
+                            {formatRp(product.price)}
+                          </Serif>
+                        </div>
+
+                        <div>
+                          <button
+                            type="button"
+                            onClick={() => void handleStartQueue([product.id])}
+                            disabled={adding}
+                            className="border border-[#1A1A1A] px-3.5 py-1.5 text-[10px] uppercase tracking-[0.1em] font-medium text-[#1A1A1A] hover:bg-[#1A1A1A] hover:text-white transition-colors whitespace-nowrap disabled:opacity-50"
+                            style={{ fontFamily: SERIF }}
+                          >
+                            + Keranjang
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -290,7 +605,7 @@ const Wishlist: React.FC = () => {
 
               <button
                 type="button"
-                onClick={handleAddToCart}
+                onClick={() => void handleStartQueue(selected)}
                 disabled={selected.length === 0 || adding}
                 className={`ml-2 whitespace-nowrap rounded-[4px] px-4 py-3 text-[10.5px] uppercase tracking-[0.06em] transition-colors duration-200 sm:ml-4 sm:px-8 sm:text-[12.5px] ${
                   selected.length === 0 || adding
@@ -309,6 +624,19 @@ const Wishlist: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {/* Variant Selection Modal */}
+        {activeModalProduct && (
+          <VariantModal
+            product={activeModalProduct}
+            queueIndex={queueIndex}
+            queueTotal={queueTotal}
+            onClose={handleCloseModal}
+            onConfirm={handleConfirmModal}
+            submitting={modalSubmitting}
+            error={modalError}
+          />
+        )}
       </main>
 
       <Footer />

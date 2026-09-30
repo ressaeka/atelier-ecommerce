@@ -13,6 +13,8 @@ import {
   ArrowRight,
   ArrowLeft,
   Printer,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 
 import AnnouncementBar from '../components/AnnouncementBar';
@@ -28,51 +30,26 @@ import { resolveImageUrl } from '../lib/utils';
 
 import type { Address } from '../types/api';
 
+import { createOrder } from '../lib/orderApi';
 import {
-  saveOrder,
-  newOrderId,
-  makeVirtualAccount,
-  type Order,
-  type OrderLine,
-} from '../lib/orders';
+  getAddresses,
+  createAddress,
+  updateAddress,
+  deleteAddress,
+} from '../lib/addressApi';
 
-const SHIPPING_COST = 35000;
+interface OrderLine {
+  productId: number;
+  name: string;
+  image: string;
+  variant?: string;
+  price: number;
+  quantity: number;
+}
 
-const BANKS = [
-  'BCA',
-  'MANDIRI',
-  'BNI',
-];
+// Sesuai backend order.service.ts: shippingFee = 0 (integrasi kurir belum tersedia)
+const SHIPPING_COST = 0;
 
-const VA_INSTRUCTIONS: Array<{
-  title: string;
-  steps: string[];
-}> = [
-  {
-    title: '1. ATM BCA',
-    steps: [
-      'Pilih Transaksi Lainnya',
-      'Transfer > ke Rekening BCA',
-      'Virtual Account.',
-    ],
-  },
-  {
-    title: '2. M-BCA (MOBILE BANKING)',
-    steps: [
-      'Pilih m-Transfer > BCA Virtual',
-      'Account > Masukkan nomor VA',
-      'di atas.',
-    ],
-  },
-  {
-    title: '3. MYBCA',
-    steps: [
-      'Transfer Dana > Transfer ke BCA',
-      'Virtual Account > Otorisasi',
-      'KeyBCA.',
-    ],
-  },
-];
 
 const Payment: React.FC = () => {
   const location = useLocation();
@@ -154,55 +131,146 @@ const Payment: React.FC = () => {
   const [address, setAddress] =
     useState<Address | null>(null);
 
+  const [addressList, setAddressList] =
+    useState<Address[]>([]);
+
+  const [showAddressPicker, setShowAddressPicker] =
+    useState(false);
+
+  const [showAddressForm, setShowAddressForm] =
+    useState(false);
+
+  const [editingAddrId, setEditingAddrId] =
+    useState<number | null>(null);
+
+  // Form state untuk tambah/edit address
+  const [addrForm, setAddrForm] = useState({
+    label: '',
+    recipientName: '',
+    phone: '',
+    addressLine: '',
+    city: '',
+    province: '',
+    postalCode: '',
+    isDefault: false,
+  });
+
+  const [addrFormError, setAddrFormError] =
+    useState<string | null>(null);
+
+  const [addrFormLoading, setAddrFormLoading] =
+    useState(false);
+
   const [promoInput, setPromoInput] =
     useState(initialVoucher);
 
-  const [promoApplied, setPromoApplied] =
-    useState<string | null>(
-      initialVoucher || null,
-    );
-
-  const [bank, setBank] =
-    useState('BCA');
-
-  const [method, setMethod] =
-    useState<'VA' | 'EWALLET'>('VA');
-
-  const [copied, setCopied] =
-    useState(false);
+  const [promoNotice, setPromoNotice] =
+    useState<string | null>(null);
 
   const [paid, setPaid] =
     useState(false);
 
-  const [orderId] =
-    useState(() => newOrderId());
+  const [orderError, setOrderError] =
+    useState<string | null>(null);
+
+  const [orderLoading, setOrderLoading] =
+    useState(false);
 
   /* ============================================================
      ADDRESS
   ============================================================ */
 
-  useEffect(() => {
-    api
-      .get<Address[]>('/address')
-      .then((list) => {
-        if (
-          Array.isArray(list) &&
-          list.length > 0
-        ) {
-          setAddress(
-            list.find(
-              (item) => item.isDefault,
-            ) ?? list[0],
-          );
+  // Refresh list dan jaga address terpilih tetap valid
+  const refreshAddresses = async () => {
+    try {
+      const list = await getAddresses();
+      setAddressList(list);
+      setAddress((prev) => {
+        if (!prev) {
+          return list.find((item) => item.isDefault) ?? list[0] ?? null;
         }
-      })
-      .catch(() => {
-        setAddress(null);
+        const fresh = list.find((item) => item.id === prev.id);
+        return fresh ?? list.find((item) => item.isDefault) ?? list[0] ?? null;
       });
+    } catch {
+      setAddress(null);
+      setAddressList([]);
+    }
+  };
+
+  const handleAddrSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAddrFormError(null);
+    setAddrFormLoading(true);
+    try {
+      if (editingAddrId) {
+        const updated = await updateAddress(editingAddrId, addrForm);
+        setAddressList((prev) =>
+          prev.map((a) => (a.id === editingAddrId ? updated : a)),
+        );
+        if (address?.id === editingAddrId) {
+          setAddress(updated);
+        }
+      } else {
+        const created = await createAddress(addrForm);
+        setAddressList((prev) => [...prev, created]);
+        setAddress(created);
+      }
+      await refreshAddresses();
+      setShowAddressForm(false);
+      setEditingAddrId(null);
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : 'Gagal menyimpan alamat.';
+      setAddrFormError(msg);
+    } finally {
+      setAddrFormLoading(false);
+    }
+  };
+
+  const handleDeleteAddress = async (addrId: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const confirmed = window.confirm('Apakah Anda yakin ingin menghapus alamat ini?');
+    if (!confirmed) return;
+    try {
+      await deleteAddress(addrId);
+      const remaining = addressList.filter((a) => a.id !== addrId);
+      setAddressList(remaining);
+      if (address?.id === addrId) {
+        setAddress(remaining.find((a) => a.isDefault) ?? remaining[0] ?? null);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Gagal menghapus alamat.';
+      alert(msg);
+    }
+  };
+
+  const handleStartEditAddress = (addr: Address, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingAddrId(addr.id);
+    setAddrForm({
+      label: addr.label,
+      recipientName: addr.recipientName,
+      phone: addr.phone,
+      addressLine: addr.addressLine,
+      city: addr.city,
+      province: addr.province,
+      postalCode: addr.postalCode,
+      isDefault: addr.isDefault,
+    });
+    setAddrFormError(null);
+    setShowAddressForm(true);
+    setShowAddressPicker(false);
+  };
+
+  useEffect(() => {
+    refreshAddresses();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /* ============================================================
      TOTALS
+     Sesuai backend order.service.ts: total = subtotal + shippingFee (0)
   ============================================================ */
 
   const subtotal = lines.reduce(
@@ -212,72 +280,60 @@ const Payment: React.FC = () => {
     0,
   );
 
-  const discount = promoApplied
-    ? Math.round(subtotal * 0.1)
-    : 0;
+  // Backend belum memiliki modul voucher promo
+  const discount = 0;
 
   const total =
     subtotal +
     SHIPPING_COST -
     discount;
 
-  const virtualAccount =
-    makeVirtualAccount(orderId);
-
   /* ============================================================
-     COPY VA
-  ============================================================ */
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(
-        virtualAccount.replace(/\s/g, ''),
-      );
-
-      setCopied(true);
-
-      setTimeout(() => {
-        setCopied(false);
-      }, 2000);
-    } catch {
-      setCopied(false);
-    }
-  };
-
-  /* ============================================================
-     PAY
+     PAY — calls real backend POST /order
   ============================================================ */
 
   const handlePay = async () => {
-    if (lines.length === 0) {
+    if (lines.length === 0 || !address) {
+      setOrderError('Pilih alamat pengiriman terlebih dahulu.');
       return;
     }
 
-    const order: Order = {
-      id: orderId,
-      createdAt:
-        new Date().toISOString(),
-      status: 'PROSES',
-      lines,
-      shippingCost:
-        SHIPPING_COST,
-      discount,
-      total,
-      paymentMethod:
-        method === 'VA'
-          ? `VIRTUAL ACCOUNT ${bank}`
-          : 'E-WALLET',
-      virtualAccount,
-    };
+    if (orderLoading) return;
 
-    saveOrder(order);
-    setPaid(true);
+    setOrderError(null);
+    setOrderLoading(true);
 
     try {
-      await clearCart();
-    } catch {
-      // Order sudah tersimpan.
-      // Clearing cart bersifat best-effort.
+      // Backend membaca cart user dari JWT, hanya butuh addressId
+      const createdOrder = await createOrder({
+        addressId: address.id,
+      });
+
+      setPaid(true);
+
+      // Clear cart best-effort setelah order sukses
+      try {
+        await clearCart();
+      } catch {
+        // Cart clearing bersifat best-effort, order sudah dibuat
+      }
+
+      // Redirect ke order detail menggunakan id dari backend
+      setTimeout(() => {
+        if (createdOrder?.id) {
+          navigate(`/orders/${createdOrder.id}`);
+        } else {
+          navigate('/orders');
+        }
+      }, 2500);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Gagal membuat pesanan. Silakan coba lagi.';
+      setOrderError(message);
+    } finally {
+      setOrderLoading(false);
     }
   };
 
@@ -461,24 +517,302 @@ const Payment: React.FC = () => {
                   </Serif>
                 </div>
 
-                <Link
-                  to="/profile/address"
-                  className="flex shrink-0 items-center gap-1.5 text-[#1A1A1A] transition-colors hover:text-[#5A5A5A]"
-                >
-                  <Pencil
-                    size={11}
-                    strokeWidth={1.75}
-                  />
+                {/* Header actions */}
+                <div className="flex items-center gap-3 shrink-0">
+                  {/* Pilih address (muncul jika >1 address & form tidak terbuka) */}
+                  {addressList.length > 1 && !showAddressForm && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowAddressPicker((v) => !v);
+                      }}
+                      className="flex items-center gap-1.5 text-[#1A1A1A] transition-colors hover:text-[#5A5A5A]"
+                    >
+                      <Pencil size={11} strokeWidth={1.75} />
+                      <Serif bold className="text-[9px] uppercase tracking-[0.1em] underline underline-offset-2 sm:text-[11px]">
+                        {showAddressPicker ? 'TUTUP' : 'UBAH'}
+                      </Serif>
+                    </button>
+                  )}
 
-                  <Serif
-                    bold
-                    className="text-[9px] uppercase tracking-[0.1em] underline underline-offset-2 sm:text-[11px]"
+                  {/* Tambah address baru */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAddressForm((v) => !v);
+                      setShowAddressPicker(false);
+                      setEditingAddrId(null);
+                      setAddrFormError(null);
+                      // Reset form saat dibuka
+                      if (!showAddressForm) {
+                        setAddrForm({
+                          label: '',
+                          recipientName: '',
+                          phone: '',
+                          addressLine: '',
+                          city: '',
+                          province: '',
+                          postalCode: '',
+                          isDefault: false,
+                        });
+                      }
+                    }}
+                    className="flex items-center gap-1.5 text-[#1A1A1A] transition-colors hover:text-[#5A5A5A]"
                   >
-                    UBAH ALAMAT
-                  </Serif>
-                </Link>
+                    {showAddressForm
+                      ? <X size={12} strokeWidth={2} />
+                      : <Plus size={12} strokeWidth={2} />}
+                    <Serif bold className="text-[9px] uppercase tracking-[0.1em] underline underline-offset-2 sm:text-[11px]">
+                      {showAddressForm ? 'BATAL' : 'TAMBAH ALAMAT'}
+                    </Serif>
+                  </button>
+                </div>
               </header>
 
+              {/* ── Form Tambah / Edit Address ── */}
+              {showAddressForm && (
+                <form
+                  onSubmit={handleAddrSubmit}
+                  className="mb-4 bg-white p-4 sm:p-5 space-y-3"
+                >
+                  <div className="flex items-center justify-between pb-2 border-b border-[#ECEAE4]">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#1A1A1A]">
+                      {editingAddrId ? 'UBAH ALAMAT' : 'TAMBAH ALAMAT BARU'}
+                    </span>
+                  </div>
+                  {/* Error */}
+                  {addrFormError && (
+                    <div className="flex items-start gap-2 bg-[#FBD9D3] px-3 py-2.5">
+                      <AlertCircle size={12} strokeWidth={2} className="mt-0.5 shrink-0 text-[#C1603C]" />
+                      <p className="text-[10px] leading-relaxed text-[#8C3A1E]">{addrFormError}</p>
+                    </div>
+                  )}
+
+                  {/* Row 1: Label + Nama Penerima */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block mb-1 text-[9px] uppercase tracking-[0.12em] text-[#5A5A5A]" style={{ fontFamily: SERIF }}>
+                        Label <span className="text-[#C1603C]">*</span>
+                      </label>
+                      <input
+                        required
+                        maxLength={50}
+                        placeholder="cth. Rumah, Kantor"
+                        value={addrForm.label}
+                        onChange={(e) => setAddrForm((f) => ({ ...f, label: e.target.value }))}
+                        className="w-full border border-[#D9D9D9] bg-[#FAFAF9] px-3 py-2 text-[11px] text-[#1A1A1A] outline-none focus:border-[#1A1A1A] placeholder:text-[#BABABA] transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="block mb-1 text-[9px] uppercase tracking-[0.12em] text-[#5A5A5A]" style={{ fontFamily: SERIF }}>
+                        Nama Penerima <span className="text-[#C1603C]">*</span>
+                      </label>
+                      <input
+                        required
+                        maxLength={100}
+                        placeholder="Nama lengkap"
+                        value={addrForm.recipientName}
+                        onChange={(e) => setAddrForm((f) => ({ ...f, recipientName: e.target.value }))}
+                        className="w-full border border-[#D9D9D9] bg-[#FAFAF9] px-3 py-2 text-[11px] text-[#1A1A1A] outline-none focus:border-[#1A1A1A] placeholder:text-[#BABABA] transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 2: No HP */}
+                  <div>
+                    <label className="block mb-1 text-[9px] uppercase tracking-[0.12em] text-[#5A5A5A]" style={{ fontFamily: SERIF }}>
+                      Nomor Telepon <span className="text-[#C1603C]">*</span>
+                    </label>
+                    <input
+                      required
+                      type="tel"
+                      placeholder="08xxxxxxxxxx"
+                      value={addrForm.phone}
+                      onChange={(e) => setAddrForm((f) => ({ ...f, phone: e.target.value }))}
+                      className="w-full border border-[#D9D9D9] bg-[#FAFAF9] px-3 py-2 text-[11px] text-[#1A1A1A] outline-none focus:border-[#1A1A1A] placeholder:text-[#BABABA] transition-colors"
+                    />
+                    <p className="mt-0.5 text-[9px] text-[#9A9A9A]">Format: 08xx, +62xx, atau 62xx</p>
+                  </div>
+
+                  {/* Row 3: Alamat */}
+                  <div>
+                    <label className="block mb-1 text-[9px] uppercase tracking-[0.12em] text-[#5A5A5A]" style={{ fontFamily: SERIF }}>
+                      Alamat Lengkap <span className="text-[#C1603C]">*</span>
+                    </label>
+                    <input
+                      required
+                      minLength={10}
+                      maxLength={255}
+                      placeholder="Jl. Contoh No. 1, RT/RW, Kelurahan"
+                      value={addrForm.addressLine}
+                      onChange={(e) => setAddrForm((f) => ({ ...f, addressLine: e.target.value }))}
+                      className="w-full border border-[#D9D9D9] bg-[#FAFAF9] px-3 py-2 text-[11px] text-[#1A1A1A] outline-none focus:border-[#1A1A1A] placeholder:text-[#BABABA] transition-colors"
+                    />
+                  </div>
+
+                  {/* Row 4: Kota + Provinsi + Kode Pos */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block mb-1 text-[9px] uppercase tracking-[0.12em] text-[#5A5A5A]" style={{ fontFamily: SERIF }}>
+                        Kota <span className="text-[#C1603C]">*</span>
+                      </label>
+                      <input
+                        required
+                        minLength={2}
+                        maxLength={100}
+                        placeholder="Jakarta Selatan"
+                        value={addrForm.city}
+                        onChange={(e) => setAddrForm((f) => ({ ...f, city: e.target.value }))}
+                        className="w-full border border-[#D9D9D9] bg-[#FAFAF9] px-3 py-2 text-[11px] text-[#1A1A1A] outline-none focus:border-[#1A1A1A] placeholder:text-[#BABABA] transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="block mb-1 text-[9px] uppercase tracking-[0.12em] text-[#5A5A5A]" style={{ fontFamily: SERIF }}>
+                        Provinsi <span className="text-[#C1603C]">*</span>
+                      </label>
+                      <input
+                        required
+                        minLength={2}
+                        maxLength={100}
+                        placeholder="DKI Jakarta"
+                        value={addrForm.province}
+                        onChange={(e) => setAddrForm((f) => ({ ...f, province: e.target.value }))}
+                        className="w-full border border-[#D9D9D9] bg-[#FAFAF9] px-3 py-2 text-[11px] text-[#1A1A1A] outline-none focus:border-[#1A1A1A] placeholder:text-[#BABABA] transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="block mb-1 text-[9px] uppercase tracking-[0.12em] text-[#5A5A5A]" style={{ fontFamily: SERIF }}>
+                        Kode Pos <span className="text-[#C1603C]">*</span>
+                      </label>
+                      <input
+                        required
+                        pattern="\d{5}"
+                        maxLength={5}
+                        placeholder="12345"
+                        value={addrForm.postalCode}
+                        onChange={(e) => setAddrForm((f) => ({ ...f, postalCode: e.target.value.replace(/\D/g, '') }))}
+                        className="w-full border border-[#D9D9D9] bg-[#FAFAF9] px-3 py-2 text-[11px] text-[#1A1A1A] outline-none focus:border-[#1A1A1A] placeholder:text-[#BABABA] transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Row 5: Jadikan utama */}
+                  <label className="flex items-center gap-2.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={addrForm.isDefault}
+                      onChange={(e) => setAddrForm((f) => ({ ...f, isDefault: e.target.checked }))}
+                      className="w-3.5 h-3.5 accent-[#1A1A1A]"
+                    />
+                    <span className="text-[10px] text-[#3A3A3A]" style={{ fontFamily: SERIF }}>
+                      Jadikan alamat utama
+                    </span>
+                  </label>
+
+                  {/* Submit */}
+                  <button
+                    type="submit"
+                    disabled={addrFormLoading}
+                    className="w-full bg-[#1A1A1A] text-white py-2.5 text-[10px] uppercase tracking-[0.12em] font-bold hover:bg-[#333] transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                    style={{ fontFamily: SERIF }}
+                  >
+                    {addrFormLoading ? 'MENYIMPAN...' : editingAddrId ? 'SIMPAN PERUBAHAN' : 'SIMPAN ALAMAT'}
+                  </button>
+                </form>
+              )}
+
+              {/* ── Address Picker ── */}
+              {showAddressPicker && !showAddressForm && (
+                <div className="mb-4 space-y-2">
+                  <div className="flex justify-between items-center px-1 mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-[#5A5A5A]">
+                      PILIH DARI DAFTAR ALAMAT ({addressList.length})
+                    </span>
+                    <Link
+                      to="/addresses"
+                      className="text-[9px] uppercase tracking-[0.1em] text-[#1A1A1A] underline underline-offset-2 hover:text-[#5A5A5A]"
+                    >
+                      Buka Buku Alamat →
+                    </Link>
+                  </div>
+
+                  {addressList.map((addr) => {
+                    const isSelected = address?.id === addr.id;
+                    return (
+                      <div
+                        key={addr.id}
+                        className={`p-3 sm:p-4 border transition-colors ${
+                          isSelected
+                            ? 'border-[#1A1A1A] bg-white'
+                            : 'border-[#D9D9D9] bg-[#F5F5F3] hover:border-[#9A9A9A]'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2 mb-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] font-bold text-[#1A1A1A]">
+                              {addr.recipientName}
+                            </span>
+                            <span className="bg-[#C9C9C9] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.1em] text-[#3A3A3A]">
+                              {addr.label}
+                            </span>
+                            {addr.isDefault && (
+                              <span className="bg-[#1A1A1A] px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-[0.1em] text-white">
+                                UTAMA
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={(e) => handleStartEditAddress(addr, e)}
+                              className="text-[#6A6A6A] hover:text-[#1A1A1A] p-1 text-[9px] font-medium uppercase tracking-wider inline-flex items-center gap-1"
+                              title="Edit Alamat"
+                            >
+                              <Pencil size={11} strokeWidth={1.75} />
+                              <span className="hidden sm:inline">UBAH</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteAddress(addr.id, e)}
+                              className="text-[#999] hover:text-[#C1603C] p-1 text-[9px] font-medium uppercase tracking-wider inline-flex items-center gap-1"
+                              title="Hapus Alamat"
+                            >
+                              <Trash2 size={11} strokeWidth={1.75} />
+                              <span className="hidden sm:inline">HAPUS</span>
+                            </button>
+
+                            {!isSelected ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setAddress(addr);
+                                  setShowAddressPicker(false);
+                                }}
+                                className="bg-[#1A1A1A] hover:bg-[#333] text-white text-[9px] font-bold uppercase tracking-wider px-2.5 py-1"
+                              >
+                                PILIH
+                              </button>
+                            ) : (
+                              <span className="text-[8.5px] uppercase tracking-[0.1em] text-[#3D8B5C] font-bold">
+                                ✓ TERPILIH
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <p className="text-[10px] leading-relaxed text-[#3A3A3A]">
+                          {addr.addressLine}, {addr.city}, {addr.province} {addr.postalCode}
+                        </p>
+                        <p className="mt-0.5 text-[10px] text-[#777]">{addr.phone}</p>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* ── Selected address display ── */}
               <div className="bg-[#D9D9D9] p-4 sm:p-5">
                 <div className="mb-2 flex flex-wrap items-center gap-2.5">
                   <span className="text-[11px] font-bold text-[#1A1A1A] sm:text-[12px]">
@@ -496,7 +830,7 @@ const Payment: React.FC = () => {
                 <p className="text-[10.5px] leading-relaxed text-[#3A3A3A] sm:text-[11.5px]">
                   {address
                     ? `${address.addressLine}, ${address.city}, ${address.province} ${address.postalCode}`
-                    : 'Alamat pengiriman belum diatur. Tambahkan alamat untuk melanjutkan.'}
+                    : 'Alamat pengiriman belum diatur. Klik TAMBAH ALAMAT untuk menambahkan.'}
                 </p>
 
                 <p className="mt-1 text-[10.5px] text-[#5A5A5A] sm:text-[11.5px]">
@@ -546,19 +880,16 @@ const Payment: React.FC = () => {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-[11px] font-bold text-[#1A1A1A] sm:text-[12.5px]">
-                      Paxel Next Day Delivery
+                      Standar Delivery
                     </span>
 
-                    <span className="bg-[#E8916B] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.1em] text-white sm:text-[9px]">
-                      GARANSI TEPAT WAKTU
+                    <span className="bg-[#7A756D] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.1em] text-white sm:text-[9px]">
+                      INTEGRASI KURIR BELUM TERSEDIA
                     </span>
                   </div>
 
                   <p className="mt-1 text-[9.5px] text-[#4A4A4A] sm:text-[10.5px]">
-                    Estimasi Tiba Besok
-                    (1x24 Jam) · Termasuk
-                    proteksi asuransi tanpa
-                    garmen
+                    Backend Atelier API belum terintegrasi kurir pihak ketiga. Ongkos kirim saat ini Rp 0.
                   </p>
                 </div>
 
@@ -566,12 +897,7 @@ const Payment: React.FC = () => {
                   bold
                   className="shrink-0 whitespace-nowrap text-[12px] text-[#1A1A1A] sm:text-[15px]"
                 >
-                  RP.{' '}
-                  {new Intl.NumberFormat(
-                    'id-ID',
-                  ).format(
-                    SHIPPING_COST,
-                  )}
+                  GRATIS (RP 0)
                 </Serif>
               </div>
             </section>
@@ -701,7 +1027,7 @@ const Payment: React.FC = () => {
                           event.target.value.toUpperCase(),
                         )
                       }
-                      placeholder="ATELIERVIP"
+                      placeholder="ATELIERFIRST"
                       className="min-w-0 flex-1 border border-[#E0DED8] bg-white px-3 py-2.5 text-[10px] uppercase tracking-[0.1em] text-[#1A1A1A] outline-none placeholder:text-[#B0B0B0] transition-colors focus:border-[#1A1A1A] sm:text-[11px]"
                     />
 
@@ -712,9 +1038,7 @@ const Payment: React.FC = () => {
                           promoInput.trim();
 
                         if (value) {
-                          setPromoApplied(
-                            value,
-                          );
+                          setPromoNotice('Voucher belum didukung oleh backend Atelier API.');
                         }
                       }}
                       className="shrink-0 bg-[#1A1A1A] px-4 text-[9px] uppercase tracking-[0.12em] text-white transition-colors hover:bg-[#333] sm:px-6 sm:text-[10px]"
@@ -727,31 +1051,25 @@ const Payment: React.FC = () => {
                     </button>
                   </div>
 
-                  {promoApplied && (
-                    <div className="mt-2 flex items-center gap-2 bg-[#FBD9D3] px-3 py-2">
-                      <Check
+                  {promoNotice && (
+                    <div className="mt-2 flex items-center gap-2 bg-[#F5EDE8] px-3 py-2">
+                      <AlertCircle
                         size={12}
-                        strokeWidth={2.5}
-                        className="shrink-0 text-[#C1603C]"
+                        strokeWidth={2}
+                        className="shrink-0 text-[#8C3A1E]"
                       />
 
-                      <span className="flex-1 truncate text-[9px] uppercase tracking-[0.06em] text-[#8C3A1E] sm:text-[10px]">
-                        {
-                          promoApplied
-                        }{' '}
-                        berhasil
-                        diterapkan
+                      <span className="flex-1 text-[9px] uppercase tracking-[0.06em] text-[#8C3A1E] sm:text-[10px]">
+                        {promoNotice}
                       </span>
 
                       <button
                         type="button"
                         onClick={() => {
-                          setPromoApplied(
-                            null,
-                          );
+                          setPromoNotice(null);
                           setPromoInput('');
                         }}
-                        aria-label="Hapus kode promo"
+                        aria-label="Tutup notifikasi promo"
                         className="shrink-0 text-[#8C3A1E] hover:text-[#5A1F0A]"
                       >
                         <X
@@ -795,8 +1113,7 @@ const Payment: React.FC = () => {
                           fontFamily: SERIF,
                         }}
                       >
-                        Ongkos Kirim Paxel
-                        Next Day
+                        Ongkos Kirim
                       </dt>
 
                       <dd
@@ -805,12 +1122,7 @@ const Payment: React.FC = () => {
                           fontFamily: SERIF,
                         }}
                       >
-                        Rp{' '}
-                        {new Intl.NumberFormat(
-                          'id-ID',
-                        ).format(
-                          SHIPPING_COST,
-                        )}
+                        Gratis (Rp 0)
                       </dd>
                     </div>
 
@@ -867,12 +1179,27 @@ const Payment: React.FC = () => {
                     </div>
                   </dl>
 
+                  {orderError && (
+                    <div className="mb-3 flex items-start gap-2 bg-[#FBD9D3] px-3 py-2.5">
+                      <AlertCircle
+                        size={13}
+                        strokeWidth={2}
+                        className="mt-0.5 shrink-0 text-[#C1603C]"
+                      />
+                      <p className="text-[10px] leading-relaxed text-[#8C3A1E]">
+                        {orderError}
+                      </p>
+                    </div>
+                  )}
+
                   <button
                     type="button"
                     onClick={handlePay}
                     disabled={
                       lines.length === 0 ||
-                      paid
+                      paid ||
+                      orderLoading ||
+                      !address
                     }
                     className="mt-4 flex w-full items-center justify-between gap-3 bg-[#0A0A0A] px-4 py-4 text-white transition-colors hover:bg-[#242424] disabled:cursor-not-allowed disabled:opacity-60"
                   >
@@ -881,12 +1208,14 @@ const Payment: React.FC = () => {
                       className="text-left text-[11px] uppercase leading-tight tracking-[0.06em] sm:text-[14px]"
                     >
                       {paid ? (
-                        'PEMBAYARAN DIBUAT'
+                        'PESANAN DIBUAT'
+                      ) : orderLoading ? (
+                        'MEMBUAT PESANAN...'
                       ) : (
                         <>
-                          BAYAR
+                          KONFIRMASI
                           <br />
-                          SEKARANG
+                          PESANAN
                         </>
                       )}
                     </Serif>
@@ -915,248 +1244,41 @@ const Payment: React.FC = () => {
             </section>
 
             {/* ======================================================
-                PAYMENT METHOD
+                PAYMENT METHOD (STATUS INTEGRASI BACKEND)
             ======================================================= */}
 
             <section className="mb-6 bg-[#EFEEEA] p-4 sm:p-7">
-              <header className="mb-4 flex items-center gap-2 sm:mb-5">
-                <Lock
-                  size={13}
-                  strokeWidth={2}
-                  className="shrink-0 text-[#1A1A1A]"
-                />
+              <header className="mb-4 flex items-center justify-between gap-2 sm:mb-5">
+                <div className="flex items-center gap-2">
+                  <Lock
+                    size={13}
+                    strokeWidth={2}
+                    className="shrink-0 text-[#1A1A1A]"
+                  />
 
-                <Serif
-                  bold
-                  className="text-[9.5px] uppercase tracking-[0.14em] text-[#1A1A1A] sm:text-[11px]"
-                >
-                  METODE PEMBAYARAN
-                  TERENKRIPSI
-                </Serif>
+                  <Serif
+                    bold
+                    className="text-[9.5px] uppercase tracking-[0.14em] text-[#1A1A1A] sm:text-[11px]"
+                  >
+                    STATUS PEMBAYARAN
+                  </Serif>
+                </div>
+
+                <span className="bg-[#BFA07A] text-white text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.1em] px-2 py-0.5">
+                  GATEWAY BELUM TERSEDIA
+                </span>
               </header>
 
-              {/* METHOD TABS */}
-
-              <div
-                className="inline-flex"
-                role="tablist"
-                aria-label="Metode pembayaran"
-              >
-                {(
-                  [
-                    {
-                      key: 'VA',
-                      label: 'VIRTUAL ACCOUNT',
-                    },
-                    {
-                      key: 'EWALLET',
-                      label: 'E-WALLET',
-                    },
-                  ] as const
-                ).map((paymentMethod) => (
-                  <button
-                    key={
-                      paymentMethod.key
-                    }
-                    type="button"
-                    role="tab"
-                    aria-selected={
-                      method ===
-                      paymentMethod.key
-                    }
-                    onClick={() =>
-                      setMethod(
-                        paymentMethod.key,
-                      )
-                    }
-                    className={`px-4 py-2.5 text-[8.5px] uppercase tracking-[0.12em] transition-colors sm:px-8 sm:py-3 sm:text-[10px] ${
-                      method ===
-                      paymentMethod.key
-                        ? 'bg-[#0A0A0A] text-white'
-                        : 'bg-[#D9D9D9] text-[#3A3A3A] hover:bg-[#CFCFCF]'
-                    }`}
-                    style={{
-                      fontFamily: SERIF,
-                      fontWeight: 700,
-                    }}
-                  >
-                    {
-                      paymentMethod.label
-                    }
-                  </button>
-                ))}
+              <div className="border border-[#CBC7BD] bg-[#DFDCD4] p-4 sm:p-5 text-left">
+                <p className="mb-2 text-[11px] sm:text-[12px] font-medium leading-relaxed text-[#2A2A2A]">
+                  Modul Payment Gateway (Midtrans / Xendit) belum diimplementasikan pada backend Atelier API.
+                </p>
+                <p className="text-[10px] sm:text-[11px] leading-relaxed text-[#555]">
+                  Saat Anda menekan tombol di atas, pesanan dibuat langsung ke database backend via{' '}
+                  <code className="bg-[#ECEAE4] px-1 py-0.5 font-mono text-[#1A1A1A]">POST /api/v1/order</code> dengan status default{' '}
+                  <strong className="text-[#1A1A1A]">PENDING (MENUNGGU PEMBAYARAN)</strong>.
+                </p>
               </div>
-
-              {method ===
-              'VA' ? (
-                <>
-                  {/* BANK */}
-
-                  <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 bg-[#D9D9D9] px-3 py-2.5 sm:px-4">
-                    <span className="text-[8px] uppercase tracking-[0.14em] text-[#5A5A5A] sm:text-[9px]">
-                      PILIH BANK:
-                    </span>
-
-                    {BANKS.map(
-                      (bankName) => (
-                        <button
-                          key={
-                            bankName
-                          }
-                          type="button"
-                          onClick={() =>
-                            setBank(
-                              bankName,
-                            )
-                          }
-                          className={`px-2.5 py-1 text-[8.5px] uppercase tracking-[0.1em] transition-colors sm:text-[10px] ${
-                            bank ===
-                            bankName
-                              ? 'bg-white text-[#1A1A1A]'
-                              : 'text-[#5A5A5A] hover:text-[#1A1A1A]'
-                          }`}
-                          style={{
-                            fontFamily:
-                              SERIF,
-                            fontWeight: 700,
-                          }}
-                        >
-                          {bankName}
-                        </button>
-                      ),
-                    )}
-
-                    <span className="ml-auto flex items-center gap-1.5 text-[8px] uppercase tracking-[0.06em] text-[#C1603C] sm:text-[9px]">
-                      <AlertCircle
-                        size={10}
-                        strokeWidth={2}
-                        className="shrink-0"
-                      />
-
-                      Bayar sebelum
-                      23 jam 59 menit
-                    </span>
-                  </div>
-
-                  {/* VA NUMBER */}
-
-                  <div className="mt-5 flex flex-wrap items-end justify-between gap-4 px-1 sm:mt-7 sm:px-4">
-                    <div className="min-w-0">
-                      <Serif className="mb-1.5 block text-[8px] uppercase tracking-[0.16em] text-[#6A6A6A] sm:text-[9px]">
-                        NOMOR VIRTUAL
-                        ACCOUNT{' '}
-                        {bank}
-                      </Serif>
-
-                      <Serif
-                        bold
-                        className="block break-all text-[22px] leading-none tracking-[0.02em] text-[#0A0A0A] sm:text-[36px]"
-                      >
-                        {
-                          virtualAccount
-                        }
-                      </Serif>
-
-                      <p className="mt-2 text-[9px] text-[#4A4A4A] sm:text-[10.5px]">
-                        Atas Nama:{' '}
-                        <strong className="font-bold">
-                          ATELIER COUTURE
-                          INDONESIA
-                        </strong>
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={
-                        handleCopy
-                      }
-                      className="flex shrink-0 items-center gap-2 bg-[#0A0A0A] px-4 py-3 text-white transition-colors hover:bg-[#242424] sm:px-6"
-                      style={{
-                        fontFamily: SERIF,
-                        fontWeight: 700,
-                      }}
-                    >
-                      {copied ? (
-                        <Check
-                          size={12}
-                          strokeWidth={
-                            2.5
-                          }
-                        />
-                      ) : (
-                        <Copy
-                          size={12}
-                          strokeWidth={2}
-                        />
-                      )}
-
-                      <span className="text-[8.5px] uppercase tracking-[0.12em] sm:text-[10px]">
-                        {copied
-                          ? 'TERSALIN'
-                          : 'SALIN KODE'}
-                      </span>
-                    </button>
-                  </div>
-
-                  {/* INSTRUCTIONS */}
-
-                  <div className="mt-5 grid grid-cols-1 gap-3 sm:mt-7 sm:grid-cols-3 sm:gap-4">
-                    {VA_INSTRUCTIONS.map(
-                      (column) => (
-                        <div
-                          key={
-                            column.title
-                          }
-                          className="bg-[#D9D9D9] p-3 sm:p-4"
-                        >
-                          <Serif
-                            bold
-                            className="mb-2 block text-[8px] uppercase tracking-[0.12em] text-[#1A1A1A] sm:text-[9px]"
-                          >
-                            {
-                              column.title
-                            }
-                          </Serif>
-
-                          <ul className="space-y-0.5">
-                            {column.steps.map(
-                              (
-                                step,
-                              ) => (
-                                <li
-                                  key={
-                                    step
-                                  }
-                                  className="text-[8.5px] leading-relaxed text-[#3A3A3A] sm:text-[10px]"
-                                >
-                                  {
-                                    step
-                                  }
-                                </li>
-                              ),
-                            )}
-                          </ul>
-                        </div>
-                      ),
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="mt-4 bg-[#D9D9D9] p-6 text-center sm:p-8">
-                  <Serif className="mb-1.5 block text-[12px] text-[#1A1A1A] sm:text-[14px]">
-                    Pembayaran E-Wallet
-                  </Serif>
-
-                  <p className="text-[10px] text-[#4A4A4A] sm:text-[11px]">
-                    Pilih Virtual
-                    Account untuk
-                    menyelesaikan
-                    pembayaran saat
-                    ini.
-                  </p>
-                </div>
-              )}
             </section>
 
             {/* ======================================================

@@ -1,47 +1,108 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Package, ShoppingBag } from 'lucide-react';
+import { Package, ChevronLeft, ChevronRight } from 'lucide-react';
 import AnnouncementBar from '../components/AnnouncementBar';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { Serif, SectionStrip, SERIF } from '../components/CommerceUI';
 import { useAuth } from '../contexts/AuthContext';
 import { resolveImageUrl } from '../lib/utils';
-import { mockOrders, type MockOrder, type MockOrderStatus } from '../mocks/orders';
+import { getOrders } from '../lib/orderApi';
+import type { Order, OrderStatus } from '../types/api';
 
-type TabKey = 'SEMUA' | MockOrderStatus;
+/* ─── Status mapping ─────────────────────────────────────── */
+
+type TabKey = 'SEMUA' | OrderStatus;
 
 const TABS: Array<{ key: TabKey; label: string }> = [
   { key: 'SEMUA', label: 'SEMUA' },
-  { key: 'BELUM_BAYAR', label: 'BELUM BAYAR' },
-  { key: 'DIPROSES', label: 'DIPROSES' },
-  { key: 'DIKIRIM', label: 'DIKIRIM' },
-  { key: 'DIBATALKAN', label: 'DIBATALKAN' },
-  { key: 'SELESAI', label: 'SELESAI' },
+  { key: 'PENDING', label: 'MENUNGGU' },
+  { key: 'PAID', label: 'DIBAYAR' },
+  { key: 'PROCESSING', label: 'DIPROSES' },
+  { key: 'SHIPPED', label: 'DIKIRIM' },
+  { key: 'DELIVERED', label: 'SELESAI' },
+  { key: 'CANCELLED', label: 'DIBATALKAN' },
+  { key: 'EXPIRED', label: 'KEDALUARSA' },
 ];
 
 const STATUS_META: Record<string, { color: string; dot: string; label: string }> = {
-  DIKIRIM: { color: 'bg-[#FDF0E0] text-[#A67C3D]', dot: 'bg-[#C9944A]', label: 'DIKIRIM' },
-  DIPROSES: { color: 'bg-[#E3EEF8] text-[#4A7BA8]', dot: 'bg-[#5E96C8]', label: 'DIPROSES' },
-  SELESAI: { color: 'bg-[#E4F4EA] text-[#3D8B5C]', dot: 'bg-[#4DA66D]', label: 'SELESAI' },
-  DIBATALKAN: { color: 'bg-[#F6E0E0] text-[#A05050]', dot: 'bg-[#C06060]', label: 'DIBATALKAN' },
-  BELUM_BAYAR: { color: 'bg-[#FDF3D9] text-[#A67C3D]', dot: 'bg-[#C9944A]', label: 'BELUM BAYAR' },
+  PENDING:    { color: 'bg-[#FDF3D9] text-[#A67C3D]', dot: 'bg-[#C9944A]', label: 'MENUNGGU' },
+  PAID:       { color: 'bg-[#E3EEF8] text-[#4A7BA8]', dot: 'bg-[#5E96C8]', label: 'DIBAYAR' },
+  PROCESSING: { color: 'bg-[#E3EEF8] text-[#4A7BA8]', dot: 'bg-[#5E96C8]', label: 'DIPROSES' },
+  SHIPPED:    { color: 'bg-[#FDF0E0] text-[#A67C3D]', dot: 'bg-[#C9944A]', label: 'DIKIRIM' },
+  DELIVERED:  { color: 'bg-[#E4F4EA] text-[#3D8B5C]', dot: 'bg-[#4DA66D]', label: 'SELESAI' },
+  CANCELLED:  { color: 'bg-[#F6E0E0] text-[#A05050]', dot: 'bg-[#C06060]', label: 'DIBATALKAN' },
+  EXPIRED:    { color: 'bg-[#EEEEEE] text-[#6A6A6A]', dot: 'bg-[#9A9A9A]', label: 'KEDALUARSA' },
 };
 
 const formatDate = (iso: string) =>
-  new Date(iso).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }).toUpperCase();
+  new Date(iso)
+    .toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })
+    .toUpperCase();
 
 const formatRp = (n: number) => `Rp${new Intl.NumberFormat('id-ID').format(n)}`;
 
 /* ─── Orders Page ─────────────────────────────────────────── */
+
 const Orders: React.FC = () => {
   const { user, loading: authLoading } = useAuth();
   const [activeTab, setActiveTab] = useState<TabKey>('SEMUA');
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [totalPages, setTotalPages] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
 
-  const visible =
-    activeTab === 'SEMUA'
-      ? mockOrders
-      : mockOrders.filter((o) => o.status === activeTab);
+  const LIMIT = 10;
+
+  const fetchOrders = useCallback(async () => {
+    if (!user) return;
+
+    setOrdersLoading(true);
+    setOrdersError(null);
+
+    try {
+      const response = await getOrders({
+        userId: user.id,
+        page,
+        limit: LIMIT,
+        status: activeTab !== 'SEMUA' ? activeTab : undefined,
+        sortBy: 'createdAt',
+        sortOrder: 'desc',
+      });
+
+      const orderList = Array.isArray(response)
+        ? response
+        : (response?.data ?? []);
+      const totalCount = Array.isArray(response)
+        ? response.length
+        : (response?.meta?.total ?? orderList.length);
+      const pagesCount = Array.isArray(response)
+        ? 1
+        : (response?.meta?.totalPages ?? 1);
+
+      setOrders(orderList);
+      setTotal(totalCount);
+      setTotalPages(pagesCount);
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : 'Gagal memuat pesanan.';
+      setOrdersError(message);
+    } finally {
+      setOrdersLoading(false);
+    }
+  }, [user, page, activeTab]);
+
+  useEffect(() => {
+    void fetchOrders();
+  }, [fetchOrders]);
+
+  // Reset halaman saat tab berubah
+  const handleTabChange = (tab: TabKey) => {
+    setActiveTab(tab);
+    setPage(1);
+  };
 
   /* ─── Guest gate ─── */
   if (!authLoading && !user) {
@@ -75,7 +136,7 @@ const Orders: React.FC = () => {
     );
   }
 
-  /* ─── Loading state ─── */
+  /* ─── Auth loading ─── */
   if (authLoading) {
     return (
       <div className="flex flex-col min-h-screen bg-[#F5F5F5]">
@@ -84,7 +145,7 @@ const Orders: React.FC = () => {
         <main className="flex-1">
           <div className="max-w-[1100px] mx-auto px-3 sm:px-6 py-6 sm:py-10">
             <div className="bg-[#FDFAF7] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-              <SectionStrip>PESANAN </SectionStrip>
+              <SectionStrip>PESANAN</SectionStrip>
               <div className="px-3 sm:px-6 py-5 sm:py-7 space-y-4">
                 {Array.from({ length: 3 }).map((_, i) => (
                   <SkeletonCard key={i} />
@@ -112,9 +173,9 @@ const Orders: React.FC = () => {
               <Serif bold className="text-[11px] sm:text-[12px] tracking-[0.12em] uppercase text-[#3A3A3A]">
                 PESANAN
               </Serif>
-              {visible.length > 0 && (
+              {!ordersLoading && total > 0 && (
                 <span className="text-[10px] tracking-[0.08em] uppercase text-[#9A9A9A]">
-                  {visible.length} {visible.length === 1 ? 'PESANAN' : 'PESANAN'}
+                  {total} PESANAN
                 </span>
               )}
             </div>
@@ -130,7 +191,7 @@ const Orders: React.FC = () => {
                   <button
                     key={tab.key}
                     type="button"
-                    onClick={() => setActiveTab(tab.key)}
+                    onClick={() => handleTabChange(tab.key)}
                     aria-current={isActive ? 'true' : undefined}
                     className={`flex-1 min-w-[90px] px-3 sm:px-4 py-3 text-[10px] sm:text-[11px] tracking-[0.08em] uppercase whitespace-nowrap transition-colors duration-200 relative ${
                       isActive ? 'text-[#1A1A1A]' : 'text-[#9A9A9A] hover:text-[#5A5A5A]'
@@ -150,7 +211,35 @@ const Orders: React.FC = () => {
 
             {/* ─── Content ─── */}
             <div className="px-3 sm:px-6 py-4 sm:py-5">
-              {visible.length === 0 ? (
+              {/* Loading skeleton */}
+              {ordersLoading && (
+                <div className="space-y-3 sm:space-y-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <SkeletonCard key={i} />
+                  ))}
+                </div>
+              )}
+
+              {/* Error state */}
+              {!ordersLoading && ordersError && (
+                <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
+                  <Package size={36} strokeWidth={1} className="text-[#CFCFCF] mb-4" />
+                  <Serif className="text-[15px] text-[#4A4A4A] mb-2">
+                    Gagal memuat pesanan
+                  </Serif>
+                  <p className="text-[12px] text-[#9A9A9A] mb-5">{ordersError}</p>
+                  <button
+                    type="button"
+                    onClick={() => void fetchOrders()}
+                    className="bg-[#1A1A1A] text-white text-[11px] tracking-[0.12em] uppercase font-medium px-8 py-3 hover:bg-[#333] transition-colors"
+                  >
+                    COBA LAGI
+                  </button>
+                </div>
+              )}
+
+              {/* Empty state */}
+              {!ordersLoading && !ordersError && orders.length === 0 && (
                 <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
                   <span className="text-[28px] text-[#C9C9C9] mb-4">&#10022;</span>
                   <Serif className="text-[15px] sm:text-[16px] text-[#4A4A4A]">
@@ -168,11 +257,46 @@ const Orders: React.FC = () => {
                     JELAJAHI KOLEKSI
                   </Link>
                 </div>
-              ) : (
+              )}
+
+              {/* Order list */}
+              {!ordersLoading && !ordersError && orders.length > 0 && (
                 <div className="space-y-3 sm:space-y-4">
-                  {visible.map((order) => (
+                  {orders.map((order) => (
                     <OrderCard key={order.id} order={order} />
                   ))}
+                </div>
+              )}
+
+              {/* Pagination */}
+              {!ordersLoading && !ordersError && totalPages > 1 && (
+                <div className="flex items-center justify-center gap-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    aria-label="Halaman sebelumnya"
+                    className="p-2 text-[#5A5A5A] hover:text-[#1A1A1A] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronLeft size={16} strokeWidth={1.5} />
+                  </button>
+
+                  <span
+                    className="text-[11px] tracking-[0.1em] text-[#5A5A5A]"
+                    style={{ fontFamily: SERIF }}
+                  >
+                    {page} / {totalPages}
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    aria-label="Halaman berikutnya"
+                    className="p-2 text-[#5A5A5A] hover:text-[#1A1A1A] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <ChevronRight size={16} strokeWidth={1.5} />
+                  </button>
                 </div>
               )}
             </div>
@@ -185,10 +309,11 @@ const Orders: React.FC = () => {
   );
 };
 
-/* ─── Order Card (compact horizontal) ────────────────────── */
-const OrderCard: React.FC<{ order: MockOrder }> = ({ order }) => {
+/* ─── Order Card ──────────────────────────────────────────── */
+
+const OrderCard: React.FC<{ order: Order }> = ({ order }) => {
   const firstItem = order.items[0];
-  const previewImage = firstItem?.image ?? null;
+  const previewImage = firstItem?.product?.image ?? null;
   const meta = STATUS_META[order.status];
   const remainingCount = order.items.length - 1;
 
@@ -200,8 +325,8 @@ const OrderCard: React.FC<{ order: MockOrder }> = ({ order }) => {
         <div className="w-full sm:w-[100px] h-[100px] sm:h-auto bg-[#ECEAE4] overflow-hidden flex-shrink-0">
           {previewImage ? (
             <img
-              src={resolveImageUrl(previewImage, 200, 200, firstItem?.productName)}
-              alt={firstItem?.productName ?? 'Produk'}
+              src={resolveImageUrl(previewImage, 200, 200, firstItem?.product?.name)}
+              alt={firstItem?.product?.name ?? 'Produk'}
               className="w-full h-full object-cover"
             />
           ) : (
@@ -221,7 +346,7 @@ const OrderCard: React.FC<{ order: MockOrder }> = ({ order }) => {
               as="h3"
               className="text-[12px] sm:text-[13px] text-[#1A1A1A] tracking-[0.02em] uppercase truncate"
             >
-              {firstItem?.productName ?? 'Pesanan'}
+              {firstItem?.product?.name ?? 'Pesanan'}
             </Serif>
             {remainingCount > 0 && (
               <p className="text-[10px] sm:text-[11px] text-[#9A9A9A] mt-0.5">
@@ -234,11 +359,9 @@ const OrderCard: React.FC<{ order: MockOrder }> = ({ order }) => {
                 className="text-[9px] sm:text-[10px] tracking-[0.08em] uppercase text-[#8A8A8A]"
                 style={{ fontFamily: SERIF, fontWeight: 400 }}
               >
-                {order.orderNumber}
+                #{order.id}
               </span>
-              <span
-                className="text-[9px] sm:text-[10px] tracking-[0.08em] uppercase text-[#B0B0B0]"
-              >
+              <span className="text-[9px] sm:text-[10px] tracking-[0.08em] uppercase text-[#B0B0B0]">
                 •
               </span>
               <span

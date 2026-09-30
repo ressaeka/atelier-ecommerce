@@ -13,7 +13,7 @@ import { Order } from './entities/order.entity.js';
 import { CartRepository } from '../cart/cart.repository.js';
 import { AddressRepository } from '../address/address.repository.js';
 
-import { OrderStatus, Prisma } from '../../generated/prisma/client.js';
+import { Prisma } from '../../generated/prisma/client.js';
 import { OrderQueryDto } from './dto/query-order.dto.js';
 
 @Injectable()
@@ -99,32 +99,41 @@ export class OrderService {
     // 9. Hitung total
     const total = subtotal + shippingFee;
 
-    // 10. Buat Order
-    const order = await this.orderRepository.createOrder({
-      user: {
-        connect: {
-          id: currentUserId,
+    // 10. Buat Order dengan stock deduction atomic
+    const itemsToDeduct = cart.items.map((item) => ({
+      productId: item.productId,
+      variantId: item.variantId,
+      quantity: item.quantity,
+    }));
+
+    const order = await this.orderRepository.createOrderWithStockDeduction(
+      {
+        user: {
+          connect: {
+            id: currentUserId,
+          },
+        },
+
+        status: 'PENDING',
+
+        subtotal,
+        shippingFee,
+        total,
+
+        // Snapshot address
+        recipientName: address.recipientName,
+        phone: address.phone,
+        addressLine: address.addressLine,
+        city: address.city,
+        province: address.province,
+        postalCode: address.postalCode,
+
+        items: {
+          create: items,
         },
       },
-
-      status: 'PENDING',
-
-      subtotal,
-      shippingFee,
-      total,
-
-      // Snapshot address
-      recipientName: address.recipientName,
-      phone: address.phone,
-      addressLine: address.addressLine,
-      city: address.city,
-      province: address.province,
-      postalCode: address.postalCode,
-
-      items: {
-        create: items,
-      },
-    });
+      itemsToDeduct,
+    );
 
     if (!order) {
       throw new BadRequestException('Order gagal dibuat');
@@ -133,39 +142,53 @@ export class OrderService {
     return order;
   }
 
-  async findOrderById(orderId: number): Promise<Order> {
-    const order =
-      await this.orderRepository.findOrderById(orderId);
+  async cancelOrder(userId: number, orderId: number): Promise<Order> {
+    const order = await this.orderRepository.findOrderByIdAndUserId(
+      userId,
+      orderId,
+    );
 
     if (!order) {
-      throw new NotFoundException(
-        'Order tidak ditemukan',
+      throw new NotFoundException('Order tidak ditemukan');
+    }
+
+    if (order.status !== 'PENDING') {
+      throw new BadRequestException(
+        'Hanya pesanan berstatus PENDING yang dapat dibatalkan',
       );
+    }
+
+    return this.orderRepository.cancelOrderWithStockRestoration(orderId);
+  }
+
+  async findOrderById(orderId: number): Promise<Order> {
+    const order = await this.orderRepository.findOrderById(orderId);
+
+    if (!order) {
+      throw new NotFoundException('Order tidak ditemukan');
     }
 
     return order;
   }
 
-  async findOrderByIdAndUserId(userId:number, orderId:number) :Promise<Order> {
-    const order = await this.orderRepository.findOrderByIdAndUserId(userId, orderId);
+  async findOrderByIdAndUserId(
+    userId: number,
+    orderId: number,
+  ): Promise<Order> {
+    const order = await this.orderRepository.findOrderByIdAndUserId(
+      userId,
+      orderId,
+    );
 
-    if(!order) {
-      throw new NotFoundException('Order user tidak ditemukan')
+    if (!order) {
+      throw new NotFoundException('Order user tidak ditemukan');
     }
 
-    return order
+    return order;
   }
 
   async findAllOrder(query: OrderQueryDto) {
-    const {
-      page,
-      limit,
-      search,
-      userId,
-      status,
-      sortBy,
-      sortOrder,
-    } = query;
+    const { page, limit, search, userId, status, sortBy, sortOrder } = query;
 
     const skip = (page - 1) * limit;
 
@@ -187,13 +210,7 @@ export class OrderService {
     };
 
     const [orders, total] = await Promise.all([
-      this.orderRepository.findOrders(
-        where,
-        skip,
-        limit,
-        sortBy,
-        sortOrder,
-      ),
+      this.orderRepository.findOrders(where, skip, limit, sortBy, sortOrder),
 
       this.orderRepository.countOrders(where),
     ]);
@@ -220,9 +237,6 @@ export class OrderService {
       throw new NotFoundException('Order tidak ditemukan');
     }
 
-    return this.orderRepository.updateOrderStatus(
-      orderId,
-      dto.status,
-    );
+    return this.orderRepository.updateOrderStatus(orderId, dto.status);
   }
 }

@@ -68,9 +68,16 @@ http.interceptors.request.use((config) => {
 // ─── Response Interceptor: unwrap envelope + handle 401 ─────
 http.interceptors.response.use(
   (response) => {
-    // Unwrap the ApiResponse envelope: { success, message, data }
-    const body = response.data as ApiResponse<unknown>;
-    response.data = body.data;
+    // Only unwrap if the response is an ApiResponse envelope: { success, data, ... }
+    const body = response.data;
+    if (
+      body &&
+      typeof body === 'object' &&
+      'success' in body &&
+      'data' in body
+    ) {
+      response.data = (body as ApiResponse<unknown>).data;
+    }
     return response;
   },
   async (error) => {

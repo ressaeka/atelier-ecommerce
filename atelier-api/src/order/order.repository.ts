@@ -20,6 +20,105 @@ export class OrderRepository {
     });
   }
 
+  async createOrderWithStockDeduction(
+    data: Prisma.OrderCreateInput,
+    itemsToDeduct: Array<{
+      productId: number;
+      variantId?: number | null;
+      quantity: number;
+    }>,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      for (const item of itemsToDeduct) {
+        if (item.variantId) {
+          await tx.productVariant.update({
+            where: { id: item.variantId },
+            data: {
+              stock: {
+                decrement: item.quantity,
+              },
+            },
+          });
+        }
+        await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            stock: {
+              decrement: item.quantity,
+            },
+          },
+        });
+      }
+
+      return tx.order.create({
+        data,
+        include: {
+          items: {
+            include: {
+              product: true,
+              variant: true,
+            },
+          },
+        },
+      });
+    });
+  }
+
+  async cancelOrderWithStockRestoration(orderId: number) {
+    return this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({
+        where: { id: orderId },
+        include: {
+          items: true,
+        },
+      });
+
+      if (!order) {
+        throw new Error('Order tidak ditemukan');
+      }
+
+      if (order.status !== 'PENDING') {
+        throw new Error('Pesanan tidak lagi berstatus PENDING');
+      }
+
+      for (const item of order.items) {
+        if (item.variantId) {
+          await tx.productVariant.update({
+            where: { id: item.variantId },
+            data: {
+              stock: {
+                increment: item.quantity,
+              },
+            },
+          });
+        }
+        await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            stock: {
+              increment: item.quantity,
+            },
+          },
+        });
+      }
+
+      return tx.order.update({
+        where: { id: orderId },
+        data: {
+          status: 'CANCELLED',
+        },
+        include: {
+          items: {
+            include: {
+              product: true,
+              variant: true,
+            },
+          },
+        },
+      });
+    });
+  }
+
   async findOrderById(orderId: number) {
     return this.prisma.order.findUnique({
       where: {

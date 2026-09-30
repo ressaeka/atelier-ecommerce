@@ -11,6 +11,7 @@ import Payment from './pages/Payment';
 import Wishlist from './pages/Wishlist';
 import Orders from './pages/Orders';
 import OrderDetail from './pages/OrderDetail';
+import Addresses from './pages/Addresses';
 import About from './pages/About';
 
 import Login from './pages/Login';
@@ -33,6 +34,7 @@ export function App() {
               <Route path="/wishlist" element={<Wishlist />} />
               <Route path="/orders" element={<Orders />} />
               <Route path="/orders/:id" element={<OrderDetail />} />
+              <Route path="/addresses" element={<Addresses />} />
               <Route path="/about" element={<About />} />
 
               {/* Auth Pages */}

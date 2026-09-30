@@ -10,7 +10,7 @@ import { validateEnv } from './config/env.validation.js';
 import { AddressModule } from './address/address.module.js';
 import { CartModule } from './cart/cart.module.js';
 import { WishlistModule } from './wishlist/wishlist.module.js';
-// import { OrderModule } from './order/order.module.js';
+import { OrderModule } from './order/order.module.js';
 import configuration from './config/configuration.js';
 
 @Module({
@@ -29,7 +29,7 @@ import configuration from './config/configuration.js';
     AddressModule,
     CartModule,
     WishlistModule,
-    // OrderModule,
+    OrderModule,
   ],
 })
 export class AppModule {}

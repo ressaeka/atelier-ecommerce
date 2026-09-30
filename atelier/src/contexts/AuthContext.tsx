@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { api, setTokens, clearTokens, getAccessToken, getRefreshToken } from '../lib/api';
-import type { User, AuthTokens, LoginRequest, RegisterRequest } from '../types/api';
+import type { User, AuthTokens, LoginRequest, RegisterRequest, UpdateUserRequest } from '../types/api';
 import { ApiRequestError } from '../lib/api';
 
 interface AuthContextValue {
@@ -10,6 +10,7 @@ interface AuthContextValue {
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
   handleGoogleAuth: (accessToken: string, refreshToken: string) => Promise<User>;
+  updateProfile: (data: UpdateUserRequest) => Promise<User>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -93,8 +94,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const updateProfile = useCallback(async (data: UpdateUserRequest): Promise<User> => {
+    const updated = await api.patch<User>('/users/me', data);
+    setUser(updated);
+    localStorage.setItem(USER_KEY, JSON.stringify(updated));
+    return updated;
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, handleGoogleAuth }}>
+    <AuthContext.Provider value={{ user, loading, login, register, logout, handleGoogleAuth, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

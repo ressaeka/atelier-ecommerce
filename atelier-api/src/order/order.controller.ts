@@ -63,6 +63,14 @@ export class OrderController {
     );
   }
 
+  @Patch(':id/cancel')
+  async cancel(
+    @CurrentUser() user: { id: number },
+    @Param('id') id: string,
+  ) {
+    return this.orderService.cancelOrder(user.id, +id);
+  }
+
   @Patch(':id/status')
   async updateStatus(
     @Param('id') id: string,
