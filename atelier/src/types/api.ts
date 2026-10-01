@@ -230,6 +230,27 @@ export type OrderStatus =
   | 'CANCELLED'
   | 'EXPIRED';
 
+export type PaymentStatus =
+  | 'PENDING'
+  | 'PAID'
+  | 'CANCELLED'
+  | 'EXPIRED';
+
+export interface Payment {
+  id: number;
+  orderId: number;
+  provider: string;
+  midtransOrderId: string;
+  snapToken: string | null;
+  attempt: number;
+  status: PaymentStatus;
+  transactionStatus: string | null;
+  fraudStatus: string | null;
+  grossAmount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface OrderItemProduct {
   id: number;
   name: string;
@@ -282,6 +303,8 @@ export interface Order {
   province: string;
   postalCode: string;
   items: OrderItem[];
+  /** Latest payment attempt (hanya di GET /order/:id) */
+  payments?: Payment[];
   createdAt: string;
   updatedAt: string;
 }
@@ -306,6 +329,19 @@ export interface OrderQuery {
   status?: OrderStatus;
   sortBy?: OrderSortBy;
   sortOrder?: OrderSortOrder;
+}
+
+// ─── Payment (Midtrans) ─────────────────────────────────────
+export interface CreatePaymentRequest {
+  orderId: number;
+}
+
+export interface PaymentResponse {
+  paymentId: number;
+  orderId: number;
+  midtransOrderId: string;
+  snapToken: string;
+  redirectUrl: string;
 }
 
 // ─── Error ──────────────────────────────────────────────────

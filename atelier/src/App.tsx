@@ -8,6 +8,7 @@ import Catalog from './pages/Catalog';
 import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
 import Payment from './pages/Payment';
+import PaymentSuccess from './pages/PaymentSuccess';
 import Wishlist from './pages/Wishlist';
 import Orders from './pages/Orders';
 import OrderDetail from './pages/OrderDetail';
@@ -31,6 +32,11 @@ export function App() {
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/payment" element={<Payment />} />
+              {/* Midtrans Snap return URL → cek status dari backend
+                  /payment/success/:orderId  (callback.finish path)
+                  /payment/success?order_id=ATELIER-11-2 (dashboard finish + query) */}
+              <Route path="/payment/success" element={<PaymentSuccess />} />
+              <Route path="/payment/success/:orderId" element={<PaymentSuccess />} />
               <Route path="/wishlist" element={<Wishlist />} />
               <Route path="/orders" element={<Orders />} />
               <Route path="/orders/:id" element={<OrderDetail />} />

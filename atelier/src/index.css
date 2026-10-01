@@ -331,3 +331,32 @@ img {
     animation: none;
   }
 }
+
+/* =========================================================
+   PRINT — Payment Success / Receipt
+   Sembunyikan navbar, footer, tombol; tampilkan receipt.
+========================================================= */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  #payment-receipt {
+    border: none !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 auto !important;
+  }
+
+  a[href]::after {
+    content: none !important;
+  }
+}

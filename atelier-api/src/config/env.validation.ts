@@ -31,6 +31,20 @@ export const envSchema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().min(1),
   GOOGLE_CALLBACK_URL: z.string().url(),
   GOOGLE_FRONTEND_URL: z.string().url().default('http://localhost:5173'),
+
+  // Midtrans
+  MIDTRANS_MERCHANT_ID: z.string().min(1),
+  MIDTRANS_CLIENT_KEY: z.string().min(1),
+  MIDTRANS_SERVER_KEY: z.string().min(1),
+  MIDTRANS_IS_PRODUCTION: z.enum(['true', 'false']).default('false'),
+
+  // Base URL frontend untuk Snap return/finish callback
+  // (notification webhook Midtrans → backend TIDAK memakai URL ini)
+  FRONTEND_URL: z.string().url().default('http://localhost:5173'),
+
+  // Webhook Midtrans → backend (opsional; kosong = pakai setting dashboard)
+  // Contoh: https://xxxx.ngrok-free.dev/api/v1/payment/notification
+  MIDTRANS_NOTIFICATION_URL: z.string().url().or(z.literal('')).default(''),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

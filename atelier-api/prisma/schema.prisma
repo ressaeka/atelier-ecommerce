@@ -29,6 +29,13 @@ enum OrderStatus {
   EXPIRED
 }
 
+enum PaymentStatus {
+  PENDING
+  PAID
+  EXPIRED
+  CANCELLED
+}
+
 
 model User {
   id Int @id @default(autoincrement())
@@ -220,6 +227,7 @@ model Order {
   postalCode    String @db.VarChar(20)
 
   items OrderItem[]
+  payments Payment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -250,4 +258,31 @@ model OrderItem {
   @@index([orderId])
   @@index([productId])
   @@index([variantId])
+}
+
+model Payment {
+  id Int @id @default(autoincrement())
+
+  orderId Int
+  order   Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  provider String @default("MIDTRANS")
+
+  midtransOrderId String @unique
+  snapToken       String?
+
+  attempt Int @default(1)
+
+  status PaymentStatus @default(PENDING)
+
+  transactionStatus String?
+  fraudStatus       String?
+
+  grossAmount Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([orderId])
+  @@index([status])
 }

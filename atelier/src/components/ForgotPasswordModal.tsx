@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Mail, CheckCircle2, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { X, Mail, ArrowLeft, ShieldCheck } from 'lucide-react';
 import InputField from './InputField';
 import PasswordField from './PasswordField';
 import AuthButton from './AuthButton';

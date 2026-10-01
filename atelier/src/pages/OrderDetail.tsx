@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, MapPin, Package, ChevronRight } from 'lucide-react';
+import { ArrowLeft, MapPin, Package } from 'lucide-react';
 
 import AnnouncementBar from '../components/AnnouncementBar';
 import Navbar from '../components/Navbar';
@@ -13,6 +13,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { resolveImageUrl } from '../lib/utils';
 import { getOrderById, cancelOrder } from '../lib/orderApi';
+import { createPayment } from '../lib/paymentApi';
 import type { Order, OrderItem } from '../types/api';
 
 /* =========================================================
@@ -109,6 +110,7 @@ const OrderDetail: React.FC = () => {
   const [orderError, setOrderError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [paying, setPaying] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState<{
     type: 'success' | 'error';
@@ -140,6 +142,41 @@ const OrderDetail: React.FC = () => {
       });
     } finally {
       setCancelling(false);
+    }
+  };
+
+  /**
+   * Retry pembayaran Midtrans untuk order PENDING.
+   * Status keberhasilan TIDAK ditentukan di sini — backend yang
+   * menerima notification Midtrans lalu mengubah Order/Payment status.
+   */
+  const handlePayNow = async () => {
+    if (!order || order.status !== 'PENDING' || paying) return;
+
+    setPaying(true);
+    setFeedbackMessage(null);
+
+    try {
+      const payment = await createPayment(order.id);
+
+      if (!payment.redirectUrl) {
+        throw new Error(
+          'Link pembayaran tidak tersedia. Silakan coba lagi.',
+        );
+      }
+
+      window.location.href = payment.redirectUrl;
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Pembayaran gagal dibuat. Silakan coba lagi.';
+      setFeedbackMessage({
+        type: 'error',
+        text: message,
+      });
+    } finally {
+      setPaying(false);
     }
   };
 
@@ -612,32 +649,31 @@ const OrderDetail: React.FC = () => {
                           bold
                           className="mt-1.5 text-[15px] leading-[1.35] text-[#1A1A1A]"
                         >
-                          Pesanan #{order.id} telah berhasil dibuat dan tersimpan.
+                          Pesanan #{order.id} menunggu pembayaran.
                         </Serif>
                       </div>
                     </div>
 
+                    <p className="mb-3 text-[10px] leading-[1.6] text-[#7A6B48]">
+                      Selesaikan pembayaran melalui Midtrans Sandbox.
+                      Status pesanan diperbarui otomatis setelah pembayaran
+                      dikonfirmasi oleh sistem.
+                    </p>
+
                     <button
                       type="button"
-                      disabled
-                      aria-disabled="true"
-                      className="mt-2 flex w-full cursor-not-allowed items-center justify-center bg-[#1A1A1A] px-4 py-3.5 text-[9px] font-medium uppercase tracking-[0.16em] text-white opacity-40"
+                      onClick={() => void handlePayNow()}
+                      disabled={paying}
+                      className="mt-2 flex w-full items-center justify-center bg-[#1A1A1A] px-4 py-3.5 text-[9px] font-medium uppercase tracking-[0.16em] text-white transition-colors hover:bg-[#333] disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      BAYAR SEKARANG
+                      {paying ? 'MEMPROSES PEMBAYARAN...' : 'BAYAR SEKARANG'}
                     </button>
-
-                    <div className="mt-3 space-y-1 text-center text-[10px] leading-[1.6] text-[#7A6B48]">
-                      <p>Pembayaran online belum tersedia saat ini.</p>
-                      <p className="text-[9px] text-[#9A8F78]">
-                        Integrasi payment gateway akan tersedia pada tahap berikutnya.
-                      </p>
-                    </div>
 
                     <div className="mt-5 border-t border-[#E8DEC2] pt-4">
                       <button
                         type="button"
                         onClick={() => setShowCancelModal(true)}
-                        disabled={cancelling}
+                        disabled={cancelling || paying}
                         className="flex w-full items-center justify-center border border-[#C54E4E] bg-transparent px-4 py-3 text-[9px] font-medium uppercase tracking-[0.16em] text-[#C54E4E] transition-colors hover:bg-[#C54E4E] hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         BATALKAN PESANAN
@@ -662,7 +698,8 @@ const OrderDetail: React.FC = () => {
                         </p>
 
                         <p className="mt-1.5 text-[11px] leading-[1.6] text-[#446682]">
-                          Pembayaran untuk pesanan #{order.id} telah dikonfirmasi.
+                          Pembayaran untuk pesanan #{order.id} telah dikonfirmasi
+                          oleh sistem.
                         </p>
                       </div>
                     </div>
@@ -686,6 +723,30 @@ const OrderDetail: React.FC = () => {
 
                         <p className="mt-1.5 text-[11px] leading-[1.6] text-[#777]">
                           Pesanan #{order.id} telah dibatalkan dan stok produk telah dikembalikan.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              )}
+
+              {/* STATUS EXPIRED CARD */}
+              {order.status === 'EXPIRED' && (
+                <section className="border border-[#D9D9D9] bg-[#F3F3F3]">
+                  <div className="px-5 py-5">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center bg-[#E8E8E8]">
+                        <span className="h-2 w-2 rounded-full bg-[#9A9A9A]" />
+                      </div>
+
+                      <div>
+                        <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-[#6A6A6A]">
+                          PEMBAYARAN KEDALUARSA
+                        </p>
+
+                        <p className="mt-1.5 text-[11px] leading-[1.6] text-[#777]">
+                          Batas waktu pembayaran untuk pesanan #{order.id} telah
+                          berakhir. Silakan buat pesanan baru.
                         </p>
                       </div>
                     </div>

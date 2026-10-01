@@ -1,0 +1,4 @@
+ALTER TABLE "Order"
+DROP COLUMN IF EXISTS "midtransOrderId",
+DROP COLUMN IF EXISTS "snapToken",
+DROP COLUMN IF EXISTS "paymentAttempt";

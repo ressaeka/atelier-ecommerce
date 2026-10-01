@@ -11,13 +11,15 @@ import { AddressModule } from './address/address.module.js';
 import { CartModule } from './cart/cart.module.js';
 import { WishlistModule } from './wishlist/wishlist.module.js';
 import { OrderModule } from './order/order.module.js';
+import { PaymentModule } from './payment/payment.module.js';
 import configuration from './config/configuration.js';
+import midtransConfig from './config/midtrans.config.js';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [configuration],
+      load: [configuration, midtransConfig],
       validate: validateEnv,
     }),
     PrismaModule,
@@ -30,6 +32,7 @@ import configuration from './config/configuration.js';
     CartModule,
     WishlistModule,
     OrderModule,
+    PaymentModule,
   ],
 })
 export class AppModule {}

@@ -6,7 +6,6 @@ import {
   Truck,
   Zap,
   Lock,
-  Copy,
   Check,
   AlertCircle,
   X,
@@ -25,12 +24,12 @@ import { Serif, SERIF } from '../components/CommerceUI';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
 
-import { api } from '../lib/api';
 import { resolveImageUrl } from '../lib/utils';
 
 import type { Address } from '../types/api';
 
 import { createOrder } from '../lib/orderApi';
+import { createPayment } from '../lib/paymentApi';
 import {
   getAddresses,
   createAddress,
@@ -167,14 +166,15 @@ const Payment: React.FC = () => {
   const [promoNotice, setPromoNotice] =
     useState<string | null>(null);
 
-  const [paid, setPaid] =
-    useState(false);
-
   const [orderError, setOrderError] =
     useState<string | null>(null);
 
-  const [orderLoading, setOrderLoading] =
-    useState(false);
+  // 'order' = membuat order, 'payment' = membuat transaksi Midtrans
+  const [payStage, setPayStage] = useState<
+    'idle' | 'order' | 'payment'
+  >('idle');
+
+  const orderLoading = payStage !== 'idle';
 
   /* ============================================================
      ADDRESS
@@ -289,7 +289,7 @@ const Payment: React.FC = () => {
     discount;
 
   /* ============================================================
-     PAY — calls real backend POST /order
+     PAY — create order → create Midtrans payment → redirect
   ============================================================ */
 
   const handlePay = async () => {
@@ -301,7 +301,10 @@ const Payment: React.FC = () => {
     if (orderLoading) return;
 
     setOrderError(null);
-    setOrderLoading(true);
+    setPayStage('order');
+
+    let createdOrderId: number | null = null;
+    let stage: 'order' | 'payment' = 'order';
 
     try {
       // Backend membaca cart user dari JWT, hanya butuh addressId
@@ -309,7 +312,7 @@ const Payment: React.FC = () => {
         addressId: address.id,
       });
 
-      setPaid(true);
+      createdOrderId = createdOrder.id ?? null;
 
       // Clear cart best-effort setelah order sukses
       try {
@@ -318,28 +321,48 @@ const Payment: React.FC = () => {
         // Cart clearing bersifat best-effort, order sudah dibuat
       }
 
-      // Redirect ke order detail menggunakan id dari backend
-      setTimeout(() => {
-        if (createdOrder?.id) {
-          navigate(`/orders/${createdOrder.id}`);
-        } else {
-          navigate('/orders');
-        }
-      }, 2500);
+      // Buat transaksi Midtrans untuk order yang baru dibuat
+      stage = 'payment';
+      setPayStage('payment');
+      const payment = await createPayment(createdOrder.id);
+
+      if (!payment.redirectUrl) {
+        throw new Error(
+          'Link pembayaran tidak tersedia. Silakan coba lagi.',
+        );
+      }
+
+      // Redirect ke halaman Snap Midtrans Sandbox
+      window.location.href = payment.redirectUrl;
     } catch (err: unknown) {
-      const message =
+      let message =
         err instanceof Error
           ? err.message
-          : 'Gagal membuat pesanan. Silakan coba lagi.';
+          : 'Pembayaran gagal dibuat. Silakan coba lagi.';
+
+      // Fallback pesan yang jelas bila error tidak spesifik
+      if (
+        stage === 'payment' &&
+        (!message || message === 'Terjadi kesalahan' || message === 'Terjadi kesalahan jaringan')
+      ) {
+        message = 'Pembayaran gagal dibuat. Silakan coba lagi.';
+      }
+
+      // Order sudah terbisa tetapi payment gagal → arahkan user ke detail order
+      if (createdOrderId && stage === 'payment') {
+        message += ` Pesanan #${createdOrderId} sudah dibuat — Anda dapat menyelesaikan pembayaran dari halaman detail pesanan.`;
+      }
+
       setOrderError(message);
     } finally {
-      setOrderLoading(false);
+      setPayStage('idle');
     }
   };
 
-  const stepState = paid
-    ? 'Terverifikasi'
-    : 'Menunggu';
+  const stepState =
+    payStage !== 'idle'
+      ? 'Memproses'
+      : 'Menunggu';
 
   return (
     <div className="flex min-h-screen flex-col bg-[#F5F5F5]">
@@ -437,7 +460,7 @@ const Payment: React.FC = () => {
                   n: '3.',
                   label: 'PEMBAYARAN',
                   state: stepState,
-                  done: paid,
+                  done: false,
                   current: true,
                 },
               ].map(
@@ -448,8 +471,7 @@ const Payment: React.FC = () => {
                     <li className="flex min-w-0 flex-shrink flex-col items-center text-center">
                       <span
                         className={`mb-2 flex h-5 w-5 items-center justify-center rounded-full sm:h-6 sm:w-6 ${
-                          step.current &&
-                          !paid
+                          step.current
                             ? 'bg-[#C1603C] text-white'
                             : 'bg-[#1A1A1A] text-white'
                         }`}
@@ -477,8 +499,7 @@ const Payment: React.FC = () => {
 
                       <Serif
                         className={`mt-0.5 text-[8px] tracking-[0.08em] sm:text-[9.5px] ${
-                          step.current &&
-                          !paid
+                          step.current
                             ? 'text-[#C1603C]'
                             : 'text-[#7A7A7A]'
                         }`}
@@ -1135,10 +1156,6 @@ const Payment: React.FC = () => {
                         >
                           Diskon Member
                           Prive
-                          <br />
-                          <span className="text-[8.5px] tracking-[0.1em]">
-                            ({promoApplied})
-                          </span>
                         </dt>
 
                         <dd
@@ -1197,7 +1214,6 @@ const Payment: React.FC = () => {
                     onClick={handlePay}
                     disabled={
                       lines.length === 0 ||
-                      paid ||
                       orderLoading ||
                       !address
                     }
@@ -1207,15 +1223,15 @@ const Payment: React.FC = () => {
                       bold
                       className="text-left text-[11px] uppercase leading-tight tracking-[0.06em] sm:text-[14px]"
                     >
-                      {paid ? (
-                        'PESANAN DIBUAT'
-                      ) : orderLoading ? (
+                      {payStage === 'payment' ? (
+                        'MEMPROSES PEMBAYARAN...'
+                      ) : payStage === 'order' ? (
                         'MEMBUAT PESANAN...'
                       ) : (
                         <>
                           KONFIRMASI
                           <br />
-                          PESANAN
+                          & BAYAR SEKARANG
                         </>
                       )}
                     </Serif>
@@ -1244,7 +1260,7 @@ const Payment: React.FC = () => {
             </section>
 
             {/* ======================================================
-                PAYMENT METHOD (STATUS INTEGRASI BACKEND)
+                PAYMENT METHOD (MIDTRANS SNAP)
             ======================================================= */}
 
             <section className="mb-6 bg-[#EFEEEA] p-4 sm:p-7">
@@ -1260,23 +1276,25 @@ const Payment: React.FC = () => {
                     bold
                     className="text-[9.5px] uppercase tracking-[0.14em] text-[#1A1A1A] sm:text-[11px]"
                   >
-                    STATUS PEMBAYARAN
+                    METODE PEMBAYARAN
                   </Serif>
                 </div>
 
-                <span className="bg-[#BFA07A] text-white text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.1em] px-2 py-0.5">
-                  GATEWAY BELUM TERSEDIA
+                <span className="bg-[#3D8B5C] text-white text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.1em] px-2 py-0.5">
+                  MIDTRANS SANDBOX
                 </span>
               </header>
 
               <div className="border border-[#CBC7BD] bg-[#DFDCD4] p-4 sm:p-5 text-left">
                 <p className="mb-2 text-[11px] sm:text-[12px] font-medium leading-relaxed text-[#2A2A2A]">
-                  Modul Payment Gateway (Midtrans / Xendit) belum diimplementasikan pada backend Atelier API.
+                  Pembayaran diproses melalui Midtrans Snap (Sandbox).
                 </p>
                 <p className="text-[10px] sm:text-[11px] leading-relaxed text-[#555]">
-                  Saat Anda menekan tombol di atas, pesanan dibuat langsung ke database backend via{' '}
-                  <code className="bg-[#ECEAE4] px-1 py-0.5 font-mono text-[#1A1A1A]">POST /api/v1/order</code> dengan status default{' '}
-                  <strong className="text-[#1A1A1A]">PENDING (MENUNGGU PEMBAYARAN)</strong>.
+                  Setelah Anda menekan tombol di atas, pesanan dibuat ke backend
+                  (status <strong className="text-[#1A1A1A]">PENDING</strong>),
+                  lalu Anda akan diarahkan ke halaman pembayaran Midtrans.
+                  Status pembayaran diperbarui otomatis oleh notifikasi Midtrans
+                  ke backend — bukan dari halaman ini.
                 </p>
               </div>
             </section>
@@ -1291,11 +1309,11 @@ const Payment: React.FC = () => {
                 onClick={() =>
                   window.print()
                 }
-                disabled={!paid}
+                disabled={orderLoading}
                 title={
-                  paid
-                    ? undefined
-                    : 'Selesaikan pembayaran untuk mencetak bukti'
+                  orderLoading
+                    ? 'Sedang memproses pesanan'
+                    : undefined
                 }
                 className="flex items-center gap-2.5 rounded-[6px] bg-[#0A0A0A] px-6 py-3.5 text-white transition-colors hover:bg-[#242424] disabled:cursor-not-allowed disabled:opacity-45 sm:px-10 sm:py-4"
                 style={{
@@ -1310,7 +1328,7 @@ const Payment: React.FC = () => {
                 />
 
                 <span className="text-[10px] uppercase tracking-[0.1em] sm:text-[13px]">
-                  CETAK BUKTI PEMBAYARAN
+                  CETAK RINGKASAN
                 </span>
               </button>
             </div>

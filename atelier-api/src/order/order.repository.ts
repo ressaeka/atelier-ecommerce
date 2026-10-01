@@ -119,16 +119,23 @@ export class OrderRepository {
     });
   }
 
-  async findOrderById(orderId: number) {
+  async findOrderById(id: number) {
     return this.prisma.order.findUnique({
       where: {
-        id: orderId,
+        id,
       },
+
       include: {
+        user: true,
+
         items: {
           include: {
             product: true,
-            variant: true,
+          },
+        },
+        payments: {
+          orderBy: {
+            attempt: 'desc',
           },
         },
       },
@@ -142,10 +149,18 @@ export class OrderRepository {
         userId,
       },
       include: {
+        user: true,
+
         items: {
           include: {
             product: true,
             variant: true,
+          },
+        },
+        // Payments ordered by latest attempt desc for frontend
+        payments: {
+          orderBy: {
+            attempt: 'desc',
           },
         },
       },
@@ -201,5 +216,14 @@ export class OrderRepository {
         },
       },
     });
+  }
+
+  /** Status order saja — dipakai webhook untuk cek downgrade. */
+  async findOrderStatusById(orderId: number): Promise<OrderStatus | null> {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      select: { status: true },
+    });
+    return order?.status ?? null;
   }
 }
