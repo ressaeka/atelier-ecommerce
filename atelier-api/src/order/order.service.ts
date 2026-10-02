@@ -6,7 +6,6 @@ import {
 
 import { CreateOrderDto } from './dto/create-order.dto.js';
 import { UpdateOrderStatusDto } from './dto/update-order.dto.js';
-
 import { OrderRepository } from './order.repository.js';
 import { Order } from './entities/order.entity.js';
 
@@ -25,7 +24,6 @@ export class OrderService {
   ) {}
 
   async create(dto: CreateOrderDto, currentUserId: number): Promise<Order> {
-    // 1. Cari address milik user
     const address = await this.addressRepository.findByIdAndUserId(
       dto.addressId,
       currentUserId,
@@ -35,41 +33,34 @@ export class OrderService {
       throw new NotFoundException('Address tidak ditemukan');
     }
 
-    // 2. Cari cart user
     const cart = await this.cartRepository.findByUserId(currentUserId);
 
     if (!cart) {
       throw new NotFoundException('Cart tidak ditemukan');
     }
 
-    // 3. Pastikan cart tidak kosong
     if (cart.items.length === 0) {
       throw new BadRequestException('Cart kosong');
     }
 
-    // 4. Hitung subtotal dan siapkan OrderItem
     let subtotal = 0;
 
     const items: Prisma.OrderItemCreateWithoutOrderInput[] = [];
 
     for (const item of cart.items) {
       const price = item.variant?.price ?? item.product.price;
-
       const stock = item.variant?.stock ?? item.product.stock;
 
-      // 5. Cek stock
       if (item.quantity > stock) {
         throw new BadRequestException(
           `Stock ${item.product.name} tidak mencukupi`,
         );
       }
 
-      // 6. Hitung subtotal item
       const itemSubtotal = price * item.quantity;
 
       subtotal += itemSubtotal;
 
-      // 7. Buat data OrderItem
       items.push({
         product: {
           connect: {
@@ -93,13 +84,9 @@ export class OrderService {
       });
     }
 
-    // 8. Hitung ongkir
     const shippingFee = 0;
-
-    // 9. Hitung total
     const total = subtotal + shippingFee;
 
-    // 10. Buat Order dengan stock deduction atomic
     const itemsToDeduct = cart.items.map((item) => ({
       productId: item.productId,
       variantId: item.variantId,
@@ -120,7 +107,6 @@ export class OrderService {
         shippingFee,
         total,
 
-        // Snapshot address
         recipientName: address.recipientName,
         phone: address.phone,
         addressLine: address.addressLine,
@@ -187,6 +173,11 @@ export class OrderService {
     return order;
   }
 
+  /**
+   * Admin:
+   * Melihat seluruh order dengan filter, pagination,
+   * sorting, dan optional userId.
+   */
   async findAllOrder(query: OrderQueryDto) {
     const { page, limit, search, userId, status, sortBy, sortOrder } = query;
 
@@ -202,6 +193,51 @@ export class OrderService {
 
       ...(userId !== undefined && {
         userId,
+      }),
+
+      ...(status && {
+        status,
+      }),
+    };
+
+    const [orders, total] = await Promise.all([
+      this.orderRepository.findOrders(where, skip, limit, sortBy, sortOrder),
+
+      this.orderRepository.countOrders(where),
+    ]);
+
+    return {
+      data: orders,
+
+      meta: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  /**
+   * User:
+   * Hanya melihat order miliknya sendiri.
+   *
+   * userId TIDAK berasal dari query.
+   * userId selalu berasal dari JWT.
+   */
+  async findMyOrders(userId: number, query: OrderQueryDto) {
+    const { page, limit, search, status, sortBy, sortOrder } = query;
+
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.OrderWhereInput = {
+      userId,
+
+      ...(search && {
+        recipientName: {
+          contains: search,
+          mode: 'insensitive',
+        },
       }),
 
       ...(status && {

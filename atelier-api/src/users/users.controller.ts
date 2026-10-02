@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+
 import {
   ApiBearerAuth,
   ApiBody,
@@ -20,18 +21,27 @@ import {
 } from '@nestjs/swagger';
 
 import { UsersService } from './users.service.js';
+
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
+
 import { successResponse } from '../common/helpers/response.helper.js';
+
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
+
 import { Permissions } from '../common/decorators/permissions.decorator.js';
 import { PermissionsGuard } from '../common/guards/permissions.guard.js';
+
 import { PERMISSIONS } from '../common/permissions/permission.js';
+
 import { updateUserSchema, UpdateUserDto } from './dto/update-user.dto.js';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+
 import { queryUsersSchema, QueryUsersDto } from './dto/query-users.dto.js';
+
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+
 import { JwtPayload } from '../auth/strategies/jwt.strategy.js';
+
 import {
   queryUsersLimit,
   queryUsersPage,
@@ -49,11 +59,16 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Get('me')
-  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @UseGuards(PermissionsGuard)
   @Permissions(PERMISSIONS.PROFILE_READ)
-  @ApiOperation({ summary: 'Ambil profil pengguna yang sedang login' })
+  @ApiOperation({
+    summary: 'Ambil profil pengguna yang sedang login',
+  })
   @ApiResponse(userResponseSchema)
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
   async findMe(@CurrentUser() user: JwtPayload) {
     const identity = await this.usersService.findById(user.sub);
 
@@ -61,13 +76,21 @@ export class UsersController {
   }
 
   @Patch('me')
-  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @UseGuards(PermissionsGuard)
   @Permissions(PERMISSIONS.PROFILE_UPDATE)
-  @ApiOperation({ summary: 'Perbarui profil pengguna yang sedang login' })
+  @ApiOperation({
+    summary: 'Perbarui profil pengguna yang sedang login',
+  })
   @ApiBody(updateUserApiBody)
   @ApiResponse(userResponseSchema)
-  @ApiResponse({ status: 400, description: 'Validasi input gagal' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({
+    status: 400,
+    description: 'Validasi input gagal',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
   async updateMe(
     @CurrentUser() user: JwtPayload,
     @Body(new ZodValidationPipe(updateUserSchema))
@@ -79,13 +102,22 @@ export class UsersController {
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
   @Permissions(PERMISSIONS.USER_READ)
-  @ApiOperation({ summary: 'Ambil data user berdasarkan ID (Admin only)' })
-  @ApiParam({ name: 'id', type: Number, description: 'ID User' })
+  @ApiOperation({
+    summary: 'Ambil data user berdasarkan ID (Admin only)',
+  })
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'ID User',
+  })
   @ApiResponse(userResponseSchema)
-  @ApiResponse({ status: 404, description: 'User tidak ditemukan' })
+  @ApiResponse({
+    status: 404,
+    description: 'User tidak ditemukan',
+  })
   @ApiResponse({
     status: 403,
     description: 'Forbidden (Role ADMIN & permission USER_READ)',
@@ -97,7 +129,7 @@ export class UsersController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
   @Permissions(PERMISSIONS.USER_READ)
   @ApiOperation({
@@ -126,16 +158,31 @@ export class UsersController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
   @Permissions(PERMISSIONS.USER_UPDATE)
-  @ApiOperation({ summary: 'Perbarui user berdasarkan ID (Admin only)' })
-  @ApiParam({ name: 'id', type: Number, description: 'ID User' })
+  @ApiOperation({
+    summary: 'Perbarui user berdasarkan ID (Admin only)',
+  })
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'ID User',
+  })
   @ApiBody(updateUserApiBody)
   @ApiResponse(userResponseSchema)
-  @ApiResponse({ status: 400, description: 'Validasi input gagal' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'User tidak ditemukan' })
+  @ApiResponse({
+    status: 400,
+    description: 'Validasi input gagal',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User tidak ditemukan',
+  })
   @ApiResponse({
     status: 403,
     description: 'Forbidden (Role ADMIN & permission USER_UPDATE)',
@@ -151,14 +198,26 @@ export class UsersController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
   @Permissions(PERMISSIONS.USER_DELETE)
-  @ApiOperation({ summary: 'Hapus user berdasarkan ID (Admin only)' })
-  @ApiParam({ name: 'id', type: Number, description: 'ID User' })
+  @ApiOperation({
+    summary: 'Hapus user berdasarkan ID (Admin only)',
+  })
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'ID User',
+  })
   @ApiResponse(userDeleteResponseSchema)
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
-  @ApiResponse({ status: 404, description: 'User tidak ditemukan' })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'User tidak ditemukan',
+  })
   @ApiResponse({
     status: 403,
     description: 'Forbidden (Role ADMIN & permission USER_DELETE)',

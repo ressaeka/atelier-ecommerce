@@ -6,7 +6,6 @@ import {
   Param,
   ParseIntPipe,
   Post,
-  UseGuards,
 } from '@nestjs/common';
 
 import {
@@ -25,9 +24,10 @@ import {
   CreateWishlistItemDto,
 } from './dto/create-wishlist.dto.js';
 
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
+
 import { successResponse } from '../common/helpers/response.helper.js';
+
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 
 @ApiTags('Wishlist')
@@ -37,7 +37,6 @@ export class WishlistController {
   constructor(private readonly wishlistService: WishlistService) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: 'Ambil wishlist milik user',
     description:
@@ -58,7 +57,6 @@ export class WishlistController {
   }
 
   @Post('items')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: 'Tambah item ke wishlist',
     description:
@@ -68,7 +66,10 @@ export class WishlistController {
     schema: {
       type: 'object',
       properties: {
-        productId: { type: 'number', example: 1 },
+        productId: {
+          type: 'number',
+          example: 1,
+        },
       },
       required: ['productId'],
     },
@@ -91,7 +92,6 @@ export class WishlistController {
   })
   async addItem(
     @CurrentUser() user: { id: number },
-
     @Body(new ZodValidationPipe(createWishlistItemSchema))
     createWishlistItemDto: CreateWishlistItemDto,
   ) {
@@ -104,7 +104,6 @@ export class WishlistController {
   }
 
   @Delete('items/:productId')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: 'Hapus item dari wishlist',
     description: 'Menghapus produk dari wishlist berdasarkan productId.',
@@ -129,7 +128,6 @@ export class WishlistController {
   })
   async removeItem(
     @CurrentUser() user: { id: number },
-
     @Param('productId', ParseIntPipe)
     productId: number,
   ) {

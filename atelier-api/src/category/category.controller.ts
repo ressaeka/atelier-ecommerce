@@ -10,6 +10,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+
 import {
   ApiBearerAuth,
   ApiBody,
@@ -19,24 +20,35 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+
 import { CategoryService } from './category.service.js';
+
 import {
   CreateCategoryDto,
   CategorySchema,
 } from './dto/create-category.dto.js';
+
 import {
   UpdateCategoryDto,
   updateCategorySchema,
 } from './dto/update-category.dto.js';
+
 import { QueryCategoryDto, queryCategorySchema } from './dto/query-category.js';
+
+import { Public } from '../common/decorators/public.decorator.js';
+
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
+
 import { successResponse } from '../common/helpers/response.helper.js';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
+
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { PermissionsGuard } from '../common/guards/permissions.guard.js';
+
 import { Roles } from '../common/decorators/roles.decorator.js';
 import { Permissions } from '../common/decorators/permissions.decorator.js';
+
 import { PERMISSIONS } from '../common/permissions/permission.js';
+
 import {
   categoriesListResponseSchema,
   categoryResponseSchema,
@@ -54,14 +66,25 @@ export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
   @Permissions(PERMISSIONS.CATEGORY_CREATE)
-  @ApiOperation({ summary: 'Buat kategori baru (Admin only)' })
+  @ApiOperation({
+    summary: 'Buat kategori baru (Admin only)',
+  })
   @ApiBody(createCategoryApiBody)
-  @ApiResponse({ status: 201, description: 'Category berhasil dibuat' })
-  @ApiResponse({ status: 400, description: 'Validasi input gagal' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({
+    status: 201,
+    description: 'Category berhasil dibuat',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Validasi input gagal',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
   @ApiResponse({
     status: 403,
     description: 'Forbidden (Role ADMIN & permission CATEGORY_CREATE)',
@@ -76,6 +99,7 @@ export class CategoryController {
   }
 
   @Get()
+  @Public()
   @ApiOperation({
     summary: 'Ambil daftar kategori dengan paginasi dan pencarian',
   })
@@ -83,7 +107,6 @@ export class CategoryController {
   @ApiQuery(queryCategoryLimit)
   @ApiQuery(queryCategorySearch)
   @ApiResponse(categoriesListResponseSchema)
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async findAll(
     @Query(new ZodValidationPipe(queryCategorySchema))
     query: QueryCategoryDto,
@@ -94,11 +117,20 @@ export class CategoryController {
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Ambil detail kategori berdasarkan ID' })
-  @ApiParam({ name: 'id', type: Number, description: 'ID Kategori' })
+  @Public()
+  @ApiOperation({
+    summary: 'Ambil detail kategori berdasarkan ID',
+  })
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'ID Kategori',
+  })
   @ApiResponse(categoryResponseSchema)
-  @ApiResponse({ status: 404, description: 'Category tidak ditemukan' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({
+    status: 404,
+    description: 'Category tidak ditemukan',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     const category = await this.categoryService.findCategoryById(id);
 
@@ -106,15 +138,27 @@ export class CategoryController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
   @Permissions(PERMISSIONS.CATEGORY_UPDATE)
-  @ApiOperation({ summary: 'Perbarui kategori produk (Admin only)' })
-  @ApiParam({ name: 'id', type: Number, description: 'ID Kategori' })
+  @ApiOperation({
+    summary: 'Perbarui kategori produk (Admin only)',
+  })
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'ID Kategori',
+  })
   @ApiBody(updateCategoryApiBody)
   @ApiResponse(categoryResponseSchema)
-  @ApiResponse({ status: 400, description: 'Validasi input gagal' })
-  @ApiResponse({ status: 404, description: 'Category tidak ditemukan' })
+  @ApiResponse({
+    status: 400,
+    description: 'Validasi input gagal',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Category tidak ditemukan',
+  })
   @ApiResponse({
     status: 403,
     description: 'Forbidden (Role ADMIN & permission CATEGORY_UPDATE)',
@@ -133,13 +177,25 @@ export class CategoryController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
   @Permissions(PERMISSIONS.CATEGORY_DELETE)
-  @ApiOperation({ summary: 'Hapus kategori produk (Admin only)' })
-  @ApiParam({ name: 'id', type: Number, description: 'ID Kategori' })
-  @ApiResponse({ status: 200, description: 'Category berhasil dihapus' })
-  @ApiResponse({ status: 404, description: 'Category tidak ditemukan' })
+  @ApiOperation({
+    summary: 'Hapus kategori produk (Admin only)',
+  })
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'ID Kategori',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Category berhasil dihapus',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Category tidak ditemukan',
+  })
   @ApiResponse({
     status: 403,
     description: 'Forbidden (Role ADMIN & permission CATEGORY_DELETE)',

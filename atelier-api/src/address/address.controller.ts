@@ -8,7 +8,6 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 
 import {
@@ -35,8 +34,8 @@ import {
   queryAddressSchema,
 } from './dto/query-address.dto.js';
 
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
+
 import { successResponse } from '../common/helpers/response.helper.js';
 
 import {
@@ -58,7 +57,6 @@ export class AddressController {
   constructor(private readonly addressService: AddressService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: 'Buat alamat baru',
     description:
@@ -79,7 +77,6 @@ export class AddressController {
   })
   async create(
     @CurrentUser() user: { id: number },
-
     @Body(new ZodValidationPipe(addressSchema))
     createAddressDto: AddressDto,
   ) {
@@ -89,7 +86,6 @@ export class AddressController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: 'Ambil daftar address milik user',
     description:
@@ -105,7 +101,6 @@ export class AddressController {
   })
   async findAll(
     @CurrentUser() user: { id: number },
-
     @Query(new ZodValidationPipe(queryAddressSchema))
     query: QueryAddressDto,
   ) {
@@ -115,7 +110,6 @@ export class AddressController {
   }
 
   @Get('default')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: 'Ambil alamat default milik user',
     description:
@@ -137,7 +131,6 @@ export class AddressController {
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: 'Ambil address berdasarkan ID',
     description:
@@ -160,7 +153,6 @@ export class AddressController {
   })
   async findOne(
     @CurrentUser() user: { id: number },
-
     @Param('id', ParseIntPipe)
     id: number,
   ) {
@@ -170,7 +162,6 @@ export class AddressController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: 'Perbarui address berdasarkan ID',
     description:
@@ -198,10 +189,8 @@ export class AddressController {
   })
   async update(
     @CurrentUser() user: { id: number },
-
     @Param('id', ParseIntPipe)
     id: number,
-
     @Body(new ZodValidationPipe(updateAddressSchema))
     updateAddressDto: UpdateAddressDto,
   ) {
@@ -215,7 +204,6 @@ export class AddressController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: 'Hapus address berdasarkan ID',
     description:
@@ -241,7 +229,6 @@ export class AddressController {
   })
   async remove(
     @CurrentUser() user: { id: number },
-
     @Param('id', ParseIntPipe)
     id: number,
   ) {

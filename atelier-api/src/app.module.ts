@@ -14,6 +14,8 @@ import { OrderModule } from './order/order.module.js';
 import { PaymentModule } from './payment/payment.module.js';
 import configuration from './config/configuration.js';
 import midtransConfig from './config/midtrans.config.js';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 
 @Module({
   imports: [
@@ -33,6 +35,13 @@ import midtransConfig from './config/midtrans.config.js';
     WishlistModule,
     OrderModule,
     PaymentModule,
+  ],
+
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
   ],
 })
 export class AppModule {}

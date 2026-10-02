@@ -149,7 +149,18 @@ export class OrderRepository {
         userId,
       },
       include: {
-        user: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+            email: true,
+            phone: true,
+            role: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
 
         items: {
           include: {

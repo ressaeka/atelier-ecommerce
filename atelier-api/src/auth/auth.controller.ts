@@ -1,17 +1,15 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
   Req,
-  Get,
   Res,
   UseGuards,
 } from '@nestjs/common';
-
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-
 import {
   authSuccessResponse,
   forgotPasswordApiBody,
@@ -26,28 +24,21 @@ import {
   verifyOtpApiBody,
   verifyOtpResponseSchema,
 } from './auth.swagger.js';
-
 import { AuthService } from './auth.service.js';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
-
+import { Public } from '../common/decorators/public.decorator.js';
 import { registerSchema, RegisterDto } from './dto/register.js';
-
 import { loginSchema, LoginDto } from './dto/login.js';
-
 import { RefreshTokenDto, refreshTokenSchema } from './dto/refresh.token.js';
-
-import type { Request, Response } from 'express';
-
 import {
   ForgotPasswordDto,
   forgotPasswordSchema,
 } from './dto/forgot.password.js';
-
 import { VerifyDto, verifyOtpSchema } from './dto/verify.otp.js';
-
 import { ResetPasswordDto, resetPasswordSchema } from './dto/reset.password.js';
 import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
+import type { Request, Response } from 'express';
 
 type GoogleUser = {
   googleId: string;
@@ -64,10 +55,12 @@ export class AuthController {
   ) {}
 
   @Get('google')
+  @Public()
   @UseGuards(AuthGuard('google'))
   googleLogin() {}
 
   @Get('google/callback')
+  @Public()
   @UseGuards(AuthGuard('google'))
   async googleCallback(@Req() req: Request, @Res() res: Response) {
     const result = await this.authService.googleLogin(req.user as GoogleUser);
@@ -91,6 +84,7 @@ export class AuthController {
   }
 
   @Post('register')
+  @Public()
   @ApiOperation({
     summary: 'Registrasi pengguna baru',
   })
@@ -112,6 +106,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Login menggunakan username, email, atau nomor telepon',
@@ -131,6 +126,7 @@ export class AuthController {
   }
 
   @Post('refresh')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Refresh access token menggunakan refresh token',
@@ -150,6 +146,7 @@ export class AuthController {
   }
 
   @Post('forgot')
+  @Public()
   @ApiOperation({
     summary: 'Permintaan OTP reset password melalui email',
   })
@@ -168,6 +165,7 @@ export class AuthController {
   }
 
   @Post('verify-otp')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Verifikasi OTP reset password',
@@ -191,6 +189,7 @@ export class AuthController {
   }
 
   @Post('reset-password')
+  @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
     summary: 'Reset password menggunakan resetToken',

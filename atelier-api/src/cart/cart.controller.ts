@@ -8,7 +8,6 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 
 import {
@@ -29,9 +28,10 @@ import {
   UpdateCartItemDto,
 } from './dto/update-cart.dto.js';
 
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
+
 import { successResponse } from '../common/helpers/response.helper.js';
+
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 
 import {
@@ -50,7 +50,6 @@ export class CartController {
   constructor(private readonly cartService: CartService) {}
 
   @Get()
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: 'Ambil cart milik user',
     description:
@@ -68,7 +67,6 @@ export class CartController {
   }
 
   @Post('items')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: 'Tambah item ke cart',
     description:
@@ -90,7 +88,6 @@ export class CartController {
   })
   async addItem(
     @CurrentUser() user: { id: number },
-
     @Body(new ZodValidationPipe(addCartItemSchema))
     addCartItemDto: AddCartItemDto,
   ) {
@@ -100,7 +97,6 @@ export class CartController {
   }
 
   @Patch('items/:productId')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: 'Update quantity item di cart',
     description: 'Memperbarui quantity produk di cart berdasarkan productId.',
@@ -127,13 +123,10 @@ export class CartController {
   })
   async updateItem(
     @CurrentUser() user: { id: number },
-
     @Param('productId', ParseIntPipe)
     productId: number,
-
     @Query('variantId', new ParseIntPipe({ optional: true }))
     variantId: number | null,
-
     @Body(new ZodValidationPipe(updateCartItemSchema))
     updateCartItemDto: UpdateCartItemDto,
   ) {
@@ -148,7 +141,6 @@ export class CartController {
   }
 
   @Delete('items/:productId')
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: 'Hapus item dari cart',
     description: 'Menghapus produk dari cart berdasarkan productId.',
@@ -170,10 +162,8 @@ export class CartController {
   })
   async removeItem(
     @CurrentUser() user: { id: number },
-
     @Param('productId', ParseIntPipe)
     productId: number,
-
     @Query('variantId', new ParseIntPipe({ optional: true }))
     variantId: number | null,
   ) {
@@ -187,7 +177,6 @@ export class CartController {
   }
 
   @Delete()
-  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: 'Kosongkan cart',
     description:

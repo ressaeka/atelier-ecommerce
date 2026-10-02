@@ -15,6 +15,9 @@ export const PERMISSIONS = {
   PRODUCT_READ: 'product:read',
   PRODUCT_UPDATE: 'product:update',
   PRODUCT_DELETE: 'product:delete',
+
+  ORDER_READ: 'order:read',
+  ORDER_UPDATE_STATUS: 'order:update_status',
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

@@ -10,6 +10,7 @@ import {
   UseGuards,
   Query,
 } from '@nestjs/common';
+
 import {
   ApiBearerAuth,
   ApiBody,
@@ -19,24 +20,34 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+
 import { QueryProductDto, queryProductSchema } from './dto/query-product.js';
+
 import { ProductService } from './product.service.js';
+
 import {
   CreateProductDto,
   createProductSchema,
 } from './dto/create-product.dto.js';
+
 import {
   UpdateProductDto,
   updateProductSchema,
 } from './dto/update-product.dto.js';
+
+import { Public } from '../common/decorators/public.decorator.js';
+
 import { Permissions } from '../common/decorators/permissions.decorator.js';
 import { PERMISSIONS } from '../common/permissions/permission.js';
 import { PermissionsGuard } from '../common/guards/permissions.guard.js';
+
 import { Roles } from '../common/decorators/roles.decorator.js';
-import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
+
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
+
 import { successResponse } from '../common/helpers/response.helper.js';
+
 import {
   createProductApiBody,
   productResponseSchema,
@@ -57,14 +68,25 @@ export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Post()
-  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
   @Permissions(PERMISSIONS.PRODUCT_CREATE)
-  @ApiOperation({ summary: 'Buat produk baru (Admin only)' })
+  @ApiOperation({
+    summary: 'Buat produk baru (Admin only)',
+  })
   @ApiBody(createProductApiBody)
-  @ApiResponse({ status: 201, description: 'Product berhasil dibuat' })
-  @ApiResponse({ status: 400, description: 'Validasi input gagal' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({
+    status: 201,
+    description: 'Product berhasil dibuat',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Validasi input gagal',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
   @ApiResponse({
     status: 403,
     description: 'Forbidden (Role ADMIN & permission PRODUCT_CREATE)',
@@ -79,6 +101,7 @@ export class ProductController {
   }
 
   @Get()
+  @Public()
   @ApiOperation({
     summary: 'Ambil daftar produk dengan filter pencarian dan paginasi',
   })
@@ -89,21 +112,30 @@ export class ProductController {
   @ApiQuery(queryProductMinPrice)
   @ApiQuery(queryProductMaxPrice)
   @ApiResponse(productsListResponseSchema)
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async findAll(
     @Query(new ZodValidationPipe(queryProductSchema))
     query: QueryProductDto,
   ) {
     const product = await this.productService.findAllProduct(query);
+
     return successResponse(product, 'Product berhasil diambil');
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Ambil detail produk berdasarkan ID' })
-  @ApiParam({ name: 'id', type: Number, description: 'ID Produk' })
+  @Public()
+  @ApiOperation({
+    summary: 'Ambil detail produk berdasarkan ID',
+  })
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'ID Produk',
+  })
   @ApiResponse(productResponseSchema)
-  @ApiResponse({ status: 404, description: 'Product tidak ditemukan' })
-  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({
+    status: 404,
+    description: 'Product tidak ditemukan',
+  })
   async findOne(@Param('id', ParseIntPipe) id: number) {
     const product = await this.productService.findProductById(id);
 
@@ -111,15 +143,27 @@ export class ProductController {
   }
 
   @Patch(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
   @Permissions(PERMISSIONS.PRODUCT_UPDATE)
-  @ApiOperation({ summary: 'Perbarui produk (Admin only)' })
-  @ApiParam({ name: 'id', type: Number, description: 'ID Produk' })
+  @ApiOperation({
+    summary: 'Perbarui produk (Admin only)',
+  })
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'ID Produk',
+  })
   @ApiBody(updateProductApiBody)
   @ApiResponse(productResponseSchema)
-  @ApiResponse({ status: 400, description: 'Validasi input gagal' })
-  @ApiResponse({ status: 404, description: 'Product tidak ditemukan' })
+  @ApiResponse({
+    status: 400,
+    description: 'Validasi input gagal',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Product tidak ditemukan',
+  })
   @ApiResponse({
     status: 403,
     description: 'Forbidden (Role ADMIN & permission PRODUCT_UPDATE)',
@@ -138,13 +182,25 @@ export class ProductController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
+  @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
   @Permissions(PERMISSIONS.PRODUCT_DELETE)
-  @ApiOperation({ summary: 'Hapus produk berdasarkan ID (Admin only)' })
-  @ApiParam({ name: 'id', type: Number, description: 'ID Produk' })
-  @ApiResponse({ status: 200, description: 'Product berhasil dihapus' })
-  @ApiResponse({ status: 404, description: 'Product tidak ditemukan' })
+  @ApiOperation({
+    summary: 'Hapus produk berdasarkan ID (Admin only)',
+  })
+  @ApiParam({
+    name: 'id',
+    type: Number,
+    description: 'ID Produk',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Product berhasil dihapus',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Product tidak ditemukan',
+  })
   @ApiResponse({
     status: 403,
     description: 'Forbidden (Role ADMIN & permission PRODUCT_DELETE)',
