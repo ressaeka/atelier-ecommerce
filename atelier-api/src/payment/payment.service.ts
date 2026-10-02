@@ -14,47 +14,10 @@ import { CreatePaymentDto } from './dto/create-payment.dto.js';
 import { MidtransNotificationDto } from './dto/midtrans-notification.dto.js';
 
 import { OrderStatus, PaymentStatus } from '../../generated/prisma/client.js';
-
-type SnapTransactionPayload = {
-  transaction_details: {
-    order_id: string;
-    gross_amount: number;
-  };
-
-  item_details: Array<{
-    id: string;
-    price: number;
-    quantity: number;
-    name: string;
-  }>;
-
-  customer_details: {
-    first_name: string;
-    email: string;
-    phone: string;
-
-    shipping_address: {
-      first_name: string;
-      phone: string;
-      address: string;
-      city: string;
-      postal_code: string;
-      country_code: string;
-    };
-  };
-
-  callbacks: {
-    finish: string;
-    unfinish: string;
-    error: string;
-    pending: string;
-  };
-};
-
-type SnapTransactionResponse = {
-  token?: string;
-  redirect_url?: string;
-};
+import type {
+  SnapTransactionPayload,
+  SnapTransactionResponse,
+} from '../common/types/midtrans.js';
 
 @Injectable()
 export class PaymentService {
@@ -99,6 +62,7 @@ export class PaymentService {
           };
         };
       };
+
       if (snapClient.httpClient?.http_client?.defaults?.headers?.common) {
         snapClient.httpClient.http_client.defaults.headers.common[
           'X-Append-Notification'
@@ -107,20 +71,7 @@ export class PaymentService {
     }
   }
 
-  /**
-   * Membuat transaksi pembayaran Midtrans untuk order PENDING.
-   *
-   * Flow:
-   * Frontend
-   *   ↓
-   * POST /payment
-   *   ↓
-   * Backend membuat Snap Transaction
-   *   ↓
-   * Backend menyimpan Payment PENDING
-   *   ↓
-   * Frontend menerima snapToken + redirectUrl
-   */
+  // Create Midtrans transaction
   async create(dto: CreatePaymentDto, currentUserId: number) {
     const order = await this.orderRepository.findOrderByIdAndUserId(
       currentUserId,
@@ -183,10 +134,7 @@ export class PaymentService {
       },
     };
 
-    /**
-     * midtrans-client 1.4.3 memiliki typing response yang terlalu umum.
-     * Cast melalui unknown supaya tidak menghasilkan unsafe assignment.
-     */
+    // Midtrans SDK typing is too generic
     const transaction = (await this.snap.createTransaction(
       payload,
     )) as unknown as SnapTransactionResponse;
@@ -224,19 +172,7 @@ export class PaymentService {
     };
   }
 
-  /**
-   * Webhook:
-   *
-   * Midtrans
-   *   ↓ POST
-   * ngrok
-   *   ↓
-   * /api/v1/payment/notification
-   *   ↓
-   * validasi signature
-   *   ↓
-   * update Payment + Order
-   */
+  // Handle Midtrans webhook
   async handleNotification(notification: MidtransNotificationDto) {
     const debug = process.env.NODE_ENV !== 'production';
 
@@ -259,6 +195,7 @@ export class PaymentService {
           `[PAYMENT WEBHOOK] payment not found for order_id=${notification.order_id}`,
         );
       }
+
       throw new NotFoundException('Payment tidak ditemukan');
     }
 
@@ -274,6 +211,7 @@ export class PaymentService {
         console.log(`expected: ${signature}`);
         console.log(`received: ${notification.signature_key}`);
       }
+
       throw new BadRequestException('Invalid Midtrans signature');
     }
 
@@ -281,6 +219,7 @@ export class PaymentService {
       notification.transaction_status,
       notification.fraud_status,
     );
+
     const mappedOrderStatus = this.mapOrderStatus(
       notification.transaction_status,
       notification.fraud_status,
@@ -292,13 +231,12 @@ export class PaymentService {
       console.log(`mapped order_status: ${mappedOrderStatus}`);
     }
 
-    // Idempotency: Jika payment sudah PAID, jangan downgrade ke status apa pun (PENDING, EXPIRED, CANCELLED)
+    // Prevent duplicate PAID processing
     if (payment.status === PaymentStatus.PAID) {
       if (debug) {
-        console.log(
-          `[PAYMENT WEBHOOK] payment is already PAID (idempotent notification)`,
-        );
+        console.log('[PAYMENT WEBHOOK] payment is already PAID');
       }
+
       return {
         message: 'Notification duplicate/sudah diproses',
         paymentId: payment.id,
@@ -307,7 +245,7 @@ export class PaymentService {
       };
     }
 
-    // Cegah downgrade status final → PENDING
+    // Prevent status downgrade to PENDING
     const isDowngradeToPending =
       mappedPaymentStatus === PaymentStatus.PENDING &&
       payment.status !== PaymentStatus.PENDING;
@@ -322,10 +260,10 @@ export class PaymentService {
         );
       }
 
-      finalPaymentStatus = payment.status;
       const currentOrderStatus = await this.orderRepository.findOrderStatusById(
         payment.orderId,
       );
+
       finalOrderStatus = currentOrderStatus ?? mappedOrderStatus;
     } else {
       const updatedPayment =
@@ -340,7 +278,6 @@ export class PaymentService {
 
       finalPaymentStatus = updatedPayment.status;
 
-      // Update Order Status
       const currentOrderStatus = await this.orderRepository.findOrderStatusById(
         payment.orderId,
       );
@@ -356,16 +293,18 @@ export class PaymentService {
             `[PAYMENT WEBHOOK] skip order downgrade ${currentOrderStatus} → PENDING`,
           );
         }
+
         finalOrderStatus = currentOrderStatus;
       } else {
         await this.orderRepository.updateOrderStatus(
           payment.orderId,
           mappedOrderStatus,
         );
+
         finalOrderStatus = mappedOrderStatus;
       }
 
-      // Jika pembayaran ini berhasil (PAID), batalkan attempt lain yang masih PENDING
+      // Cancel other pending payment attempts
       if (mappedPaymentStatus === PaymentStatus.PAID) {
         await this.paymentRepository.cancelPendingPaymentsForOrder(
           payment.orderId,
@@ -407,6 +346,7 @@ export class PaymentService {
         if (fraudStatus === 'challenge') {
           return PaymentStatus.PENDING;
         }
+
         return PaymentStatus.PAID;
 
       case 'settlement':
@@ -435,6 +375,7 @@ export class PaymentService {
         if (fraudStatus === 'challenge') {
           return OrderStatus.PENDING;
         }
+
         return OrderStatus.PAID;
 
       case 'settlement':

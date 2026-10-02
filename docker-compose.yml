@@ -41,13 +41,18 @@ services:
       NODE_ENV: ${NODE_ENV}
       HOST: ${HOST}
       PORT: ${PORT}
+
       DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: ${REDIS_URL}
+
       GOOGLE_FRONTEND_URL: ${GOOGLE_FRONTEND_URL:-http://localhost:3000}
+      FRONTEND_URL: http://localhost:3000
+
       MIDTRANS_MERCHANT_ID: ${MIDTRANS_MERCHANT_ID}
       MIDTRANS_CLIENT_KEY: ${MIDTRANS_CLIENT_KEY}
       MIDTRANS_SERVER_KEY: ${MIDTRANS_SERVER_KEY}
       MIDTRANS_IS_PRODUCTION: ${MIDTRANS_IS_PRODUCTION}
+      MIDTRANS_NOTIFICATION_URL: ${MIDTRANS_NOTIFICATION_URL}
 
     depends_on:
       - postgres
@@ -57,7 +62,6 @@ services:
     build:
       context: ./atelier
       dockerfile: Dockerfile
-
       args:
         VITE_API_URL: ${VITE_API_URL}
 

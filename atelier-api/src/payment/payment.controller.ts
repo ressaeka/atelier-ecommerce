@@ -14,22 +14,14 @@ import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
-  /**
-   * POST /payment
-   * Create Midtrans Snap transaction untuk order milik user yang login.
-   */
+  // Create payment
   @Post()
   @UseGuards(JwtAuthGuard)
   create(@CurrentUser() user: { id: number }, @Body() dto: CreatePaymentDto) {
     return this.paymentService.create(dto, user.id);
   }
 
-  /**
-   * POST /payment/notification
-   * Webhook server-to-server Midtrans → Backend.
-   * JANGAN dijadikan halaman browser / GET.
-   * Tidak membutuhkan JWT auth.
-   */
+  // Midtrans webhook
   @Post('notification')
   notification(
     @Body(new ZodValidationPipe(MidtransNotificationSchema))
