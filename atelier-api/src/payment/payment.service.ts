@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -13,14 +14,17 @@ import { OrderRepository } from '../order/order.repository.js';
 import { CreatePaymentDto } from './dto/create-payment.dto.js';
 import { MidtransNotificationDto } from './dto/midtrans-notification.dto.js';
 
-import { OrderStatus, PaymentStatus } from '../../generated/prisma/client.js';
+import { OrderStatus, PaymentStatus } from '../../generated/prisma/enums.js';
 import type {
   SnapTransactionPayload,
   SnapTransactionResponse,
 } from '../common/types/midtrans.js';
+import { mapMidtransPaymentMethod } from './payment-method-mapper.js';
 
 @Injectable()
 export class PaymentService {
+  private readonly logger = new Logger(PaymentService.name);
+
   private readonly snap: midtransClient.Snap;
   private readonly isProduction: boolean;
   private readonly serverKey: string;
@@ -172,6 +176,16 @@ export class PaymentService {
     };
   }
 
+  /**
+   * Authoritative payment method comes from Midtrans webhook only.
+   * Creation leaves paymentMethod null until notification provides it.
+   */
+  private mapPaymentMethodFromNotification(
+    notification: MidtransNotificationDto,
+  ) {
+    return mapMidtransPaymentMethod(notification.payment_type);
+  }
+
   // Handle Midtrans webhook
   async handleNotification(notification: MidtransNotificationDto) {
     const debug = process.env.NODE_ENV !== 'production';
@@ -215,6 +229,20 @@ export class PaymentService {
       throw new BadRequestException('Invalid Midtrans signature');
     }
 
+    /**
+     * Map payment method from Midtrans payload when present.
+     * Unknown types → null (do not guess; do not fail webhook).
+     * Known method only overwrites when actually provided.
+     */
+    const mappedPaymentMethod =
+      this.mapPaymentMethodFromNotification(notification);
+
+    if (mappedPaymentMethod === null && notification.payment_type && debug) {
+      this.logger.warn(
+        `Unmapped payment_type=${notification.payment_type} for ${notification.order_id}`,
+      );
+    }
+
     const mappedPaymentStatus = this.mapPaymentStatus(
       notification.transaction_status,
       notification.fraud_status,
@@ -229,9 +257,10 @@ export class PaymentService {
       console.log(`payment_status (current): ${payment.status}`);
       console.log(`mapped payment_status: ${mappedPaymentStatus}`);
       console.log(`mapped order_status: ${mappedOrderStatus}`);
+      console.log(`mapped payment_method: ${mappedPaymentMethod ?? 'null'}`);
     }
 
-    // Prevent duplicate PAID processing
+    // Prevent duplicate PAID processing — do not overwrite known paymentMethod
     if (payment.status === PaymentStatus.PAID) {
       if (debug) {
         console.log('[PAYMENT WEBHOOK] payment is already PAID');
@@ -253,10 +282,34 @@ export class PaymentService {
     let finalPaymentStatus: PaymentStatus = payment.status;
     let finalOrderStatus: OrderStatus = mappedOrderStatus;
 
+    /**
+     * Only include paymentMethod when a recognized method is available.
+     * Never set paymentMethod to null on update (idempotent / no downgrade).
+     */
+    const paymentUpdateData: {
+      status: PaymentStatus;
+      transactionStatus: string;
+      fraudStatus: string | null;
+      paymentMethod?: NonNullable<typeof mappedPaymentMethod>;
+    } = {
+      status: mappedPaymentStatus,
+      transactionStatus: notification.transaction_status,
+      fraudStatus: notification.fraud_status ?? null,
+      ...(mappedPaymentMethod ? { paymentMethod: mappedPaymentMethod } : {}),
+    };
+
     if (isDowngradeToPending) {
       if (debug) {
         console.log(
           `[PAYMENT WEBHOOK] skip payment downgrade ${payment.status} → PENDING`,
+        );
+      }
+
+      // Still persist payment method when provided (do not touch status)
+      if (mappedPaymentMethod) {
+        await this.paymentRepository.updateByMidtransOrderId(
+          notification.order_id,
+          { paymentMethod: mappedPaymentMethod },
         );
       }
 
@@ -269,11 +322,7 @@ export class PaymentService {
       const updatedPayment =
         await this.paymentRepository.updateByMidtransOrderId(
           notification.order_id,
-          {
-            status: mappedPaymentStatus,
-            transactionStatus: notification.transaction_status,
-            fraudStatus: notification.fraud_status ?? null,
-          },
+          paymentUpdateData,
         );
 
       finalPaymentStatus = updatedPayment.status;
@@ -324,6 +373,7 @@ export class PaymentService {
       paymentId: payment.id,
       paymentStatus: finalPaymentStatus,
       orderStatus: finalOrderStatus,
+      paymentMethod: mappedPaymentMethod,
     };
   }
 

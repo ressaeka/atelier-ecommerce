@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 
 import {
@@ -29,10 +30,11 @@ import {
 } from './dto/update-cart.dto.js';
 
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
-
 import { successResponse } from '../common/helpers/response.helper.js';
-
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
 
 import {
   addCartItemApiBody,
@@ -46,6 +48,8 @@ import {
 @ApiTags('Cart')
 @ApiBearerAuth()
 @Controller('cart')
+@UseGuards(RolesGuard)
+@Roles('USER')
 export class CartController {
   constructor(private readonly cartService: CartService) {}
 
@@ -59,6 +63,10 @@ export class CartController {
   @ApiResponse({
     status: 401,
     description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden',
   })
   async findCart(@CurrentUser() user: { id: number }) {
     const cart = await this.cartService.findCart(user.id);
@@ -81,6 +89,10 @@ export class CartController {
   @ApiResponse({
     status: 401,
     description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden',
   })
   @ApiResponse({
     status: 404,
@@ -116,6 +128,10 @@ export class CartController {
   @ApiResponse({
     status: 401,
     description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden',
   })
   @ApiResponse({
     status: 404,
@@ -157,6 +173,10 @@ export class CartController {
     description: 'Unauthorized',
   })
   @ApiResponse({
+    status: 403,
+    description: 'Forbidden',
+  })
+  @ApiResponse({
     status: 404,
     description: 'Cart atau product tidak ditemukan di cart',
   })
@@ -186,6 +206,10 @@ export class CartController {
   @ApiResponse({
     status: 401,
     description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden',
   })
   @ApiResponse({
     status: 404,

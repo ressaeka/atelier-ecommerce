@@ -12,6 +12,7 @@ import { CartModule } from './cart/cart.module.js';
 import { WishlistModule } from './wishlist/wishlist.module.js';
 import { OrderModule } from './order/order.module.js';
 import { PaymentModule } from './payment/payment.module.js';
+import { AdminDashboardModule } from './admin/admin-dashboard.module.js';
 import configuration from './config/configuration.js';
 import midtransConfig from './config/midtrans.config.js';
 import { APP_GUARD } from '@nestjs/core';
@@ -35,6 +36,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
     WishlistModule,
     OrderModule,
     PaymentModule,
+    AdminDashboardModule,
   ],
 
   providers: [

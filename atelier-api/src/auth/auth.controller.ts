@@ -125,6 +125,40 @@ export class AuthController {
     return this.authService.login(dto, req.ip ?? 'unknown');
   }
 
+  /**
+   * Admin Portal login.
+   *
+   * Public because the client has no JWT yet.
+   * Authorization (role === ADMIN) is enforced in AuthService.adminLogin —
+   * non-admin and invalid credentials share the same generic error.
+   */
+  @Post('admin-login')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Login Portal Administrasi (hanya akun ADMIN yang mendapat token)',
+  })
+  @ApiBody(loginApiBody)
+  @ApiResponse({
+    status: 200,
+    description: 'Login admin berhasil (token access + refresh)',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Kredensial atau akses administrator tidak valid',
+  })
+  @ApiResponse({
+    status: 429,
+    description: 'Terlalu banyak percobaan login',
+  })
+  adminLogin(
+    @Body(new ZodValidationPipe(loginSchema))
+    dto: LoginDto,
+    @Req() req: Request,
+  ) {
+    return this.authService.adminLogin(dto, req.ip ?? 'unknown');
+  }
+
   @Post('refresh')
   @Public()
   @HttpCode(HttpStatus.OK)

@@ -15,7 +15,11 @@ export class LoginRateLimitService {
 
   constructor(private readonly redisService: RedisService) {}
 
-  async handleFailure(username: string, ip: string): Promise<never> {
+  async handleFailure(
+    username: string,
+    ip: string,
+    unauthorizedMessage?: string,
+  ): Promise<never> {
     const usernameKey = `login-attempts:${username.toLowerCase()}`;
 
     const ipKey = `login:ip:${ip}`;
@@ -35,7 +39,9 @@ export class LoginRateLimitService {
       );
     }
 
-    throw new UnauthorizedException('Username atau password salah');
+    throw new UnauthorizedException(
+      unauthorizedMessage ?? 'Username atau password salah',
+    );
   }
 
   async resetUsername(username: string): Promise<void> {

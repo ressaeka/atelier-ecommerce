@@ -36,6 +36,19 @@ enum PaymentStatus {
   CANCELLED
 }
 
+/**
+ * Stable internal payment-method codes.
+ * Display names live on the Admin Dashboard API response, not here.
+ */
+enum PaymentMethod {
+  GOPAY
+  VIRTUAL_ACCOUNT
+  SHOPEEPAY
+  OVO
+  DANA
+  QRIS
+}
+
 
 model User {
   id Int @id @default(autoincrement())
@@ -268,6 +281,12 @@ model Payment {
 
   provider String @default("MIDTRANS")
 
+  /**
+   * Nullable: historical payments may lack authoritative Midtrans method data.
+   * Populated from webhook when Midtrans provides a recognized payment_type.
+   */
+  paymentMethod PaymentMethod?
+
   midtransOrderId String @unique
   snapToken       String?
 
@@ -285,4 +304,5 @@ model Payment {
 
   @@index([orderId])
   @@index([status])
+  @@index([paymentMethod])
 }

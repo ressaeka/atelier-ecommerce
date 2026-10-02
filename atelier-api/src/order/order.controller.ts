@@ -10,7 +10,6 @@ import {
 } from '@nestjs/common';
 
 import { OrderService } from './order.service.js';
-
 import { CreateOrderDto } from './dto/create-order.dto.js';
 
 import {
@@ -21,13 +20,10 @@ import {
 import { OrderQueryDto, OrderQuerySchema } from './dto/query-order.dto.js';
 
 import { RolesGuard } from '../common/guards/roles.guard.js';
-
 import { PermissionsGuard } from '../common/guards/permissions.guard.js';
 
 import { Roles } from '../common/decorators/roles.decorator.js';
-
 import { Permissions } from '../common/decorators/permissions.decorator.js';
-
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
 
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
@@ -36,7 +32,10 @@ import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
+  // Create order — USER only
   @Post()
+  @UseGuards(RolesGuard)
+  @Roles('USER')
   async create(
     @CurrentUser() user: { id: number },
     @Body() createOrderDto: CreateOrderDto,
@@ -44,6 +43,7 @@ export class OrderController {
     return this.orderService.create(createOrderDto, user.id);
   }
 
+  // Admin: get all orders
   @Get()
   @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
@@ -55,6 +55,7 @@ export class OrderController {
     return this.orderService.findAllOrder(query);
   }
 
+  // Authenticated user: get own orders
   @Get('my')
   async findMyOrders(
     @CurrentUser() user: { id: number },
@@ -64,16 +65,19 @@ export class OrderController {
     return this.orderService.findMyOrders(user.id, query);
   }
 
+  // User: get own order
   @Get(':id')
   async findOne(@CurrentUser() user: { id: number }, @Param('id') id: string) {
     return this.orderService.findOrderByIdAndUserId(user.id, +id);
   }
 
+  // User: cancel own order
   @Patch(':id/cancel')
   async cancel(@CurrentUser() user: { id: number }, @Param('id') id: string) {
     return this.orderService.cancelOrder(user.id, +id);
   }
 
+  // Admin: update order status
   @Patch(':id/status')
   @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')

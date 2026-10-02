@@ -8,6 +8,7 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 
 import {
@@ -35,7 +36,6 @@ import {
 } from './dto/query-address.dto.js';
 
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
-
 import { successResponse } from '../common/helpers/response.helper.js';
 
 import {
@@ -49,10 +49,14 @@ import {
 } from './address.swagger.js';
 
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
 
 @ApiTags('Address')
 @ApiBearerAuth()
 @Controller('address')
+@UseGuards(RolesGuard)
+@Roles('USER')
 export class AddressController {
   constructor(private readonly addressService: AddressService) {}
 
@@ -74,6 +78,10 @@ export class AddressController {
   @ApiResponse({
     status: 401,
     description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden',
   })
   async create(
     @CurrentUser() user: { id: number },
@@ -99,6 +107,10 @@ export class AddressController {
     status: 401,
     description: 'Unauthorized',
   })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden',
+  })
   async findAll(
     @CurrentUser() user: { id: number },
     @Query(new ZodValidationPipe(queryAddressSchema))
@@ -119,6 +131,10 @@ export class AddressController {
   @ApiResponse({
     status: 401,
     description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden',
   })
   @ApiResponse({
     status: 404,
@@ -146,6 +162,10 @@ export class AddressController {
   @ApiResponse({
     status: 401,
     description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden',
   })
   @ApiResponse({
     status: 404,
@@ -182,6 +202,10 @@ export class AddressController {
   @ApiResponse({
     status: 401,
     description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden',
   })
   @ApiResponse({
     status: 404,
@@ -222,6 +246,10 @@ export class AddressController {
   @ApiResponse({
     status: 401,
     description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden',
   })
   @ApiResponse({
     status: 404,

@@ -11,6 +11,7 @@ import { successResponse } from '../common/helpers/response.helper.js';
 import {
   comparePassword,
   hashPassword,
+  getDummyPasswordHash,
 } from '../common/helpers/password.helper.js';
 
 import { RedisService } from '../common/redis/redis.service.js';
@@ -202,18 +203,16 @@ export class AuthService {
     const user =
       await this.usersService.findByIdentifierWithPassword(identifier);
 
-    if (!user) {
-      await this.loginRateLimitService.handleFailure(identifier, ip);
-
-      throw new UnauthorizedException(
-        'Username, email, nomor telepon, atau password salah',
-      );
-    }
-
     /**
-     * OAuth user tidak mempunyai password.
+     * Timing-safe password verification.
+     * If user not found (or OAuth without password), still run bcrypt
+     * against a runtime-generated dummy hash.
      */
-    if (!user.password) {
+    const passwordHash = user?.password ?? (await getDummyPasswordHash());
+
+    const isPasswordValid = await comparePassword(dto.password, passwordHash);
+
+    if (!user || !user.password || !isPasswordValid) {
       await this.loginRateLimitService.handleFailure(identifier, ip);
 
       throw new UnauthorizedException(
@@ -221,14 +220,54 @@ export class AuthService {
       );
     }
 
-    const isPasswordValid = await comparePassword(dto.password, user.password);
+    await this.loginRateLimitService.resetUsername(identifier);
 
-    if (!isPasswordValid) {
-      await this.loginRateLimitService.handleFailure(identifier, ip);
+    return this.issueTokensAndSession(user);
+  }
 
-      throw new UnauthorizedException(
-        'Username, email, nomor telepon, atau password salah',
+  // ============================================================
+  // ADMIN LOGIN
+  // ============================================================
+
+  /**
+   * Admin Portal login.
+   *
+   * Same credential + bcrypt + JWT session machinery as customer login.
+   * Authentication and authorization happen HERE — not in the frontend.
+   *
+   * Failure is always generic (no account enumeration, no role disclosure):
+   * invalid password AND valid USER credentials look identical.
+   */
+  async adminLogin(dto: LoginDto, ip: string) {
+    const identifier = dto.identifier.trim();
+    const genericAuthFailure =
+      'Kredensial atau akses administrator tidak valid.';
+
+    const user =
+      await this.usersService.findByIdentifierWithPassword(identifier);
+
+    const passwordHash = user?.password ?? (await getDummyPasswordHash());
+
+    const isPasswordValid = await comparePassword(dto.password, passwordHash);
+
+    const isAuthorizedAdmin =
+      Boolean(user) &&
+      Boolean(user?.password) &&
+      isPasswordValid &&
+      user?.role === 'ADMIN';
+
+    if (!isAuthorizedAdmin) {
+      /**
+       * Invalid credentials OR valid non-admin account.
+       * Same generic failure + rate limit — no role disclosure.
+       */
+      await this.loginRateLimitService.handleFailure(
+        identifier,
+        ip,
+        genericAuthFailure,
       );
+
+      throw new UnauthorizedException(genericAuthFailure);
     }
 
     await this.loginRateLimitService.resetUsername(identifier);

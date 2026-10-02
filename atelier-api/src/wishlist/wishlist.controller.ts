@@ -6,6 +6,7 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  UseGuards,
 } from '@nestjs/common';
 
 import {
@@ -25,14 +26,17 @@ import {
 } from './dto/create-wishlist.dto.js';
 
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
-
 import { successResponse } from '../common/helpers/response.helper.js';
-
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
 
 @ApiTags('Wishlist')
 @ApiBearerAuth()
 @Controller('wishlist')
+@UseGuards(RolesGuard)
+@Roles('USER')
 export class WishlistController {
   constructor(private readonly wishlistService: WishlistService) {}
 
@@ -49,6 +53,10 @@ export class WishlistController {
   @ApiResponse({
     status: 401,
     description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden',
   })
   async getWishlist(@CurrentUser() user: { id: number }) {
     const wishlist = await this.wishlistService.getWishlist(user.id);
@@ -87,6 +95,10 @@ export class WishlistController {
     description: 'Unauthorized',
   })
   @ApiResponse({
+    status: 403,
+    description: 'Forbidden',
+  })
+  @ApiResponse({
     status: 409,
     description: 'Produk sudah ada di wishlist',
   })
@@ -121,6 +133,10 @@ export class WishlistController {
   @ApiResponse({
     status: 401,
     description: 'Unauthorized',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden',
   })
   @ApiResponse({
     status: 404,

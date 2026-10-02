@@ -1,7 +1,6 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 
 import { PaymentService } from './payment.service.js';
-
 import { CreatePaymentDto } from './dto/create-payment.dto.js';
 
 import {
@@ -10,17 +9,19 @@ import {
 } from './dto/midtrans-notification.dto.js';
 
 import { Public } from '../common/decorators/public.decorator.js';
-
 import { CurrentUser } from '../common/decorators/current-user.decorator.js';
-
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe.js';
+import { RolesGuard } from '../common/guards/roles.guard.js';
+import { Roles } from '../common/decorators/roles.decorator.js';
 
 @Controller('payment')
 export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
-  // Create payment
+  // Create payment — USER only
   @Post()
+  @UseGuards(RolesGuard)
+  @Roles('USER')
   create(@CurrentUser() user: { id: number }, @Body() dto: CreatePaymentDto) {
     return this.paymentService.create(dto, user.id);
   }

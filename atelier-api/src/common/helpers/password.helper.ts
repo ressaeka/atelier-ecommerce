@@ -12,3 +12,23 @@ export const comparePassword = (
 ): Promise<boolean> => {
   return bcrypt.compare(plainPassword, hashedPassword);
 };
+
+/**
+ * Dummy bcrypt hash for timing-safe credential checks.
+ * Generated once at runtime (not hardcoded in source).
+ */
+let dummyPasswordHashPromise: Promise<string> | null = null;
+
+export const getDummyPasswordHash = (): Promise<string> => {
+  if (!dummyPasswordHashPromise) {
+    dummyPasswordHashPromise = hashPassword(
+      `timing-safe-placeholder-${randomUUIDSafe()}`,
+    );
+  }
+  return dummyPasswordHashPromise;
+};
+
+function randomUUIDSafe(): string {
+  // Avoid importing crypto here for minimal surface; use a random suffix.
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+}
