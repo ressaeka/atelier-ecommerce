@@ -1,14 +1,41 @@
 import React from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
   subtitle: string;
+  /** Override heading; default customer welcome copy. */
+  title?: string;
+  /** Small label above the title (e.g. ADMIN PORTAL). */
+  eyebrow?: string;
+  /** Hide customer social/footer extras on dedicated admin login. */
+  mode?: 'customer' | 'admin';
 }
 
 export const AuthLayout: React.FC<AuthLayoutProps> = ({
   children,
   subtitle,
+  title,
+  eyebrow,
+  mode = 'customer',
 }) => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const isAdminLogin =
+    mode === 'admin' ||
+    location.pathname === '/login/admin' ||
+    location.pathname.startsWith('/login/admin/');
+
+  const headingTitle =
+    title ??
+    (isAdminLogin
+      ? 'Portal Administrasi'
+      : 'Selamat Datang di Atelier');
+
+  const headingEyebrow =
+    eyebrow ?? (isAdminLogin ? 'ATELIER · PORTAL ADMINISTRASI' : null);
+
   return (
     <div
       className="relative w-full overflow-hidden bg-[#F5F3EE] font-sans text-[#1A1A1A] selection:bg-[#1A1A1A] selection:text-white"
@@ -131,15 +158,21 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
                   </h2>
 
                   <span className="hidden text-[9px] font-medium uppercase tracking-[0.18em] text-zinc-400 sm:block">
-                    JAKARTA
+                    {isAdminLogin ? 'ADMIN' : 'JAKARTA'}
                   </span>
 
                 </div>
 
                 <div className="pt-6">
 
+                  {headingEyebrow && (
+                    <p className="mb-2 text-[10px] font-bold uppercase tracking-[0.22em] text-[#8B6F47]">
+                      {headingEyebrow}
+                    </p>
+                  )}
+
                   <h3 className="font-editorial text-2xl font-normal leading-tight tracking-tight text-[#1A1A1A] sm:text-[28px]">
-                    Selamat Datang di Atelier
+                    {headingTitle}
                   </h3>
 
                   <p className="mt-2 max-w-md text-[11px] leading-relaxed text-zinc-500 sm:text-xs">
@@ -154,13 +187,23 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({
                 {children}
               </div>
 
-              <button
-                type="button"
-                onClick={() => alert('Portal Administrasi Toko masih dalam pengembangan.')}
-                className="mt-5 flex w-full items-center justify-center text-center text-[9px] font-medium uppercase tracking-[0.16em] text-zinc-500 transition-colors hover:text-black"
-              >
-                MASUK KE PORTAL ADMINISTRASI TOKO
-              </button>
+              {isAdminLogin ? (
+                <button
+                  type="button"
+                  onClick={() => navigate('/login')}
+                  className="mt-6 flex w-full items-center justify-center text-center text-[10px] font-medium tracking-[0.08em] text-zinc-400 transition-colors hover:text-zinc-700"
+                >
+                  KEMBALI KE LOGIN PELANGGAN →
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => navigate('/login/admin')}
+                  className="mt-6 flex w-full items-center justify-center text-center text-[10px] font-medium tracking-[0.08em] text-zinc-400 transition-colors hover:text-zinc-700"
+                >
+                  MASUK KE PORTAL ADMIN TOKO →
+                </button>
+              )}
 
               {/* FOOTER */}
               <footer className="mt-7 w-full border-t border-zinc-200 pt-5">

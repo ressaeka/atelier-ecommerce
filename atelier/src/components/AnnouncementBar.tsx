@@ -10,8 +10,7 @@ const AnnouncementBar: React.FC = () => {
           Kode: ATELIREFIRST
           <span className="mx-2 text-white/40">|</span>
           Pengiriman bebas biaya
-          <span className="mx-2 text-white/40">&</span>
-          Pengembalian 14 hari
+       
         </p>
       </div>
     </div>

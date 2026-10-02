@@ -22,6 +22,7 @@ import {
 
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
+import { useAuth } from '../contexts/AuthContext';
 import ProfileDropdown from './ProfileDropdown';
 
 import { api } from '../lib/api';
@@ -68,6 +69,14 @@ const Navbar: React.FC<NavbarProps> = ({
 
   const [searchParams] = useSearchParams();
 
+  const { user } = useAuth();
+
+  /**
+   * ADMIN storefront browsing only — hide customer shopping nav.
+   * Role from existing AuthContext (user.role), not hardcoded IDs.
+   */
+  const isAdminBrowsing = user?.role === 'ADMIN';
+
   const { itemCount } = useCart();
 
   const {
@@ -76,6 +85,10 @@ const Navbar: React.FC<NavbarProps> = ({
 
   const badgeCount =
     wishlistCount ?? favoriteCount;
+
+  const visibleNavLinks = navLinks.filter(
+    (link) => !(isAdminBrowsing && link.href === '/orders'),
+  );
 
   const [scrolled, setScrolled] =
     useState(false);
@@ -489,7 +502,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 xl:gap-7
               "
             >
-              {navLinks.map(
+              {visibleNavLinks.map(
                 (link) => {
                   const isActive =
                     location.pathname ===
@@ -795,101 +808,103 @@ const Navbar: React.FC<NavbarProps> = ({
               justify-end
             "
           >
-            {/* CART */}
+            {/* CART — hidden for ADMIN browsing storefront */}
+            {!isAdminBrowsing && (
+              <Link
+                to="/cart"
+                aria-label="Keranjang belanja"
+                className="
+                  relative
+                  flex
+                  h-10
+                  w-10
+                  items-center
+                  justify-center
+                  text-[#1A1A1A]
+                  transition-colors
+                  duration-200
+                  hover:text-[#6B6B6B]
+                "
+              >
+                <ShoppingBag
+                  size={19}
+                  strokeWidth={1.5}
+                />
 
-            <Link
-              to="/cart"
-              aria-label="Keranjang belanja"
-              className="
-                relative
-                flex
-                h-10
-                w-10
-                items-center
-                justify-center
-                text-[#1A1A1A]
-                transition-colors
-                duration-200
-                hover:text-[#6B6B6B]
-              "
-            >
-              <ShoppingBag
-                size={19}
-                strokeWidth={1.5}
-              />
+                {itemCount > 0 && (
+                  <span
+                    className="
+                      absolute
+                      right-[4px]
+                      top-[4px]
+                      flex
+                      h-[14px]
+                      min-w-[14px]
+                      items-center
+                      justify-center
+                      rounded-full
+                      bg-[#1A1A1A]
+                      px-1
+                      text-[7px]
+                      font-semibold
+                      leading-none
+                      text-white
+                    "
+                  >
+                    {itemCount}
+                  </span>
+                )}
+              </Link>
+            )}
 
-              {itemCount > 0 && (
-                <span
-                  className="
-                    absolute
-                    right-[4px]
-                    top-[4px]
-                    flex
-                    h-[14px]
-                    min-w-[14px]
-                    items-center
-                    justify-center
-                    rounded-full
-                    bg-[#1A1A1A]
-                    px-1
-                    text-[7px]
-                    font-semibold
-                    leading-none
-                    text-white
-                  "
-                >
-                  {itemCount}
-                </span>
-              )}
-            </Link>
+            {/* WISHLIST — hidden for ADMIN browsing storefront */}
+            {!isAdminBrowsing && (
+              <Link
+                to="/wishlist"
+                aria-label="Wishlist"
+                className="
+                  relative
+                  flex
+                  h-10
+                  w-10
+                  items-center
+                  justify-center
+                  text-[#1A1A1A]
+                  transition-colors
+                  duration-200
+                  hover:text-[#6B6B6B]
+                "
+              >
+                <Heart
+                  size={19}
+                  strokeWidth={1.5}
+                />
 
-            {/* WISHLIST */}
-
-            <Link
-              to="/wishlist"
-              aria-label="Wishlist"
-              className="
-                relative
-                flex
-                h-10
-                w-10
-                items-center
-                justify-center
-                text-[#1A1A1A]
-                transition-colors
-                duration-200
-                hover:text-[#6B6B6B]
-              "
-            >
-              <Heart
-                size={19}
-                strokeWidth={1.5}
-              />
-
-              {badgeCount > 0 && (
-                <span
-                  className="
-                    absolute
-                    right-[4px]
-                    top-[4px]
-                    flex
-                    h-[14px]
-                    min-w-[14px]
-                    items-center
-                    justify-center
-                    rounded-full
-                    bg-[#1A1A1A]
-                    px-1
-                    text-[7px]
-                    font-semibold
-                    leading-none
-                    text-white
-                  "
-                >
-                  {badgeCount}
-                </span>
-              )}
-            </Link>
+                {badgeCount > 0 && (
+                  <span
+                    className="
+                      absolute
+                      right-[4px]
+                      top-[4px]
+                      flex
+                      h-[14px]
+                      min-w-[14px]
+                      items-center
+                      justify-center
+                      rounded-full
+                      bg-[#1A1A1A]
+                      px-1
+                      text-[7px]
+                      font-semibold
+                      leading-none
+                      text-white
+                    "
+                  >
+                    {badgeCount}
+                  </span>
+                )}
+              </Link>
+            )}
 
             {/* PROFILE */}
 
@@ -1111,7 +1126,7 @@ const Navbar: React.FC<NavbarProps> = ({
           {/* NAVIGATION */}
 
           <nav className="flex flex-col px-6 pt-6">
-            {navLinks.map(
+            {visibleNavLinks.map(
               (link) => {
                 const isActive =
                   location.pathname ===
@@ -1144,8 +1159,7 @@ const Navbar: React.FC<NavbarProps> = ({
             )}
           </nav>
 
-          {/* QUICK ACTIONS */}
-
+          {/* QUICK ACTIONS — hidden for ADMIN browsing storefront */}
           <div
             className="
               mt-auto
@@ -1157,67 +1171,71 @@ const Navbar: React.FC<NavbarProps> = ({
             "
           >
             <div className="flex flex-col gap-4">
-              <Link
-                to="/cart"
-                className="
-                  flex
-                  items-center
-                  gap-3
-                  text-[10px]
-                  font-medium
-                  uppercase
-                  tracking-[0.13em]
-                  text-[#6B6B6B]
-                  transition-colors
-                  hover:text-[#1A1A1A]
-                "
-              >
-                <ShoppingBag
-                  size={16}
-                  strokeWidth={1.5}
-                />
+              {!isAdminBrowsing && (
+                <>
+                  <Link
+                    to="/cart"
+                    className="
+                      flex
+                      items-center
+                      gap-3
+                      text-[10px]
+                      font-medium
+                      uppercase
+                      tracking-[0.13em]
+                      text-[#6B6B6B]
+                      transition-colors
+                      hover:text-[#1A1A1A]
+                    "
+                  >
+                    <ShoppingBag
+                      size={16}
+                      strokeWidth={1.5}
+                    />
 
-                <span>
-                  KERANJANG
+                    <span>
+                      KERANJANG
 
-                  {itemCount > 0 && (
-                    <span className="ml-1 text-[#999]">
-                      ({itemCount})
+                      {itemCount > 0 && (
+                        <span className="ml-1 text-[#999]">
+                          ({itemCount})
+                        </span>
+                      )}
                     </span>
-                  )}
-                </span>
-              </Link>
+                  </Link>
 
-              <Link
-                to="/wishlist"
-                className="
-                  flex
-                  items-center
-                  gap-3
-                  text-[10px]
-                  font-medium
-                  uppercase
-                  tracking-[0.13em]
-                  text-[#6B6B6B]
-                  transition-colors
-                  hover:text-[#1A1A1A]
-                "
-              >
-                <Heart
-                  size={16}
-                  strokeWidth={1.5}
-                />
+                  <Link
+                    to="/wishlist"
+                    className="
+                      flex
+                      items-center
+                      gap-3
+                      text-[10px]
+                      font-medium
+                      uppercase
+                      tracking-[0.13em]
+                      text-[#6B6B6B]
+                      transition-colors
+                      hover:text-[#1A1A1A]
+                    "
+                  >
+                    <Heart
+                      size={16}
+                      strokeWidth={1.5}
+                    />
 
-                <span>
-                  WISHLIST
+                    <span>
+                      WISHLIST
 
-                  {badgeCount > 0 && (
-                    <span className="ml-1 text-[#999]">
-                      ({badgeCount})
+                      {badgeCount > 0 && (
+                        <span className="ml-1 text-[#999]">
+                          ({badgeCount})
+                        </span>
+                      )}
                     </span>
-                  )}
-                </span>
-              </Link>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </aside>

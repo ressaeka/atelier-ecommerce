@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { consumeGuestAuthReturnIntent } from '../lib/guestIntent';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -17,7 +18,21 @@ export default function AuthCallback() {
 
     if (accessToken && refreshToken) {
       handleGoogleAuth(accessToken, refreshToken)
-        .then(() => {
+        .then((authenticatedUser) => {
+          // Role from existing auth response — ADMIN does not enter storefront via Google customer flow
+          if (authenticatedUser.role === 'ADMIN') {
+            navigate('/login/admin', { replace: true });
+            return;
+          }
+
+          // Return-only intent — no auto wishlist/cart API
+          const returnIntent = consumeGuestAuthReturnIntent();
+
+          if (returnIntent) {
+            navigate(returnIntent.returnTo, { replace: true });
+            return;
+          }
+
           navigate('/', { replace: true });
         })
         .catch((err) => {

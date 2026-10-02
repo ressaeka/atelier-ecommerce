@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Heart, ShoppingBag, ArrowLeft } from 'lucide-react';
 import { useWishlist } from '../contexts/WishlistContext';
 import AnnouncementBar from '../components/AnnouncementBar';
@@ -10,128 +10,142 @@ import { api } from '../lib/api';
 import { formatPrice, resolveImageUrl } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
+import { saveCartIntent } from '../lib/guestIntent';
 import type { Product, ProductVariant } from '../types/api';
 
 const ProductDetail: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
-  const { user } = useAuth();
-  const { items: cartItems, addItem } = useCart();
-  const [product, setProduct] = useState<Product | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-  const [addingToCart, setAddingToCart] = useState(false);
-  const [cartSuccess, setCartSuccess] = useState(false);
-  const [cartError, setCartError] = useState('');
-  const [imgError, setImgError] = useState(false);
-  const { has, toggle } = useWishlist();
-  const favorited = product ? has(product.id) : false;
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const variants = product?.variants ?? [];
-  const hasVariants = variants.length > 0;
+  /** ADMIN storefront browsing — hide purchase actions; product info stays. */
+  const isAdminBrowsing = user?.role === 'ADMIN';
 
-  const colors = useMemo(
-    () => [...new Set(variants.map((v) => v.color).filter(Boolean))] as string[],
-    [variants],
-  );
-  const sizes = useMemo(
-    () => [...new Set(variants.map((v) => v.size).filter(Boolean))] as string[],
-    [variants],
-  );
+  const { items: cartItems, addItem } = useCart();
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [addingToCart, setAddingToCart] = useState(false);
+  const [cartSuccess, setCartSuccess] = useState(false);
+  const [cartError, setCartError] = useState('');
+  const [imgError, setImgError] = useState(false);
+  const { has, toggle } = useWishlist();
+  const favorited = product ? has(product.id) : false;
 
-  const [selectedColor, setSelectedColor] = useState<string | null>(null);
-  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const variants = product?.variants ?? [];
+  const hasVariants = variants.length > 0;
 
-  const selectedVariant = useMemo((): ProductVariant | null => {
-    if (!hasVariants) return null;
-    return (
-      variants.find(
-        (v) =>
-          (selectedColor === null || v.color === selectedColor) &&
-          (selectedSize === null || v.size === selectedSize),
-      ) ?? null
-    );
-  }, [variants, selectedColor, selectedSize, hasVariants]);
+  const colors = useMemo(
+    () => [...new Set(variants.map((v) => v.color).filter(Boolean))] as string[],
+    [variants],
+  );
+  const sizes = useMemo(
+    () => [...new Set(variants.map((v) => v.size).filter(Boolean))] as string[],
+    [variants],
+  );
 
-  useEffect(() => {
-    if (colors.length > 0 && selectedColor === null) {
-      setSelectedColor(colors[0]);
-    }
-  }, [colors, selectedColor]);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (sizes.length > 0 && selectedSize === null) {
-      setSelectedSize(sizes[0]);
-    }
-  }, [sizes, selectedSize]);
+  const selectedVariant = useMemo((): ProductVariant | null => {
+    if (!hasVariants) return null;
+    return (
+      variants.find(
+        (v) =>
+          (selectedColor === null || v.color === selectedColor) &&
+          (selectedSize === null || v.size === selectedSize),
+      ) ?? null
+    );
+  }, [variants, selectedColor, selectedSize, hasVariants]);
 
-  // Reset size when color ACTUALLY changes — not on every render
-  const prevColorRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (prevColorRef.current !== selectedColor) {
-      prevColorRef.current = selectedColor;
-      if (selectedColor !== null && sizes.length > 0) {
-        const firstAvailable = variants.find(
-          (v) => v.color === selectedColor && v.size !== null,
-        );
-        if (firstAvailable) {
-          setSelectedSize(firstAvailable.size);
-        } else {
-          setSelectedSize(null);
-        }
-      }
-    }
-  }, [selectedColor, sizes.length, variants]);
+  useEffect(() => {
+    if (colors.length > 0 && selectedColor === null) {
+      setSelectedColor(colors[0]);
+    }
+  }, [colors, selectedColor]);
 
-  useEffect(() => {
-    if (!id) return;
-    setLoading(true);
-    setError(false);
-    setSelectedColor(null);
-    setSelectedSize(null);
-    api.get<Product>(`/product/${id}`)
-      .then(setProduct)
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }, [id]);
+  useEffect(() => {
+    if (sizes.length > 0 && selectedSize === null) {
+      setSelectedSize(sizes[0]);
+    }
+  }, [sizes, selectedSize]);
 
-  const currentPrice = selectedVariant?.price ?? product?.price ?? 0;
-  const currentStock = selectedVariant?.stock ?? product?.stock ?? 0;
+  // Reset size when color ACTUALLY changes — not on every render
+  const prevColorRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (prevColorRef.current !== selectedColor) {
+      prevColorRef.current = selectedColor;
+      if (selectedColor !== null && sizes.length > 0) {
+        const firstAvailable = variants.find(
+          (v) => v.color === selectedColor && v.size !== null,
+        );
+        if (firstAvailable) {
+          setSelectedSize(firstAvailable.size);
+        } else {
+          setSelectedSize(null);
+        }
+      }
+    }
+  }, [selectedColor, sizes.length, variants]);
 
-  const alreadyInCart = useMemo(() => {
-    if (!product) return false;
-    if (hasVariants) {
-      if (!selectedVariant) return false;
-      return cartItems.some(
-        (item) => item.productId === product.id && item.variantId === selectedVariant.id,
-      );
-    }
-    return cartItems.some((item) => item.productId === product.id);
-  }, [product, cartItems, hasVariants, selectedVariant]);
+  useEffect(() => {
+    if (!id) return;
+    setLoading(true);
+    setError(false);
+    setSelectedColor(null);
+    setSelectedSize(null);
+    api.get<Product>(`/product/${id}`)
+      .then(setProduct)
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, [id]);
 
-  const handleAddToCart = async () => {
-    if (!product) return;
-    if (!user) {
-      window.location.href = '/login';
-      return;
-    }
-    if (alreadyInCart) return;
+  const currentPrice = selectedVariant?.price ?? product?.price ?? 0;
+  const currentStock = selectedVariant?.stock ?? product?.stock ?? 0;
 
-    setAddingToCart(true);
-    setCartError('');
-    setCartSuccess(false);
+  const alreadyInCart = useMemo(() => {
+    if (!product) return false;
+    if (hasVariants) {
+      if (!selectedVariant) return false;
+      return cartItems.some(
+        (item) => item.productId === product.id && item.variantId === selectedVariant.id,
+      );
+    }
+    return cartItems.some((item) => item.productId === product.id);
+  }, [product, cartItems, hasVariants, selectedVariant]);
 
-    try {
-      await addItem(product.id, 1, selectedVariant?.id ?? null);
-      setCartSuccess(true);
-      setTimeout(() => setCartSuccess(false), 2000);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Gagal menambahkan ke keranjang';
-      setCartError(message);
-      setTimeout(() => setCartError(''), 3000);
-    } finally {
-      setAddingToCart(false);
-    }
-  };
+  const handleAddToCart = async () => {
+    if (!product) return;
+
+    // Guest: remember product page → /login — NO auto cart API after login
+    if (!user) {
+      saveCartIntent({
+        productId: product.id,
+        variantId: selectedVariant?.id ?? null,
+        quantity: 1,
+      });
+      navigate('/login');
+      return;
+    }
+
+    if (alreadyInCart) return;
+
+    setAddingToCart(true);
+    setCartError('');
+    setCartSuccess(false);
+
+    try {
+      await addItem(product.id, 1, selectedVariant?.id ?? null);
+      setCartSuccess(true);
+      setTimeout(() => setCartSuccess(false), 2000);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Gagal menambahkan ke keranjang';
+      setCartError(message);
+      setTimeout(() => setCartError(''), 3000);
+    } finally {
+      setAddingToCart(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -277,71 +291,73 @@ const ProductDetail: React.FC = () => {
                 </div>
               )}
 
-              {/* Actions */}
-              <div className="flex flex-col gap-3 max-w-[440px]">
-                {/* Success/Error feedback */}
-                {cartSuccess && (
-                  <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 p-3 text-[11px] font-semibold tracking-wide">
-                    Berhasil ditambahkan ke keranjang!
-                  </div>
-                )}
-                {cartError && (
-                  <div className="bg-red-50 border border-red-200 text-red-700 p-3 text-[11px] font-semibold tracking-wide">
-                    {cartError}
-                  </div>
-                )}
+{/* Actions — purchase UI hidden for ADMIN browsing storefront */}
+              {!isAdminBrowsing && (
+                <div className="flex flex-col gap-3 max-w-[440px]">
+                  {/* Success/Error feedback */}
+                  {cartSuccess && (
+                    <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 p-3 text-[11px] font-semibold tracking-wide">
+                      Berhasil ditambahkan ke keranjang!
+                    </div>
+                  )}
+                  {cartError && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 p-3 text-[11px] font-semibold tracking-wide">
+                      {cartError}
+                    </div>
+                  )}
 
-                <button
-                  onClick={handleAddToCart}
-                  disabled={addingToCart || alreadyInCart || currentStock === 0}
-                  className={`w-full text-[11px] tracking-[0.16em] uppercase font-medium py-4 flex items-center justify-center gap-2 transition-colors duration-200 disabled:cursor-not-allowed ${
-                    alreadyInCart
-                      ? 'bg-[#E7E5E0] text-[#777] cursor-not-allowed'
-                      : 'bg-[#1A1A1A] text-white hover:bg-[#333] disabled:opacity-50'
-                  }`}
-                >
-                  {addingToCart ? (
-                    <>
-                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                      MEMPROSES...
-                    </>
-                  ) : alreadyInCart ? (
-                    <>
-                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <polyline points="20 6 9 17 4 12" />
-                      </svg>
-                      SUDAH DI KERANJANG
-                    </>
-                  ) : currentStock === 0 ? (
-                    'STOK HABIS'
-                  ) : (
-                    <>
-                      <ShoppingBag size={16} strokeWidth={1.5} />
-                      TAMBAH KE KERANJANG
-                    </>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => toggle(product.id)}
-                  aria-pressed={favorited}
-                  className={`w-full border text-[11px] tracking-[0.16em] uppercase font-medium py-4 flex items-center justify-center gap-2 transition-colors duration-200 ${
-                    favorited
-                      ? 'border-[#F44336] text-[#F44336]'
-                      : 'border-[#CECBC3] text-[#1A1A1A] hover:border-[#1A1A1A]'
-                  }`}
-                >
-                  <Heart
-                    size={16}
-                    strokeWidth={favorited ? 0 : 1.5}
-                    fill={favorited ? 'currentColor' : 'none'}
-                  />
-                  {favorited ? 'TERSIMPAN DI FAVORIT' : 'SIMPAN KE WISHLIST'}
-                </button>
-              </div>
+                  <button
+                    onClick={handleAddToCart}
+                    disabled={addingToCart || alreadyInCart || currentStock === 0}
+                    className={`w-full text-[11px] tracking-[0.16em] uppercase font-medium py-4 flex items-center justify-center gap-2 transition-colors duration-200 disabled:cursor-not-allowed ${
+                      alreadyInCart
+                        ? 'bg-[#E7E5E0] text-[#777] cursor-not-allowed'
+                        : 'bg-[#1A1A1A] text-white hover:bg-[#333] disabled:opacity-50'
+                    }`}
+                  >
+                    {addingToCart ? (
+                      <>
+                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        MEMPROSES...
+                      </>
+                    ) : alreadyInCart ? (
+                      <>
+                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                        SUDAH DI KERANJANG
+                      </>
+                    ) : currentStock === 0 ? (
+                      'STOK HABIS'
+                    ) : (
+                      <>
+                        <ShoppingBag size={16} strokeWidth={1.5} />
+                        TAMBAH KE KERANJANG
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => toggle(product.id)}
+                    aria-pressed={favorited}
+                    className={`w-full border text-[11px] tracking-[0.16em] uppercase font-medium py-4 flex items-center justify-center gap-2 transition-colors duration-200 ${
+                      favorited
+                        ? 'border-[#F44336] text-[#F44336]'
+                        : 'border-[#CECBC3] text-[#1A1A1A] hover:border-[#1A1A1A]'
+                    }`}
+                  >
+                    <Heart
+                      size={16}
+                      strokeWidth={favorited ? 0 : 1.5}
+                      fill={favorited ? 'currentColor' : 'none'}
+                    />
+                    {favorited ? 'TERSIMPAN DI FAVORIT' : 'SIMPAN KE WISHLIST'}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

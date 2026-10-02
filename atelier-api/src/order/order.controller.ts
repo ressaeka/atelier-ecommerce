@@ -65,10 +65,13 @@ export class OrderController {
     return this.orderService.findMyOrders(user.id, query);
   }
 
-  // User: get own order
+  // Order detail: USER own only; ADMIN any order (with payment fields)
   @Get(':id')
-  async findOne(@CurrentUser() user: { id: number }, @Param('id') id: string) {
-    return this.orderService.findOrderByIdAndUserId(user.id, +id);
+  async findOne(
+    @CurrentUser() user: { id: number; role: string },
+    @Param('id') id: string,
+  ) {
+    return this.orderService.findOrderByIdForDetail(user, +id);
   }
 
   // User: cancel own order

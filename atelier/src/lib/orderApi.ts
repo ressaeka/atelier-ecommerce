@@ -4,16 +4,21 @@
  * All order operations go through the backend API.
  * Uses the existing `api` client which handles Bearer token automatically.
  *
- * Endpoints:
- *   POST   /order           → create order from current cart
- *   GET    /order           → list orders (with pagination + filters)
- *   GET    /order/:id       → get order detail (ownership enforced by backend)
+ * Customer endpoints:
+ *   GET    /order/my        → own orders only (userId from JWT)
+ *   GET    /order/:id       → own order detail (ownership on backend)
+ *   PATCH  /order/:id/cancel → cancel own eligible order
+ *
+ * Admin-only endpoints (do NOT call from customer UI):
+ *   GET    /order           → all orders (ADMIN + order:read)
+ *   PATCH  /order/:id/status → update status (ADMIN + order:update_status)
  */
 
 import { api } from './api';
 import type {
   Order,
   OrderPaginationResponse,
+  OrderStatus,
   CreateOrderRequest,
   OrderQuery,
 } from '../types/api';
@@ -30,11 +35,31 @@ export async function createOrder(
   return api.post<Order>('/order', request);
 }
 
-// ─── Get Order List ──────────────────────────────────────────
+// ─── Get MY orders (customer) ───────────────────────────────
 /**
- * GET /order
- * Accepts pagination + filter query params.
- * For a regular user, always pass userId = authenticated user's id.
+ * GET /order/my
+ * Returns only orders for the authenticated user (backend uses JWT userId).
+ * Do not pass client-controlled userId for authorization.
+ */
+export async function getMyOrders(
+  query: Omit<OrderQuery, 'userId'> = {},
+): Promise<OrderPaginationResponse> {
+  const params: Record<string, string | number | boolean | undefined> = {};
+
+  if (query.page !== undefined) params.page = query.page;
+  if (query.limit !== undefined) params.limit = query.limit;
+  if (query.search) params.search = query.search;
+  if (query.status) params.status = query.status;
+  if (query.sortBy) params.sortBy = query.sortBy;
+  if (query.sortOrder) params.sortOrder = query.sortOrder;
+
+  return api.get<OrderPaginationResponse>('/order/my', params);
+}
+
+/**
+ * GET /order — ADMIN only (all orders).
+ * Response: { data: Order[], meta: { page, limit, total, totalPages } }
+ * Do NOT use /order/my from Admin Orders.
  */
 export async function getOrders(
   query: OrderQuery,
@@ -52,10 +77,22 @@ export async function getOrders(
   return api.get<OrderPaginationResponse>('/order', params);
 }
 
+/**
+ * PATCH /order/:id/status — ADMIN only (order:update_status).
+ * Body: { status: OrderStatus }
+ */
+export async function updateOrderStatus(
+  id: number,
+  status: OrderStatus,
+): Promise<Order> {
+  return api.patch<Order>(`/order/${id}/status`, { status });
+}
+
 // ─── Get Order Detail ────────────────────────────────────────
 /**
  * GET /order/:id
- * Backend enforces ownership: only returns order if it belongs to the JWT user.
+ * USER: own order only (backend ownership).
+ * ADMIN: any order + payment fields (admin portal detail).
  */
 export async function getOrderById(id: number): Promise<Order> {
   return api.get<Order>(`/order/${id}`);

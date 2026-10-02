@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart } from 'lucide-react';
 import { useWishlist } from '../contexts/WishlistContext';
+import { useAuth } from '../contexts/AuthContext';
 import type { Product } from '../types/api';
 import { formatPrice, resolveImageUrl } from '../lib/utils';
 
@@ -12,6 +13,10 @@ interface ProductCardProps {
 const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
   const [imgError, setImgError] = useState(false);
   const { has, toggle } = useWishlist();
+  const { user } = useAuth();
+
+  /** ADMIN storefront browsing — hide wishlist action; product info remains. */
+  const isAdminBrowsing = user?.role === 'ADMIN';
   const favorited = has(product.id);
 
   return (
@@ -35,23 +40,25 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           />
         </Link>
 
-        {/* Favorite Button */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            toggle(product.id);
-          }}
-          aria-label={favorited ? 'Hapus dari favorit' : 'Tambah ke favorit'}
-          aria-pressed={favorited}
-          className={`absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-white/70 transition-all duration-200 ${
-            favorited
-              ? 'opacity-100 text-[#F44336]'
-              : 'opacity-0 group-hover:opacity-100 text-[#1A1A1A]'
-          }`}
-        >
-          <Heart size={14} strokeWidth={favorited ? 0 : 1.8} fill={favorited ? 'currentColor' : 'none'} />
-        </button>
+        {/* Favorite Button — hidden for ADMIN browsing */}
+        {!isAdminBrowsing && (
+          <button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              toggle(product.id);
+            }}
+            aria-label={favorited ? 'Hapus dari favorit' : 'Tambah ke favorit'}
+            aria-pressed={favorited}
+            className={`absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full bg-white/70 transition-all duration-200 ${
+              favorited
+                ? 'opacity-100 text-[#F44336]'
+                : 'opacity-0 group-hover:opacity-100 text-[#1A1A1A]'
+            }`}
+          >
+            <Heart size={14} strokeWidth={favorited ? 0 : 1.8} fill={favorited ? 'currentColor' : 'none'} />
+          </button>
+        )}
       </div>
 
       {/* Info */}

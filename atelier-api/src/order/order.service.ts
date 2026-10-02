@@ -174,6 +174,28 @@ export class OrderService {
   }
 
   /**
+   * Order detail for authenticated user.
+   * ADMIN: any order (admin portal).
+   * USER: own orders only (ownership enforced).
+   */
+  async findOrderByIdForDetail(
+    user: { id: number; role: string },
+    orderId: number,
+  ): Promise<Order> {
+    if (user.role === 'ADMIN') {
+      const order = await this.orderRepository.findOrderDetailForAdmin(orderId);
+
+      if (!order) {
+        throw new NotFoundException('Pesanan tidak ditemukan');
+      }
+
+      return order;
+    }
+
+    return this.findOrderByIdAndUserId(user.id, orderId);
+  }
+
+  /**
    * Admin:
    * Melihat seluruh order dengan filter, pagination,
    * sorting, dan optional userId.

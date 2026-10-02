@@ -142,6 +142,38 @@ export class OrderRepository {
     });
   }
 
+  /**
+   * Admin order detail with payment info.
+   * Selects safe payment fields only — no snapToken / security material.
+   */
+  async findOrderDetailForAdmin(orderId: number) {
+    return this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: {
+          include: {
+            product: true,
+            variant: true,
+          },
+        },
+        payments: {
+          orderBy: { attempt: 'desc' },
+          select: {
+            id: true,
+            orderId: true,
+            provider: true,
+            paymentMethod: true,
+            status: true,
+            grossAmount: true,
+            attempt: true,
+            midtransOrderId: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+  }
+
   async findOrderByIdAndUserId(userId: number, orderId: number) {
     return this.prisma.order.findFirst({
       where: {

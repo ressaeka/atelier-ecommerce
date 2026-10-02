@@ -1,9 +1,10 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function ProfileDropdown() {
   const { user, logout, updateProfile } = useAuth();
+  const navigate = useNavigate();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -23,6 +24,17 @@ export default function ProfileDropdown() {
   const [editSuccess, setEditSuccess] = useState<string | null>(null);
 
   const initial = user?.name ? user.name.charAt(0).toUpperCase() : 'U';
+
+  /** Role separation via existing AuthContext user.role. */
+  const isAdminAccount = user?.role === 'ADMIN';
+
+  const openProfileModal = () => {
+    setIsDropdownOpen(false);
+    setIsEditing(false);
+    setEditError(null);
+    setEditSuccess(null);
+    setIsModalOpen(true);
+  };
 
   const startEditing = () => {
     if (user) {
@@ -83,8 +95,32 @@ export default function ProfileDropdown() {
   const handleLogout = async () => {
     try {
       setIsLoggingOut(true);
+      setIsDropdownOpen(false);
+      setIsModalOpen(false);
+
+      const wasAdmin = user?.role === 'ADMIN';
+
+      // Clear tokens + React user state immediately (no page refresh)
       await logout();
+
       setIsLogoutModalOpen(false);
+
+      // Never leave user on a protected customer page (e.g. /wishlist)
+      // USER → storefront `/`
+      // ADMIN → dedicated admin login
+      if (wasAdmin) {
+        navigate('/login/admin', { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
+    } catch {
+      // logout() already clears client state in finally; still leave protected routes
+      setIsLogoutModalOpen(false);
+      if (user?.role === 'ADMIN') {
+        navigate('/login/admin', { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
     } finally {
       setIsLoggingOut(false);
     }
@@ -156,14 +192,14 @@ export default function ProfileDropdown() {
             <div className="absolute right-0 mt-2 w-72 bg-white border border-gray-200 shadow-xl z-40 p-5 text-left animate-fadeIn">
               <div className="flex items-center gap-1.5 text-[11px] font-bold tracking-widest text-amber-800 uppercase mb-1">
                 <span>✦</span>
-                MEMBER ATELIER
+                {isAdminAccount ? 'PORTAL ADMINISTRASI' : 'MEMBER ATELIER'}
               </div>
 
               <p
                 className="text-xl text-gray-900 font-normal leading-snug"
                 style={{ fontFamily: "'Libre Bodoni', Georgia, serif" }}
               >
-                {user.name}
+                {isAdminAccount ? 'Admin' : user.name}
               </p>
 
               <p className="text-sm text-gray-500 mb-4">
@@ -173,16 +209,9 @@ export default function ProfileDropdown() {
               <hr className="border-gray-100 -mx-5 my-2" />
 
               <div className="pt-1 space-y-0.5">
-                {/* DETAIL AKUN */}
                 <button
                   type="button"
-                  onClick={() => {
-                    setIsDropdownOpen(false);
-                    setIsEditing(false);
-                    setEditError(null);
-                    setEditSuccess(null);
-                    setIsModalOpen(true);
-                  }}
+                  onClick={openProfileModal}
                   className="w-full flex items-center gap-3 py-2 px-2 text-sm text-gray-800 hover:bg-gray-50 transition-colors text-left cursor-pointer"
                 >
                   <svg
@@ -202,34 +231,64 @@ export default function ProfileDropdown() {
                   Detail Akun & Profil
                 </button>
 
-                {/* ALAMAT PENGIRIMAN */}
-                <Link
-                  to="/addresses"
-                  onClick={() => setIsDropdownOpen(false)}
-                  className="w-full flex items-center gap-3 py-2 px-2 text-sm text-gray-800 hover:bg-gray-50 transition-colors text-left"
-                >
-                  <svg
-                    className="w-4 h-4 text-gray-600 shrink-0"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                {/*
+                  ADMIN storefront → Admin Portal
+                  (Lihat Toko remains only in Admin Sidebar)
+                */}
+                {isAdminAccount && (
+                  <Link
+                    to="/admin"
+                    onClick={() => setIsDropdownOpen(false)}
+                    className="w-full flex items-center gap-3 py-2 px-2 text-sm text-gray-800 hover:bg-gray-50 transition-colors text-left"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="1.5"
-                      d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="1.5"
-                      d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                  </svg>
+                    <svg
+                      className="w-4 h-4 text-gray-600 shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="1.5"
+                        d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
+                      />
+                    </svg>
 
-                  Alamat Pengiriman
-                </Link>
+                    Dashboard Admin
+                  </Link>
+                )}
+
+                {/* ALAMAT PENGIRIMAN — customer-only; hidden for ADMIN */}
+                {!isAdminAccount && (
+                  <Link
+                    to="/addresses"
+                    onClick={() => setIsDropdownOpen(false)}
+                    className="w-full flex items-center gap-3 py-2 px-2 text-sm text-gray-800 hover:bg-gray-50 transition-colors text-left"
+                  >
+                    <svg
+                      className="w-4 h-4 text-gray-600 shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="1.5"
+                        d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="1.5"
+                        d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                    </svg>
+
+                    Alamat Pengiriman
+                  </Link>
+                )}
 
                 {/* LOGOUT */}
                 <button
@@ -333,7 +392,7 @@ export default function ProfileDropdown() {
 
               <div className="pt-0.5">
                 <span className="text-[10px] font-bold tracking-widest text-amber-800 uppercase block mb-1">
-                  AKUN ANGGOTA
+                  {isAdminAccount ? 'PORTAL ADMINISTRASI' : 'AKUN ANGGOTA'}
                 </span>
 
                 <h3
@@ -427,15 +486,18 @@ export default function ProfileDropdown() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2">
-                  <Link
-                    to="/addresses"
-                    onClick={() => setIsModalOpen(false)}
-                    className="text-xs uppercase tracking-wider text-gray-600 hover:text-black underline underline-offset-4"
-                  >
-                    Kelola Alamat Pengiriman →
-                  </Link>
+                  {/* Customer address mgmt — not for ADMIN */}
+                  {!isAdminAccount && (
+                    <Link
+                      to="/addresses"
+                      onClick={() => setIsModalOpen(false)}
+                      className="text-xs uppercase tracking-wider text-gray-600 hover:text-black underline underline-offset-4"
+                    >
+                      Kelola Alamat Pengiriman →
+                    </Link>
+                  )}
 
-                  <div className="flex gap-2 w-full sm:w-auto">
+                  <div className={`flex gap-2 ${isAdminAccount ? 'ml-auto' : 'w-full sm:w-auto'}`}>
                     <button
                       type="button"
                       onClick={startEditing}
@@ -581,8 +643,9 @@ export default function ProfileDropdown() {
               </h3>
 
               <p className="text-sm text-gray-600 leading-relaxed">
-                Sesi akun Anda akan diakhiri. Anda perlu masuk kembali
-                untuk mengakses fitur anggota ATELIER.
+                {isAdminAccount
+                  ? 'Sesi portal administrasi akan diakhiri. Anda perlu login kembali melalui Portal Administrasi.'
+                  : 'Sesi akun Anda akan diakhiri. Anda perlu masuk kembali untuk mengakses fitur anggota ATELIER.'}
               </p>
             </div>
 

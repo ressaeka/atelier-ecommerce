@@ -236,19 +236,29 @@ export type PaymentStatus =
   | 'CANCELLED'
   | 'EXPIRED';
 
+export type PaymentMethodCode =
+  | 'GOPAY'
+  | 'VIRTUAL_ACCOUNT'
+  | 'SHOPEEPAY'
+  | 'OVO'
+  | 'DANA'
+  | 'QRIS';
+
 export interface Payment {
   id: number;
   orderId: number;
   provider: string;
   midtransOrderId: string;
-  snapToken: string | null;
+  snapToken?: string | null;
   attempt: number;
   status: PaymentStatus;
-  transactionStatus: string | null;
-  fraudStatus: string | null;
+  /** Present on newer records after Midtrans webhook mapping */
+  paymentMethod?: PaymentMethodCode | null;
+  transactionStatus?: string | null;
+  fraudStatus?: string | null;
   grossAmount: number;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
 }
 
 export interface OrderItemProduct {

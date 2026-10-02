@@ -7,7 +7,7 @@ import Footer from '../components/Footer';
 import { Serif, SectionStrip, SERIF } from '../components/CommerceUI';
 import { useAuth } from '../contexts/AuthContext';
 import { resolveImageUrl } from '../lib/utils';
-import { getOrders } from '../lib/orderApi';
+import { getMyOrders } from '../lib/orderApi';
 import type { Order, OrderStatus } from '../types/api';
 
 /* ─── Status mapping ─────────────────────────────────────── */
@@ -63,8 +63,8 @@ const Orders: React.FC = () => {
     setOrdersError(null);
 
     try {
-      const response = await getOrders({
-        userId: user.id,
+      // Customer list — own orders only (backend JWT userId on GET /order/my)
+      const response = await getMyOrders({
         page,
         limit: LIMIT,
         status: activeTab !== 'SEMUA' ? activeTab : undefined,

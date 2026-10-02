@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { api } from '../lib/api';
 import { useAuth } from './AuthContext';
+import { saveWishlistIntent } from '../lib/guestIntent';
 
 import type { Wishlist, WishlistItem } from '../types/api';
 
@@ -59,14 +60,21 @@ export function WishlistProvider({
     void refresh();
   }, [refresh]);
 
-  const requireAuth = useCallback((): boolean => {
-    if (!user) {
-      navigate('/login');
-      return false;
-    }
+  const requireAuth = useCallback(
+    (productId?: number): boolean => {
+      if (!user) {
+        // Guest: remember product page only — NO auto wishlist API after login
+        if (typeof productId === 'number') {
+          saveWishlistIntent(productId);
+        }
+        navigate('/login');
+        return false;
+      }
 
-    return true;
-  }, [user, navigate]);
+      return true;
+    },
+    [user, navigate],
+  );
 
   const add = useCallback(
     async (productId: number): Promise<void> => {
@@ -94,7 +102,7 @@ export function WishlistProvider({
 
   const toggle = useCallback(
     async (productId: number): Promise<void> => {
-      if (!requireAuth()) return;
+      if (!requireAuth(productId)) return;
 
       const exists =
         wishlist?.items.some(

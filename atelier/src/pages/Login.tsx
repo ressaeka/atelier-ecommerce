@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Mail, CheckCircle2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Mail, CheckCircle2, ShieldAlert, ExternalLink } from 'lucide-react';
 import AuthLayout from '../components/AuthLayout';
 import AuthTabs from '../components/AuthTabs';
 import InputField from '../components/InputField';
@@ -10,11 +10,18 @@ import SocialLogin from '../components/SocialLogin';
 import GuestAccess from '../components/GuestAccess';
 import ForgotPasswordModal from '../components/ForgotPasswordModal';
 import { useAuth, ApiRequestError } from '../contexts/AuthContext';
+import { consumeGuestAuthReturnIntent } from '../lib/guestIntent';
 import { API_BASE_URL } from '../lib/api';
 
+/**
+ * /login = CUSTOMER PORTAL ONLY.
+ *
+ * Role comes from the existing auth API response / AuthContext — never hardcoded.
+ * ADMIN accounts are rejected here and must use /login/admin.
+ */
 export const Login: React.FC = () => {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { user, login, logout, loading: authLoading } = useAuth();
 
   const [formData, setFormData] = useState({
     emailOrPhone: '',
@@ -30,6 +37,9 @@ export const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [successToast, setSuccessToast] = useState(false);
   const [showForgotModal, setShowForgotModal] = useState(false);
+
+  /** Portal rule: ADMIN must not enter the customer app via /login. */
+  const isAdminAccount = !authLoading && user?.role === 'ADMIN';
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -70,21 +80,41 @@ export const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (isAdminAccount) return;
     if (!validate()) return;
 
     setLoading(true);
     setErrors({});
 
     try {
-      await login({
+      const authenticatedUser = await login({
         identifier: formData.emailOrPhone,
         password: formData.password,
       });
 
+      // Role from backend response — reject ADMIN on customer portal.
+      if (authenticatedUser.role === 'ADMIN') {
+        await logout();
+        setErrors({
+          general:
+            'Akun administrator harus masuk melalui Portal Administrasi.',
+        });
+        return;
+      }
+
       setSuccessToast(true);
 
+      // Return-only guest intent — NO automatic wishlist/cart API after login
+      const returnIntent = consumeGuestAuthReturnIntent();
+
       setTimeout(() => {
-        navigate('/');
+        if (returnIntent) {
+          // Same product page; user clicks wishlist/cart manually
+          navigate(returnIntent.returnTo, { replace: true });
+          return;
+        }
+
+        navigate('/', { replace: true });
       }, 1500);
     } catch (err) {
       if (err instanceof ApiRequestError) {
@@ -110,8 +140,60 @@ export const Login: React.FC = () => {
     }
   };
 
+  /* ─── ADMIN blocked on customer portal ─── */
+  if (isAdminAccount) {
+    return (
+      <AuthLayout
+        mode="customer"
+        title="Login Pelanggan"
+        subtitle="Halaman ini khusus akun pelanggan. Akun administrator harus masuk melalui Portal Administrasi."
+      >
+        <div
+          role="alert"
+          className="mb-5 border-l-2 border-[#A67C3D] bg-[#FDF6E8] px-4 py-4 text-xs leading-relaxed tracking-wide text-[#7A5A2E]"
+        >
+          <div className="mb-2 flex items-center gap-2 font-bold uppercase tracking-[0.12em] text-[#8B6F47]">
+            <ShieldAlert className="h-4 w-4 shrink-0" />
+            Portal Pelanggan
+          </div>
+          <p>
+            Akun administrator harus masuk melalui Portal Administrasi.
+          </p>
+          <p className="mt-2">
+            Anda tidak akan diarahkan ke home, catalog, cart, atau checkout
+            pelanggan dari halaman ini.
+          </p>
+        </div>
+
+        <Link
+          to="/login/admin"
+          className="flex w-full items-center justify-center gap-2 bg-[#111111] py-3.5 text-xs font-bold uppercase tracking-[0.15em] text-white transition-luxury hover:bg-black"
+        >
+          <ExternalLink className="h-4 w-4" />
+          Masuk ke Portal Admin
+        </Link>
+
+        <div className="mt-4 text-center">
+          <button
+            type="button"
+            onClick={() => {
+              void logout().finally(() => {
+                setErrors({});
+                setFormData({ emailOrPhone: '', password: '' });
+              });
+            }}
+            className="text-[10px] font-bold uppercase tracking-[0.14em] text-zinc-600 transition-colors hover:text-black hover:underline"
+          >
+            Keluar dari akun administrator
+          </button>
+        </div>
+      </AuthLayout>
+    );
+  }
+
   return (
     <AuthLayout
+      mode="customer"
       subtitle="Masukkan kredensial keanggotaan Anda untuk mengakses lemari privat & koleksi tersimpan."
     >
       {/* =====================================================
@@ -141,8 +223,25 @@ export const Login: React.FC = () => {
           GENERAL ERROR
       ====================================================== */}
       {errors.general && (
-        <div className="mb-5 border-l-2 border-red-600 bg-red-50 px-4 py-3.5 text-xs font-semibold leading-relaxed tracking-wide text-red-700">
-          {errors.general}
+        <div
+          role="alert"
+          className="mb-5 border-l-2 border-red-600 bg-red-50 px-4 py-3.5 text-xs font-semibold leading-relaxed tracking-wide text-red-700"
+        >
+          <div className="flex items-start gap-2">
+            <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <span>{errors.general}</span>
+              <div className="mt-3">
+                <Link
+                  to="/login/admin"
+                  className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-red-800 underline underline-offset-2 hover:text-red-950"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Masuk ke Portal Administrasi
+                </Link>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -161,6 +260,7 @@ export const Login: React.FC = () => {
           value={formData.emailOrPhone}
           onChange={handleChange}
           error={errors.emailOrPhone}
+          autoComplete="username"
           icon={
             <Mail className="h-4 w-4 text-zinc-400" />
           }
@@ -174,6 +274,7 @@ export const Login: React.FC = () => {
           value={formData.password}
           onChange={handleChange}
           error={errors.password}
+          autoComplete="current-password"
           labelRight={
             <button
               type="button"
@@ -195,6 +296,9 @@ export const Login: React.FC = () => {
           </AuthButton>
         </div>
       </form>
+
+      {/* Subtle secondary Admin Portal nav lives in AuthLayout:
+          "MASUK KE PORTAL ADMIN TOKO →" → /login/admin */}
 
       {/* =====================================================
           GOOGLE LOGIN

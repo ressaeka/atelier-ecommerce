@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth } from './AuthContext';
+import { saveCartIntent } from '../lib/guestIntent';
 import type { Cart, CartItem } from '../types/api';
 
 interface CartContextValue {
@@ -24,6 +26,7 @@ function itemKey(productId: number, variantId?: number | null): string {
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [cart, setCart] = useState<Cart | null>(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const [updatingItemKey, setUpdatingItemKey] = useState<string | null>(null);
@@ -55,10 +58,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     refresh(true);
   }, [refresh]);
 
-  const addItem = useCallback(async (productId: number, quantity: number, variantId?: number | null) => {
-    await api.post('/cart/items', { productId, quantity, variantId: variantId ?? null });
-    await refresh();
-  }, [refresh]);
+  const addItem = useCallback(
+    async (productId: number, quantity: number, variantId?: number | null) => {
+      if (!user) {
+        // Guest: remember return page only — no auto cart after login
+        saveCartIntent({ productId, variantId, quantity });
+        navigate('/login');
+        return;
+      }
+
+      await api.post('/cart/items', { productId, quantity, variantId: variantId ?? null });
+      await refresh();
+    },
+    [user, refresh, navigate],
+  );
 
   const updateItem = useCallback(async (productId: number, quantity: number, variantId?: number | null) => {
     const key = itemKey(productId, variantId);

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 
 import { useWishlist } from '../contexts/WishlistContext';
+import { useAuth } from '../contexts/AuthContext';
 import AnnouncementBar from '../components/AnnouncementBar';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
@@ -1311,6 +1312,11 @@ const CatalogProductCard: React.FC<{
   } =
     useWishlist();
 
+  const { user } = useAuth();
+
+  /** ADMIN storefront browsing — hide wishlist action only. */
+  const isAdminBrowsing = user?.role === 'ADMIN';
+
   const favorited =
     has(product.id);
 
@@ -1368,9 +1374,10 @@ const CatalogProductCard: React.FC<{
         </Link>
 
         {/* =================================================
-            WISHLIST
+            WISHLIST — hidden for ADMIN browsing storefront
         ================================================== */}
 
+        {!isAdminBrowsing && (
         <div className="absolute right-2 top-2 flex flex-col gap-[6px] opacity-0 transition-opacity duration-200 group-hover:opacity-100">
 
           <button
@@ -1419,6 +1426,7 @@ const CatalogProductCard: React.FC<{
           </button>
 
         </div>
+        )}
 
       </div>
 

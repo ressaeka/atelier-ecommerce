@@ -123,6 +123,13 @@ const Cart: React.FC = () => {
   const handleCheckout = () => {
     if (selected.length === 0) return;
 
+    // Guest gate below blocks this path for unauthenticated users
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    // Existing checkout page — order is created only after user confirms
     navigate('/payment', {
       state: {
         productIds: selected,
