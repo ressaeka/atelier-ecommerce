@@ -10,7 +10,7 @@ import type {
   AdminDashboardSalesPoint,
   AdminDashboardSalesReportRow,
   AdminDashboardStatusDistribution,
-} from './admin-dashboard.types.js';
+} from '../common/types/admin-dashboard.types.js';
 
 /**
  * Business day timezone: Asia/Jakarta (WIB, UTC+7).
@@ -58,7 +58,7 @@ function toYmd(date: Date): string {
 
 function formatRangeLabel(start: Date, end: Date): string {
   const fmt = (d: Date) => toYmd(d).split('-').reverse().join(' ');
-  return `${fmt(start)} – ${fmt(new Date(end.getTime() - 1))}`;
+  return `${fmt(start)} - ${fmt(new Date(end.getTime() - 1))}`;
 }
 
 function emptyStatusDistribution(): AdminDashboardStatusDistribution {

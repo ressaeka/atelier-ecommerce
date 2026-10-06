@@ -1,11 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '../../generated/prisma/client.js';
+
 import { CreateProductDto } from './dto/create-product.dto.js';
 import { UpdateProductDto } from './dto/update-product.dto.js';
+import { QueryProductDto } from './dto/query-product.js';
 import { ProductRepository } from './product.repository.js';
 import { Product } from './entities/product.entity.js';
 import { CategoryRepository } from '../category/category.repository.js';
-import { QueryProductDto } from './dto/query-product.js';
-import { Prisma } from '../../generated/prisma/client.js';
 
 @Injectable()
 export class ProductService {
@@ -45,6 +46,8 @@ export class ProductService {
     const skip = (page - 1) * limit;
 
     const where: Prisma.ProductWhereInput = {
+      isActive: true,
+
       ...(search && {
         name: {
           contains: search,
@@ -59,8 +62,12 @@ export class ProductService {
       ...(minPrice !== undefined || maxPrice !== undefined
         ? {
             price: {
-              ...(minPrice !== undefined && { gte: minPrice }),
-              ...(maxPrice !== undefined && { lte: maxPrice }),
+              ...(minPrice !== undefined && {
+                gte: minPrice,
+              }),
+              ...(maxPrice !== undefined && {
+                lte: maxPrice,
+              }),
             },
           }
         : {}),
@@ -85,7 +92,7 @@ export class ProductService {
   async findProductById(id: number): Promise<Product> {
     const product = await this.productRepository.findById(id);
 
-    if (!product) {
+    if (!product || !product.isActive) {
       throw new NotFoundException('Product tidak ditemukan');
     }
 
@@ -102,7 +109,7 @@ export class ProductService {
         error instanceof Prisma.PrismaClientKnownRequestError &&
         error.code === 'P2025'
       ) {
-        throw new NotFoundException(`Product dengan ${id} tidak ditemukan`);
+        throw new NotFoundException(`Product dengan id ${id} tidak ditemukan`);
       }
 
       throw error;
@@ -117,9 +124,12 @@ export class ProductService {
 
     const data: Prisma.ProductUpdateInput = {
       ...rest,
+
       ...(categoryId !== undefined && {
         category: {
-          connect: { id: categoryId },
+          connect: {
+            id: categoryId,
+          },
         },
       }),
     };
@@ -131,7 +141,9 @@ export class ProductService {
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2025') {
-          throw new NotFoundException(`Product dengan ${id} tidak ditemukan`);
+          throw new NotFoundException(
+            `Product dengan id ${id} tidak ditemukan`,
+          );
         }
 
         if (error.code === 'P2003') {
@@ -152,6 +164,7 @@ export class ProductService {
     price: number;
     stock: number;
     image: string;
+    isActive: boolean;
     categoryId: number;
     createdAt: Date;
     updatedAt: Date;
@@ -165,9 +178,11 @@ export class ProductService {
     entity.price = product.price;
     entity.stock = product.stock;
     entity.image = product.image;
+    entity.isActive = product.isActive;
     entity.categoryId = product.categoryId;
     entity.createdAt = product.createdAt;
     entity.updatedAt = product.updatedAt;
+
     if (product.variants) {
       entity.variants = product.variants;
     }

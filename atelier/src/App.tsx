@@ -25,8 +25,12 @@ import AdminDashboard from './admin/pages/AdminDashboard';
 import AdminCustomers from './admin/pages/AdminCustomers';
 import AdminProducts from './admin/pages/AdminProducts';
 import AdminOrders from './admin/pages/AdminOrders';
+import AdminCategories from './admin/pages/AdminCategories';
+import AdminProfile from './admin/pages/AdminProfile';
 import AdminPlaceholderPage from './admin/pages/AdminPlaceholderPage';
 import CustomerOnlyRoute from './components/CustomerOnlyRoute';
+import RequireAuth from './components/RequireAuth';
+import UserProfile from './pages/UserProfile';
 
 export function App() {
   return (
@@ -57,6 +61,11 @@ export function App() {
 
               <Route path="/about" element={<About />} />
 
+              {/* User Profile — same pattern as /admin/profile, own account only */}
+              <Route element={<RequireAuth />}>
+                <Route path="/profile" element={<UserProfile />} />
+              </Route>
+
               {/* Auth Pages */}
               <Route path="/login" element={<Login />} />
               {/* Dedicated Admin Portal login → role check → /admin */}
@@ -67,24 +76,25 @@ export function App() {
               {/* Admin Management (frontend gate only; backend remains security boundary) */}
               <Route path="/admin" element={<AdminGuard />}>
                 <Route index element={<AdminDashboard />} />
-                <Route
-                  path="products"
-                  element={<AdminProducts />}
-                />
-                <Route
-                  path="orders"
-                  element={<AdminOrders />}
-                />
-                <Route
-                  path="customers"
-                  element={<AdminCustomers />}
-                />
+
+                {/* CATALOG */}
+                <Route path="products" element={<AdminProducts />} />
+                <Route path="categories" element={<AdminCategories />} />
+
+                {/* SALES */}
+                <Route path="orders" element={<AdminOrders />} />
+                <Route path="customers" element={<AdminCustomers />} />
+
+                {/* Account — profile admin yang sedang login (bukan Admin Management) */}
+                <Route path="profile" element={<AdminProfile />} />
+
+                {/* LAPORAN — menu + placeholder only; logic berikutnya */}
                 <Route
                   path="reports"
                   element={
                     <AdminPlaceholderPage
-                      title="Laporan"
-                      description="Laporan penjualan, produk terlaris, pelanggan, dan pengeluaran akan diisi dari API admin berikutnya."
+                      title="Penjualan"
+                      description="Sales reporting will be available soon."
                     />
                   }
                 />
@@ -93,7 +103,7 @@ export function App() {
                   element={
                     <AdminPlaceholderPage
                       title="Produk Terlaris"
-                      description="Submenu laporan produk terlaris."
+                      description="Best-selling product reports will be available soon."
                     />
                   }
                 />
@@ -101,26 +111,8 @@ export function App() {
                   path="reports/customers"
                   element={
                     <AdminPlaceholderPage
-                      title="Laporan Pelanggan"
-                      description="Submenu laporan pelanggan."
-                    />
-                  }
-                />
-                <Route
-                  path="reports/expenses"
-                  element={
-                    <AdminPlaceholderPage
-                      title="Laporan Pengeluaran"
-                      description="Submenu laporan pengeluaran."
-                    />
-                  }
-                />
-                <Route
-                  path="settings"
-                  element={
-                    <AdminPlaceholderPage
-                      title="Pengaturan"
-                      description="Pengaturan toko akan ditambahkan kemudian."
+                      title="Pelanggan"
+                      description="Customer reports will be available soon."
                     />
                   }
                 />

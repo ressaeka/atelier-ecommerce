@@ -4,11 +4,14 @@ import { ArrowLeft, Construction } from 'lucide-react';
 interface AdminPlaceholderPageProps {
   title: string;
   description?: string;
+  /** Label chip di atas judul — default "Coming Soon" */
+  badge?: string;
 }
 
 export default function AdminPlaceholderPage({
   title,
   description,
+  badge = 'Coming Soon',
 }: AdminPlaceholderPageProps) {
   return (
     <div className="flex min-h-[55vh] flex-col items-center justify-center rounded-2xl border border-dashed border-[#D9D4CB] bg-white/60 px-6 py-16 text-center">
@@ -16,10 +19,11 @@ export default function AdminPlaceholderPage({
         <Construction size={24} strokeWidth={1.6} />
       </div>
 
-      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8A847B]">
-        Admin
-      </p>
-      <h1 className="mt-2 font-editorial text-[28px] font-medium tracking-tight text-[#1A1A1A]">
+      <span className="inline-flex items-center rounded-full border border-[#D9E3EC] bg-[#F4F8FB] px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#2F5D86]">
+        {badge}
+      </span>
+
+      <h1 className="mt-3 font-editorial text-[28px] font-medium tracking-tight text-[#1A1A1A]">
         {title}
       </h1>
       <p className="mt-3 max-w-md text-[13px] leading-relaxed text-[#6B6B6B]">

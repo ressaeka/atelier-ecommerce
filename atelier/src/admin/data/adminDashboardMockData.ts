@@ -117,7 +117,7 @@ export const ADMIN_PAYMENT_COLORS = [
 export const ADMIN_REPORT_PROMO: AdminReportPromo = {
   title: 'Butuh laporan lain?',
   description:
-    'Kamu bisa mengunduh laporan penjualan, produk terlaris, pelanggan, atau pengeluaran dalam format Excel.',
+    'Kamu bisa mengunduh laporan penjualan, produk terlaris, dan pelanggan dalam format Excel.',
   ctaLabel: 'Lihat Semua Laporan',
 };
 
@@ -320,7 +320,7 @@ export const adminDashboardMockData: AdminDashboardData = {
   reportPromo: {
     title: 'Butuh laporan lain?',
     description:
-      'Kamu bisa mengunduh laporan penjualan, produk terlaris, pelanggan, atau pengeluaran dalam format Excel.',
+      'Kamu bisa mengunduh laporan penjualan, produk terlaris, dan pelanggan dalam format Excel.',
     ctaLabel: 'Lihat Semua Laporan',
   },
 };

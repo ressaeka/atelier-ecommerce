@@ -87,7 +87,7 @@ export default function AdminProductFormModal({
       errors.image = 'Alamat gambar wajib diisi.';
     }
     if (form.categoryId === '') {
-      errors.categoryId = 'Kategori wajib dipilih.';
+      errors.categoryId = 'Category is required.';
     }
 
     const price = Number(form.price);
@@ -285,7 +285,7 @@ export default function AdminProductFormModal({
               htmlFor="product-category"
               className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.1em] text-[#6B6B6B]"
             >
-              Kategori <span className="text-[#A05050]">*</span>
+              Category <span className="text-[#A05050]">*</span>
             </label>
             <select
               id="product-category"
@@ -297,8 +297,8 @@ export default function AdminProductFormModal({
             >
               <option value="">
                 {categories.length === 0
-                  ? 'Kategori tidak tersedia'
-                  : 'Pilih kategori'}
+                  ? 'Categories unavailable'
+                  : 'Select category'}
               </option>
               {categories.map((category) => (
                 <option key={category.id} value={String(category.id)}>
@@ -313,7 +313,7 @@ export default function AdminProductFormModal({
             )}
             {categories.length === 0 && (
               <p className="mt-1 text-[11px] text-[#8A847B]">
-                Belum ada kategori. Tambahkan kategori terlebih dahulu.
+                No categories yet. Create a category first in Categories.
               </p>
             )}
           </div>

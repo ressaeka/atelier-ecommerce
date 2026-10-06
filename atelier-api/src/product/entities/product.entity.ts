@@ -11,4 +11,5 @@ export class Product {
   variants?: ProductVariant[];
   createdAt!: Date;
   updatedAt!: Date;
+  isActive!: boolean;
 }

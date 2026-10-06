@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
+
 import { Prisma } from '../../generated/prisma/client.js';
+
 import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
@@ -32,7 +34,13 @@ export class CategoryRepository {
       },
       include: {
         _count: {
-          select: { products: true },
+          select: {
+            products: {
+              where: {
+                isActive: true,
+              },
+            },
+          },
         },
       },
     });

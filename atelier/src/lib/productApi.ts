@@ -10,7 +10,9 @@
  */
 
 import { api } from './api';
-import type { Category, PaginationMeta, Product } from '../types/api';
+import type { Product } from '../types/api';
+
+export { getCategories } from './categoryApi';
 
 /** Matches CreateProductDto on backend (create-product.dto.ts) */
 export interface CreateProductRequest {
@@ -30,14 +32,6 @@ export interface UpdateProductRequest {
   stock?: number;
   image?: string;
   categoryId?: number;
-}
-
-export async function getCategories(): Promise<Category[]> {
-  const data = await api.get<{ items: Category[]; meta: PaginationMeta }>(
-    '/category',
-    { page: 1, limit: 50 },
-  );
-  return Array.isArray(data?.items) ? data.items : [];
 }
 
 export async function createProduct(
@@ -70,7 +64,7 @@ export function validateCreateProductPayload(body: CreateProductRequest): string
     return 'Alamat gambar harus berupa tautan yang valid (https://...).';
   }
   if (!Number.isInteger(body.categoryId) || body.categoryId <= 0) {
-    return 'Kategori wajib dipilih.';
+    return 'Category is required.';
   }
   return null;
 }
@@ -103,7 +97,7 @@ export function validateUpdateProductPayload(
     body.categoryId !== undefined &&
     (!Number.isInteger(body.categoryId) || body.categoryId <= 0)
   ) {
-    return 'Kategori tidak valid.';
+    return 'Category is invalid.';
   }
   return null;
 }

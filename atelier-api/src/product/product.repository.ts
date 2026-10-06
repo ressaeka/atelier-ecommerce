@@ -1,5 +1,7 @@
 import { Injectable } from '@nestjs/common';
+
 import { Prisma } from '../../generated/prisma/client.js';
+
 import { PrismaService } from '../prisma/prisma.service.js';
 
 @Injectable()
@@ -46,8 +48,11 @@ export class ProductRepository {
   }
 
   async remove(id: number) {
-    return this.prisma.product.delete({
+    return this.prisma.product.update({
       where: { id },
+      data: {
+        isActive: false,
+      },
     });
   }
 }
