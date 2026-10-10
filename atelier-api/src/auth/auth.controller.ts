@@ -36,6 +36,10 @@ import {
 } from './dto/forgot.password.js';
 import { VerifyDto, verifyOtpSchema } from './dto/verify.otp.js';
 import { ResetPasswordDto, resetPasswordSchema } from './dto/reset.password.js';
+import {
+  OAuthExchangeDto,
+  oauthExchangeSchema,
+} from './dto/oauth-exchange.dto.js';
 import { AuthGuard } from '@nestjs/passport';
 import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
@@ -73,14 +77,41 @@ export class AuthController {
     const data = result.data as {
       access_token: string;
       refresh_token: string;
+      user?: unknown;
     };
 
-    const params = new URLSearchParams({
-      access_token: data.access_token,
-      refresh_token: data.refresh_token,
-    });
+    // Amankan token: generate authorization code sekali-pakai ber-TTL 60 detik di Redis
+    const code = await this.authService.createOAuthExchangeCode(data);
 
-    return res.redirect(`${frontendUrl}/auth/callback?${params.toString()}`);
+    return res.redirect(
+      `${frontendUrl}/auth/callback?code=${encodeURIComponent(code)}`,
+    );
+  }
+
+  @Post('google/exchange')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Tukar temporary authorization code menjadi token autentikasi',
+  })
+  async exchangeGoogleCode(
+    @Body(new ZodValidationPipe(oauthExchangeSchema))
+    dto: OAuthExchangeDto,
+  ) {
+    return this.authService.exchangeOAuthCode(dto.code);
+  }
+
+  @Post('oauth/exchange')
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Tukar temporary authorization code menjadi token autentikasi (alias)',
+  })
+  async exchangeOAuthCode(
+    @Body(new ZodValidationPipe(oauthExchangeSchema))
+    dto: OAuthExchangeDto,
+  ) {
+    return this.authService.exchangeOAuthCode(dto.code);
   }
 
   @Post('register')

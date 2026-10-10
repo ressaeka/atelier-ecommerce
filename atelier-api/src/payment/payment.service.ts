@@ -327,31 +327,13 @@ export class PaymentService {
 
       finalPaymentStatus = updatedPayment.status;
 
-      const currentOrderStatus = await this.orderRepository.findOrderStatusById(
-        payment.orderId,
-      );
-
-      const orderIsAlreadyFinal =
-        currentOrderStatus === OrderStatus.PAID ||
-        currentOrderStatus === OrderStatus.CANCELLED ||
-        currentOrderStatus === OrderStatus.EXPIRED;
-
-      if (mappedOrderStatus === OrderStatus.PENDING && orderIsAlreadyFinal) {
-        if (debug) {
-          console.log(
-            `[PAYMENT WEBHOOK] skip order downgrade ${currentOrderStatus} → PENDING`,
-          );
-        }
-
-        finalOrderStatus = currentOrderStatus;
-      } else {
-        await this.orderRepository.updateOrderStatus(
+      const transitionedOrder =
+        await this.orderRepository.transitionOrderStatus(
           payment.orderId,
           mappedOrderStatus,
         );
 
-        finalOrderStatus = mappedOrderStatus;
-      }
+      finalOrderStatus = transitionedOrder.status;
 
       // Cancel other pending payment attempts
       if (mappedPaymentStatus === PaymentStatus.PAID) {

@@ -9,7 +9,7 @@ export const updateProductSchema = z.object({
 
   stock: z.coerce.number().int().min(0).optional(),
 
-  image: z.string().url().optional(),
+  image: z.string().min(1).optional(),
 
   categoryId: z.coerce.number().int().positive().optional(),
 });

@@ -248,6 +248,8 @@ model Order {
 
   @@index([userId])
   @@index([status])
+  @@index([createdAt])
+  @@index([status, createdAt])
 }
 
 model OrderItem {

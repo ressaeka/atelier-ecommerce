@@ -4,12 +4,17 @@ import { ConfigService } from '@nestjs/config';
 import { setupSwagger } from './config/swagger.config.js';
 import { setupCors } from './config/cors.config.js';
 import { setupHelmet } from './config/helmet.config.js';
+import express from 'express';
+import { join } from 'path';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   setupHelmet(app);
   setupCors(app);
+
+  // Serve static uploaded files (persisten di disk)
+  app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
 
   const config = app.get(ConfigService);
 

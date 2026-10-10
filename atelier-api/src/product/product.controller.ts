@@ -9,11 +9,21 @@ import {
   Delete,
   UseGuards,
   Query,
+  UseInterceptors,
+  UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname, join } from 'path';
+import { mkdirSync } from 'fs';
+import { randomUUID } from 'crypto';
 
 import {
   ApiBearerAuth,
   ApiBody,
+  ApiConsumes,
   ApiOperation,
   ApiParam,
   ApiQuery,
@@ -65,7 +75,82 @@ import {
 @ApiBearerAuth()
 @Controller('product')
 export class ProductController {
-  constructor(private readonly productService: ProductService) {}
+  constructor(
+    private readonly productService: ProductService,
+    private readonly configService: ConfigService,
+  ) {}
+
+  @Post('upload-image')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Roles('ADMIN')
+  @Permissions(PERMISSIONS.PRODUCT_CREATE)
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const uploadPath = join(process.cwd(), 'uploads', 'products');
+          mkdirSync(uploadPath, { recursive: true });
+          cb(null, uploadPath);
+        },
+        filename: (req, file, cb) => {
+          const ext = extname(file.originalname).toLowerCase();
+          const uniqueName = `${randomUUID()}${ext}`;
+          cb(null, uniqueName);
+        },
+      }),
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB
+      },
+      fileFilter: (req, file, cb) => {
+        const allowedMime = [
+          'image/jpeg',
+          'image/png',
+          'image/webp',
+          'image/avif',
+        ];
+        const allowedExt = ['.jpg', '.jpeg', '.png', '.webp', '.avif'];
+        const ext = extname(file.originalname).toLowerCase();
+
+        if (allowedMime.includes(file.mimetype) && allowedExt.includes(ext)) {
+          cb(null, true);
+        } else {
+          cb(
+            new BadRequestException(
+              'Format file tidak didukung. Gunakan JPG, PNG, WEBP, atau AVIF.',
+            ),
+            false,
+          );
+        }
+      },
+    }),
+  )
+  @ApiConsumes('multipart/form-data')
+  @ApiOperation({
+    summary: 'Upload foto produk (Admin only, max 5MB)',
+  })
+  async uploadImage(
+    @UploadedFile()
+    file?: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('File gambar wajib diunggah');
+    }
+
+    const host = this.configService.get<string>('HOST') ?? 'localhost';
+    const port = this.configService.get<number>('PORT') ?? 4000;
+    const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
+    const publicUrl = `${protocol}://${host}:${port}/uploads/products/${file.filename}`;
+
+    return successResponse(
+      {
+        url: publicUrl,
+        filename: file.filename,
+        originalName: file.originalname,
+        size: file.size,
+      },
+      'Foto produk berhasil diunggah',
+    );
+  }
 
   @Post()
   @UseGuards(RolesGuard, PermissionsGuard)

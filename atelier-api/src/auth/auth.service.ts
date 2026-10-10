@@ -138,6 +138,48 @@ export class AuthService {
     return this.issueTokensAndSession(user);
   }
 
+  /**
+   * Simpan token sementara ke Redis dengan kode acak ber-entropi tinggi (TTL 60 detik).
+   * Mencegah token rahasia terekspos di URL query parameter pada Google OAuth callback.
+   */
+  async createOAuthExchangeCode(payload: {
+    access_token: string;
+    refresh_token: string;
+    user?: unknown;
+  }): Promise<string> {
+    const code = randomUUID();
+    const key = `oauth_code:${code}`;
+    // TTL singkat 60 detik, hanya sekali pakai
+    await this.redisService.set(key, JSON.stringify(payload), 60);
+    return code;
+  }
+
+  /**
+   * Tukar temporary authorization code menjadi token autentikasi.
+   * Menggunakan redis getDel secara atomik (single-use, kebal race condition concurrent exchange).
+   */
+  async exchangeOAuthCode(code: string) {
+    if (!code || typeof code !== 'string') {
+      throw new UnauthorizedException('Authorization code tidak valid');
+    }
+
+    const key = `oauth_code:${code}`;
+    const rawData = await this.redisService.getDel(key);
+
+    if (!rawData) {
+      throw new UnauthorizedException(
+        'Kode otentikasi tidak valid atau sudah kadaluarsa',
+      );
+    }
+
+    try {
+      const parsed = JSON.parse(rawData);
+      return successResponse(parsed, 'Pertukaran token berhasil');
+    } catch {
+      throw new UnauthorizedException('Format data authorization code rusak');
+    }
+  }
+
   // ============================================================
   // USERNAME
   // ============================================================

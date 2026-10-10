@@ -5,7 +5,7 @@ export const createProductSchema = z.object({
   description: z.string().optional(),
   price: z.number().int().positive(),
   stock: z.number().int().nonnegative(),
-  image: z.string().url(),
+  image: z.string().min(1, 'Gambar produk wajib diisi'),
   categoryId: z.number().int().positive(),
 });
 

@@ -119,6 +119,7 @@ export class OrderService {
         },
       },
       itemsToDeduct,
+      cart.id,
     );
 
     if (!order) {

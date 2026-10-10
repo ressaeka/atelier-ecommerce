@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 
 import { OrderService } from './order.service.js';
-import { CreateOrderDto } from './dto/create-order.dto.js';
+import { CreateOrderDto, OrderSchema } from './dto/create-order.dto.js';
 
 import {
   UpdateOrderStatusSchema,
@@ -38,7 +38,7 @@ export class OrderController {
   @Roles('USER')
   async create(
     @CurrentUser() user: { id: number },
-    @Body() createOrderDto: CreateOrderDto,
+    @Body(new ZodValidationPipe(OrderSchema)) createOrderDto: CreateOrderDto,
   ) {
     return this.orderService.create(createOrderDto, user.id);
   }

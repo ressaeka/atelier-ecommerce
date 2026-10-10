@@ -139,6 +139,22 @@ export class RedisService implements OnModuleDestroy {
     return this.redis.smembers(key);
   }
 
+  /*
+   * Ambil value dan hapus key secara atomik (single roundtrip).
+   * Mencegah race condition ketika dua request menukar authorization code yang sama.
+   */
+  async getDel(key: string): Promise<string | null> {
+    const lua = `
+      local val = redis.call('get', KEYS[1])
+      if val then
+        redis.call('del', KEYS[1])
+      end
+      return val
+    `;
+    const result = await this.redis.eval(lua, 1, key);
+    return typeof result === 'string' ? result : null;
+  }
+
   async onModuleDestroy() {
     await this.redis.quit();
   }
