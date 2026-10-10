@@ -360,3 +360,169 @@ export interface ApiError {
   message: string | string[];
   error: string;
 }
+
+// ─── Sales Report ───────────────────────────────────────────
+export interface SalesReportSummary {
+  totalRevenue: number;
+  totalOrders: number;
+  completedOrders: number;
+  totalItemsSold: number;
+  averageOrderValue: number;
+}
+
+export interface SalesReportDailyTrend {
+  date: string;
+  revenue: number;
+  orderCount: number;
+}
+
+export interface SalesReportTransactionItem {
+  id: number;
+  productId: number;
+  productName: string;
+  quantity: number;
+  price: number;
+  subtotal: number;
+  variant: string | null;
+}
+
+export interface SalesReportTransaction {
+  id: number;
+  orderNumber: string;
+  createdAt: string;
+  dateWib: string;
+  recipientName: string;
+  phone: string;
+  city: string;
+  province: string;
+  subtotal: number;
+  shippingFee: number;
+  total: number;
+  status: OrderStatus;
+  isRevenue: boolean;
+  paymentMethod: PaymentMethodCode | null;
+  paymentStatus: PaymentStatus | null;
+  itemsCount: number;
+  items: SalesReportTransactionItem[];
+}
+
+export interface SalesReportResponse {
+  period: {
+    startDate: string;
+    endDate: string;
+    timezone: string;
+  };
+  summary: SalesReportSummary;
+  statusDistribution: Record<OrderStatus, number>;
+  dailyTrends: SalesReportDailyTrend[];
+  transactions: {
+    data: SalesReportTransaction[];
+    meta: PaginationMeta;
+  };
+}
+
+export interface SalesReportQuery {
+  startDate?: string;
+  endDate?: string;
+  status?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}
+
+// ─── Best Selling Products Report ───────────────────────────
+export interface BestSellingProduct {
+  rank: number;
+  productId: number;
+  name: string;
+  image: string | null;
+  categoryName: string;
+  unitsSold: number;
+  revenue: number;
+  orderCount: number;
+  averageSellingPrice: number;
+  currentPrice: number;
+  currentStock: number;
+}
+
+export interface BestSellingSummary {
+  totalUnitsSold: number;
+  totalRevenue: number;
+  totalUniqueProducts: number;
+  totalOrdersWithProducts: number;
+}
+
+export interface BestSellingResponse {
+  period: {
+    startDate: string;
+    endDate: string;
+    timezone: string;
+  };
+  summary: BestSellingSummary;
+  products: {
+    data: BestSellingProduct[];
+    meta: PaginationMeta;
+  };
+}
+
+export interface BestSellingQuery {
+  startDate?: string;
+  endDate?: string;
+  search?: string;
+  sortBy?: 'sold' | 'revenue' | 'orderCount';
+  sortOrder?: 'asc' | 'desc';
+  page?: number;
+  limit?: number;
+}
+
+// ─── Customer Report ────────────────────────────────────────
+export interface CustomerReportItem {
+  id: number;
+  name: string;
+  email: string;
+  phone: string | null;
+  registeredAt: string;
+  totalOrders: number;
+  totalSpent: number;
+  averageOrderValue: number;
+  lastOrderDate: string | null;
+  hasPurchasedInPeriod: boolean;
+}
+
+export interface CustomerReportSummary {
+  totalRegisteredCustomers: number;
+  newRegisteredCustomers: number;
+  activePurchasingCustomers: number;
+  inactiveCustomersInPeriod: number;
+  totalOrders: number;
+  totalRevenue: number;
+  averageSpentPerCustomer: number;
+  purchasingCustomerRatio: number;
+}
+
+export interface CustomerReportResponse {
+  period: {
+    startDate: string;
+    endDate: string;
+    timezone: string;
+  };
+  summary: CustomerReportSummary;
+  customers: {
+    data: CustomerReportItem[];
+    meta: PaginationMeta;
+  };
+}
+
+export interface CustomerReportQuery {
+  startDate?: string;
+  endDate?: string;
+  customerType?: 'all' | 'active' | 'inactive';
+  search?: string;
+  sortBy?: 'totalSpent' | 'totalOrders' | 'name' | 'registeredAt';
+  sortOrder?: 'asc' | 'desc';
+  page?: number;
+  limit?: number;
+}
+
+
+

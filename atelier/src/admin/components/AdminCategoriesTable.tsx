@@ -48,17 +48,17 @@ export default function AdminCategoriesTable({
           <Tags size={20} strokeWidth={1.6} />
         </div>
         <p className="font-editorial text-[17px] text-[#1A1A1A]">
-          Failed to load categories
+          Gagal memuat kategori
         </p>
         <p className="mt-2 max-w-sm text-[12px] text-[#8A847B]">
-          Something went wrong while loading categories.
+          Terjadi kendala saat memuat kategori. Silakan coba lagi.
         </p>
         <button
           type="button"
           onClick={onRetry}
           className="mt-5 rounded-xl bg-[#1A1A1A] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white transition-colors hover:bg-[#333]"
         >
-          Try Again
+          Coba Lagi
         </button>
       </div>
     );
@@ -69,7 +69,7 @@ export default function AdminCategoriesTable({
       <div className="overflow-hidden rounded-2xl border border-[#E8E4DC] bg-white">
         <div className="border-b border-[#F0EDE7] px-5 py-4 sm:px-6">
           <p className="text-[11px] uppercase tracking-[0.22em] text-[#8A847B]">
-            Loading categories…
+            Memuat kategori…
           </p>
         </div>
         <div className="space-y-3 px-5 py-4 sm:px-6">
@@ -92,17 +92,17 @@ export default function AdminCategoriesTable({
           <Tags size={20} strokeWidth={1.6} />
         </div>
         <p className="font-editorial text-[17px] text-[#1A1A1A]">
-          No categories yet
+          Belum ada kategori
         </p>
         <p className="mt-2 max-w-sm text-[12px] text-[#8A847B]">
-          Create your first product category to organize your products.
+          Buat kategori produk pertama untuk mengorganisir produk Atelier.
         </p>
         <button
           type="button"
           onClick={onCreate}
           className="mt-5 rounded-xl bg-[#1A1A1A] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white transition-colors hover:bg-[#333]"
         >
-          Create Category
+          Buat Kategori
         </button>
       </div>
     );
@@ -112,12 +112,12 @@ export default function AdminCategoriesTable({
     <section className="overflow-hidden rounded-2xl border border-[#E8E4DC] bg-white shadow-[0_1px_2px_rgba(26,26,26,0.03)]">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#F0EDE7] px-5 py-4 sm:px-6">
         <h2 className="font-editorial text-[18px] font-medium tracking-tight text-[#1A1A1A]">
-          Categories
+          Daftar Kategori
         </h2>
         <span className="text-[11px] uppercase tracking-[0.1em] text-[#8A847B]">
           {meta?.total != null
-            ? `${meta.total} categories`
-            : `${categories.length} categories`}
+            ? `${meta.total} kategori`
+            : `${categories.length} kategori`}
         </span>
       </div>
 
@@ -125,7 +125,7 @@ export default function AdminCategoriesTable({
         <table className="w-full min-w-[640px] border-collapse text-left">
           <thead>
             <tr className="border-b border-[#F0EDE7] bg-[#FAFAF8]">
-              {['Category Name', 'Active Products', 'Created Date', 'Actions'].map(
+              {['Nama Kategori', 'Produk Aktif', 'Tanggal Dibuat', 'Aksi'].map(
                 (col) => (
                   <th
                     key={col}
@@ -174,7 +174,7 @@ export default function AdminCategoriesTable({
                       onClick={() => onEdit(category)}
                       className="rounded-lg border border-[#D9E3EC] bg-[#F4F8FB] px-2.5 py-1.5 text-[11px] font-semibold text-[#2F5D86] transition-colors hover:bg-[#E8F1F8]"
                     >
-                      Edit
+                      Ubah
                     </button>
                     <button
                       type="button"
@@ -182,7 +182,7 @@ export default function AdminCategoriesTable({
                       disabled={deletingCategoryId === category.id}
                       className="rounded-lg border border-[#F3B0A3] bg-[#FBD9D3] px-2.5 py-1.5 text-[11px] font-semibold text-[#8C3A1E] transition-colors hover:bg-[#F5C4BC] disabled:opacity-50"
                     >
-                      {deletingCategoryId === category.id ? '...' : 'Delete'}
+                      {deletingCategoryId === category.id ? '...' : 'Hapus'}
                     </button>
                   </div>
                 </td>
@@ -195,8 +195,8 @@ export default function AdminCategoriesTable({
       {meta && meta.totalPages > 1 && (
         <div className="flex flex-col gap-4 border-t border-[#F0EDE7] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <p className="text-[12px] text-[#8A847B]">
-            Page {meta.page} / {Math.max(meta.totalPages, 1)} ·{' '}
-            {categories.length} categories on this page
+            Halaman {meta.page} / {Math.max(meta.totalPages, 1)} ·{' '}
+            {categories.length} kategori di halaman ini
           </p>
 
           <div className="flex items-center gap-1">
@@ -205,10 +205,10 @@ export default function AdminCategoriesTable({
               onClick={() => onPageChange(Math.max(page - 1, 1))}
               disabled={page <= 1 || isLoading}
               className="flex h-8 items-center gap-1 rounded-lg px-2 text-[12px] font-medium text-[#6B6B6B] transition-colors hover:bg-[#F3F1EC] disabled:cursor-not-allowed disabled:opacity-40"
-              aria-label="Previous page"
+              aria-label="Halaman sebelumnya"
             >
               <ChevronLeft size={14} />
-              Previous
+              Sebelumnya
             </button>
 
             {Array.from({ length: Math.min(meta.totalPages, 5) }, (_, i) => {
@@ -245,9 +245,9 @@ export default function AdminCategoriesTable({
               }
               disabled={page >= (meta.totalPages || 1) || isLoading}
               className="flex h-8 items-center gap-1 rounded-lg px-2 text-[12px] font-medium text-[#6B6B6B] transition-colors hover:bg-[#F3F1EC] disabled:cursor-not-allowed disabled:opacity-40"
-              aria-label="Next page"
+              aria-label="Halaman berikutnya"
             >
-              Next
+              Berikutnya
               <ChevronRight size={14} />
             </button>
           </div>

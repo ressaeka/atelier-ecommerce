@@ -51,6 +51,22 @@ export async function deleteProduct(id: number): Promise<Product> {
   return api.delete<Product>(`/product/${id}`);
 }
 
+export async function uploadProductImage(
+  file: File,
+): Promise<{ url: string; filename: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+  return api.post<{ url: string; filename: string }>(
+    '/product/upload-image',
+    formData,
+    {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    },
+  );
+}
+
 /** Client-side validation aligned with backend Zod schemas */
 export function validateCreateProductPayload(body: CreateProductRequest): string | null {
   if (!body.name.trim()) return 'Nama produk wajib diisi.';
@@ -60,8 +76,8 @@ export function validateCreateProductPayload(body: CreateProductRequest): string
   if (!Number.isInteger(body.stock) || body.stock < 0) {
     return 'Stok harus bilangan bulat minimal 0.';
   }
-  if (!isValidHttpUrl(body.image)) {
-    return 'Alamat gambar harus berupa tautan yang valid (https://...).';
+  if (!isValidImageUrl(body.image)) {
+    return 'Gambar produk harus berupa file yang valid atau URL (https://...).';
   }
   if (!Number.isInteger(body.categoryId) || body.categoryId <= 0) {
     return 'Category is required.';
@@ -90,8 +106,8 @@ export function validateUpdateProductPayload(
   ) {
     return 'Stok harus bilangan bulat minimal 0.';
   }
-  if (body.image !== undefined && !isValidHttpUrl(body.image)) {
-    return 'Alamat gambar harus berupa tautan yang valid (https://...).';
+  if (body.image !== undefined && !isValidImageUrl(body.image)) {
+    return 'Gambar produk harus berupa file yang valid atau URL (https://...).';
   }
   if (
     body.categoryId !== undefined &&
@@ -102,7 +118,9 @@ export function validateUpdateProductPayload(
   return null;
 }
 
-function isValidHttpUrl(value: string): boolean {
+function isValidImageUrl(value: string): boolean {
+  if (!value || typeof value !== 'string') return false;
+  if (value.startsWith('/uploads/') || value.startsWith('uploads/')) return true;
   try {
     const url = new URL(value);
     return url.protocol === 'http:' || url.protocol === 'https:';

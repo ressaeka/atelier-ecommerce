@@ -138,11 +138,6 @@ export default function AdminOrders() {
         />
       )}
 
-      {isDetailLoading && (
-        <p className="text-[11px] uppercase tracking-[0.2em] text-[#8A847B]">
-          Memuat detail pesanan…
-        </p>
-      )}
     </div>
   );
 }

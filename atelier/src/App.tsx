@@ -27,7 +27,9 @@ import AdminProducts from './admin/pages/AdminProducts';
 import AdminOrders from './admin/pages/AdminOrders';
 import AdminCategories from './admin/pages/AdminCategories';
 import AdminProfile from './admin/pages/AdminProfile';
-import AdminPlaceholderPage from './admin/pages/AdminPlaceholderPage';
+import AdminSalesReportPage from './admin/pages/AdminSalesReportPage';
+import AdminBestSellingProductsPage from './admin/pages/AdminBestSellingProductsPage';
+import AdminCustomerReportPage from './admin/pages/AdminCustomerReportPage';
 import CustomerOnlyRoute from './components/CustomerOnlyRoute';
 import RequireAuth from './components/RequireAuth';
 import UserProfile from './pages/UserProfile';
@@ -88,41 +90,17 @@ export function App() {
                 {/* Account — profile admin yang sedang login (bukan Admin Management) */}
                 <Route path="profile" element={<AdminProfile />} />
 
-                {/* LAPORAN — menu + placeholder only; logic berikutnya */}
-                <Route
-                  path="reports"
-                  element={
-                    <AdminPlaceholderPage
-                      title="Penjualan"
-                      description="Sales reporting will be available soon."
-                    />
-                  }
-                />
-                <Route
-                  path="reports/products"
-                  element={
-                    <AdminPlaceholderPage
-                      title="Produk Terlaris"
-                      description="Best-selling product reports will be available soon."
-                    />
-                  }
-                />
-                <Route
-                  path="reports/customers"
-                  element={
-                    <AdminPlaceholderPage
-                      title="Pelanggan"
-                      description="Customer reports will be available soon."
-                    />
-                  }
-                />
+                {/* LAPORAN — Penjualan aktif */}
+                <Route path="reports" element={<AdminSalesReportPage />} />
+                <Route path="reports/products" element={<AdminBestSellingProductsPage />} />
+                <Route path="reports/customers" element={<AdminCustomerReportPage />} />
               </Route>
 
               {/* Fallback */}
               <Route path="*" element={<Home />} />
-            </Routes>
-          </WishlistProvider>
-        </CartProvider>
+              </Routes>
+            </WishlistProvider>
+          </CartProvider>
       </AuthProvider>
     </BrowserRouter>
   );

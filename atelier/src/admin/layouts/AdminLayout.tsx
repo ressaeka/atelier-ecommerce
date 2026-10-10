@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import AdminSidebar from '../components/AdminSidebar';
 import AdminTopbar from '../components/AdminTopbar';
 
@@ -9,6 +9,8 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  const closeMobile = useCallback(() => setMobileOpen(false), []);
+
   useEffect(() => {
     document.body.style.overflow = mobileOpen ? 'hidden' : '';
     return () => {
@@ -16,12 +18,18 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     };
   }, [mobileOpen]);
 
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeMobile();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [mobileOpen, closeMobile]);
+
   return (
     <div className="min-h-screen bg-[#F7F6F2] text-[#1A1A1A] antialiased">
-      <AdminSidebar
-        mobileOpen={mobileOpen}
-        onCloseMobile={() => setMobileOpen(false)}
-      />
+      <AdminSidebar mobileOpen={mobileOpen} onCloseMobile={closeMobile} />
 
       <div className="flex min-h-screen flex-col lg:pl-[260px]">
         <AdminTopbar onOpenMobileSidebar={() => setMobileOpen(true)} />

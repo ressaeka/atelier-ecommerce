@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import type { Order, OrderStatus, PaymentMethodCode } from '../../types/api';
 import { formatPrice } from '../../lib/utils';
@@ -79,6 +79,10 @@ export default function AdminOrderDetailPanel({
   onUpdateStatus,
 }: AdminOrderDetailPanelProps) {
   const [statusValue, setStatusValue] = useState<OrderStatus>(order.status);
+
+  useEffect(() => {
+    setStatusValue(order.status);
+  }, [order.id, order.status]);
 
   const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();

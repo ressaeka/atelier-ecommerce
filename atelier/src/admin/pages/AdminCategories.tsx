@@ -126,13 +126,13 @@ export default function AdminCategories() {
       <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8A847B]">
-            Admin · Catalog
+            Admin · Katalog
           </p>
           <h1 className="mt-1.5 font-editorial text-[26px] font-medium tracking-tight text-[#1A1A1A] sm:text-[28px]">
-            Category
+            Kategori
           </h1>
           <p className="mt-1.5 text-[13px] text-[#6B6B6B]">
-            Manage product categories
+            Kelola kategori produk Atelier.
           </p>
         </div>
 
@@ -155,7 +155,7 @@ export default function AdminCategories() {
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#1A1A1A] px-4 py-2 text-[12px] font-semibold uppercase tracking-[0.08em] text-white transition-colors hover:bg-[#333]"
           >
             <Plus size={14} />
-            Add Category
+            Tambah Kategori
           </button>
         </div>
       </header>
@@ -186,7 +186,7 @@ export default function AdminCategories() {
           type="search"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search categories..."
+          placeholder="Cari nama kategori..."
           className="h-11 w-full rounded-xl border border-[#E8E4DC] bg-white pl-10 pr-4 text-[13px] text-[#1A1A1A] placeholder:text-[#A39E95] focus:border-[#B7C9D9] focus:outline-none"
         />
       </div>

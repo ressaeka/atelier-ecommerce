@@ -41,9 +41,20 @@
     cursive;
 }
 
-input:focus,
-button:focus {
+/* Suppress focus ring for mouse/pointer users; keep for keyboard users */
+input:focus:not(:focus-visible),
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible),
+select:focus:not(:focus-visible),
+textarea:focus:not(:focus-visible) {
   outline: none;
+}
+
+/* Keyboard-navigation focus ring — brand-consistent */
+:focus-visible {
+  outline: 2px solid #2F5D86;
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 .transition-luxury {

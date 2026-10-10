@@ -19,7 +19,7 @@ export default function BestSellingProducts({
         </h2>
 
         <Link
-          to="/admin/products"
+          to="/admin/reports/products"
           className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[#4A7BA8] transition-colors hover:text-[#2F5D86]"
         >
           Lihat Semua

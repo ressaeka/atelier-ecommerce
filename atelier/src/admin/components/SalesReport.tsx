@@ -90,13 +90,13 @@ export default function SalesReport({
             </p>
           </div>
 
-          <button
-            type="button"
+          <a
+            href="/admin/reports"
             className="inline-flex items-center gap-2 rounded-xl border border-[#D9E3EC] bg-[#F4F8FB] px-4 py-2 text-[12px] font-semibold text-[#2F5D86] transition-colors hover:bg-[#E8F1F8]"
           >
             <Download size={14} strokeWidth={2} />
-            Export Excel
-          </button>
+            Lihat Laporan Lengkap
+          </a>
         </div>
 
         <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">

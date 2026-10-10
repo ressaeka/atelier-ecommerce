@@ -131,8 +131,8 @@ export default function AdminDashboard() {
           />
         </div>
 
-        {/* Right */}
-        <div className="space-y-5">
+        {/* Right — items-start prevents grid stretch; promo + ringkasan height:auto */}
+        <div className="flex flex-col gap-5 self-start">
           <BestSellingProducts products={data.bestSellingProducts} />
           <ReportPromoCard promo={data.reportPromo} />
 

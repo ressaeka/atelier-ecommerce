@@ -34,26 +34,27 @@ const http = axios.create({
 });
 
 // ─── Refresh Logic ──────────────────────────────────────────
-let isRefreshing = false;
-let refreshSubscribers: Array<(token: string) => void> = [];
+let refreshPromise: Promise<string> | null = null;
 
-function onRefreshed(token: string) {
-  refreshSubscribers.forEach((cb) => cb(token));
-  refreshSubscribers = [];
-}
-
-async function refreshAccessToken(): Promise<string> {
+async function executeTokenRefresh(): Promise<string> {
   const refreshToken = getRefreshToken();
-  if (!refreshToken) throw new Error('No refresh token');
+  if (!refreshToken) {
+    clearTokens();
+    throw new ApiRequestError(401, 'Sesi telah berakhir. Silakan login kembali.');
+  }
 
-  const { data: body } = await axios.post<ApiResponse<{ access_token: string; refresh_token: string }>>(
-    `${API_BASE_URL}/auth/refresh`,
-    { refreshToken },
-  );
+  try {
+    const { data: body } = await axios.post<
+      ApiResponse<{ access_token: string; refresh_token: string }>
+    >(`${API_BASE_URL}/auth/refresh`, { refreshToken });
 
-  const { access_token, refresh_token: newRefresh } = body.data;
-  setTokens(access_token, newRefresh);
-  return access_token;
+    const { access_token, refresh_token: newRefresh } = body.data;
+    setTokens(access_token, newRefresh);
+    return access_token;
+  } catch {
+    clearTokens();
+    throw new ApiRequestError(401, 'Sesi telah berakhir. Silakan login kembali.');
+  }
 }
 
 // ─── Request Interceptor: attach Bearer token ───────────────
@@ -83,47 +84,60 @@ http.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // If not a 401 or no token, reject immediately
-    if (error.response?.status !== 401 || !getAccessToken()) {
+    // If not a 401 or no request config, reject immediately
+    if (!originalRequest || error.response?.status !== 401) {
       return Promise.reject(wrapError(error));
     }
 
-    // Skip refresh for the refresh endpoint itself
-    if (originalRequest.url === '/auth/refresh') {
+    // Skip refresh for auth endpoints that naturally return 401
+    const requestUrl = originalRequest.url || '';
+    if (
+      requestUrl.includes('/auth/refresh') ||
+      requestUrl.includes('/auth/login') ||
+      requestUrl.includes('/auth/google/exchange')
+    ) {
       clearTokens();
       return Promise.reject(wrapError(error));
     }
 
-    // Skip if already retrying
+    // Skip if already retrying (prevent infinite retry loop)
     if (originalRequest._retry) {
       return Promise.reject(wrapError(error));
     }
 
-    if (!isRefreshing) {
-      isRefreshing = true;
-      try {
-        const newToken = await refreshAccessToken();
-        onRefreshed(newToken);
-      } catch {
-        onRefreshed('');
-      } finally {
-        isRefreshing = false;
-      }
-    }
-
-    const newToken = await new Promise<string>((resolve) => {
-      refreshSubscribers.push((t) => resolve(t));
-    });
-
-    if (!newToken) {
+    // Skip if no refresh token available
+    if (!getRefreshToken()) {
+      clearTokens();
       return Promise.reject(
         new ApiRequestError(401, 'Sesi telah berakhir. Silakan login kembali.'),
       );
     }
 
     originalRequest._retry = true;
-    originalRequest.headers.Authorization = `Bearer ${newToken}`;
-    return http(originalRequest);
+
+    // Shared promise: ensure single in-flight refresh call across concurrent requests
+    if (!refreshPromise) {
+      refreshPromise = executeTokenRefresh().finally(() => {
+        refreshPromise = null;
+      });
+    }
+
+    try {
+      const newToken = await refreshPromise;
+      if (!newToken) {
+        throw new ApiRequestError(401, 'Sesi telah berakhir. Silakan login kembali.');
+      }
+
+      originalRequest.headers = originalRequest.headers || {};
+      originalRequest.headers.Authorization = `Bearer ${newToken}`;
+      return http(originalRequest);
+    } catch (refreshErr) {
+      return Promise.reject(
+        refreshErr instanceof ApiRequestError
+          ? refreshErr
+          : new ApiRequestError(401, 'Sesi telah berakhir. Silakan login kembali.'),
+      );
+    }
   },
 );
 
@@ -168,8 +182,8 @@ export const api = {
     return data;
   },
 
-  async post<T>(endpoint: string, body?: unknown): Promise<T> {
-    const { data } = await http.post<T>(endpoint, body);
+  async post<T>(endpoint: string, body?: unknown, config?: { headers?: Record<string, string> }): Promise<T> {
+    const { data } = await http.post<T>(endpoint, body, config as unknown as Parameters<typeof http.post>[2]);
     return data;
   },
 
@@ -181,5 +195,33 @@ export const api = {
   async delete<T>(endpoint: string): Promise<T> {
     const { data } = await http.delete<T>(endpoint);
     return data;
+  },
+
+  async getBlob(
+    endpoint: string,
+    params?: Record<string, string | number | boolean | undefined>,
+  ): Promise<{ blob: Blob; filename?: string }> {
+    const filteredParams = params
+      ? Object.fromEntries(
+          Object.entries(params).filter(
+            ([, v]) => v !== undefined && v !== null && v !== '',
+          ),
+        )
+      : undefined;
+    const response = await http.get<Blob>(endpoint, {
+      params: filteredParams,
+      responseType: 'blob',
+    });
+
+    const disposition = response.headers['content-disposition'] as
+      | string
+      | undefined;
+    let filename: string | undefined;
+    if (disposition) {
+      const match = disposition.match(/filename="?([^";]+)"?/);
+      if (match?.[1]) filename = match[1];
+    }
+
+    return { blob: response.data, filename };
   },
 };

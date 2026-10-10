@@ -51,17 +51,17 @@ export default function AdminCategoryFormModal({
         type="button"
         className="absolute inset-0 bg-black/35 backdrop-blur-[2px]"
         onClick={onClose}
-        aria-label="Close category form"
+        aria-label="Tutup form kategori"
       />
 
       <div className="relative z-10 max-h-[92vh] w-full max-w-[440px] overflow-y-auto rounded-t-2xl border border-[#E8E4DC] bg-white shadow-2xl sm:rounded-2xl">
         <header className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-[#F0EDE7] bg-white px-5 py-4 sm:px-6">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#8A847B]">
-              Admin · Category
+              Admin · Kategori
             </p>
             <h2 className="mt-1 font-editorial text-[22px] font-medium text-[#1A1A1A]">
-              {isEdit ? 'Edit Category' : 'Add Category'}
+              {isEdit ? 'Ubah Kategori' : 'Tambah Kategori'}
             </h2>
             {isEdit && category && (
               <p className="mt-0.5 text-[12px] text-[#6B6B6B]">
@@ -74,7 +74,7 @@ export default function AdminCategoryFormModal({
             onClick={onClose}
             disabled={isSubmitting}
             className="rounded-lg border border-[#EDEAE3] p-2 text-[#6B6B6B] transition-colors hover:bg-[#F3F1EC] hover:text-[#1A1A1A] disabled:opacity-50"
-            aria-label="Close"
+            aria-label="Tutup"
           >
             <X size={16} />
           </button>
@@ -92,7 +92,7 @@ export default function AdminCategoryFormModal({
               htmlFor="category-name"
               className="mb-1.5 block text-[11px] font-semibold uppercase tracking-[0.1em] text-[#6B6B6B]"
             >
-              Category Name <span className="text-[#A05050]">*</span>
+              Nama Kategori <span className="text-[#A05050]">*</span>
             </label>
             <input
               id="category-name"
@@ -106,7 +106,7 @@ export default function AdminCategoryFormModal({
               disabled={isSubmitting}
               maxLength={CATEGORY_NAME_MAX}
               className="h-10 w-full rounded-xl border border-[#EDEAE3] bg-[#FAFAF8] px-3 text-[13px] text-[#1A1A1A] focus:border-[#B7C9D9] focus:bg-white focus:outline-none disabled:opacity-60"
-              placeholder="Category name"
+              placeholder="Nama kategori"
               autoFocus
             />
             {fieldError && (
@@ -121,7 +121,7 @@ export default function AdminCategoryFormModal({
               disabled={isSubmitting}
               className="rounded-xl border border-[#EDEAE3] px-5 py-2.5 text-[12px] font-semibold text-[#4A4A4A] transition-colors hover:bg-[#F3F1EC] disabled:opacity-50"
             >
-              Cancel
+              Batal
             </button>
             <button
               type="submit"
@@ -129,10 +129,10 @@ export default function AdminCategoryFormModal({
               className="rounded-xl bg-[#1A1A1A] px-5 py-2.5 text-[12px] font-semibold uppercase tracking-[0.1em] text-white transition-colors hover:bg-[#333] disabled:opacity-50"
             >
               {isSubmitting
-                ? 'Saving...'
+                ? 'Menyimpan...'
                 : isEdit
-                  ? 'Save Changes'
-                  : 'Create Category'}
+                  ? 'Simpan Perubahan'
+                  : 'Buat Kategori'}
             </button>
           </div>
         </form>

@@ -13,6 +13,7 @@ interface AuthContextValue {
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
   handleGoogleAuth: (accessToken: string, refreshToken: string) => Promise<User>;
+  exchangeOAuthCode: (code: string) => Promise<User>;
   updateProfile: (data: UpdateUserRequest) => Promise<User>;
 }
 
@@ -129,6 +130,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
+  const exchangeOAuthCode = useCallback(async (code: string): Promise<User> => {
+    setLoading(true);
+    try {
+      const result = await api.post<AuthTokens>('/auth/google/exchange', { code });
+      setTokens(result.access_token, result.refresh_token);
+      let userProfile = result.user;
+      if (!userProfile) {
+        userProfile = await api.get<User>('/users/me');
+      }
+      setUser(userProfile);
+      persistUser(userProfile);
+      return userProfile;
+    } catch (err) {
+      clearTokens();
+      persistUser(null);
+      setUser(null);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       const refreshToken = getRefreshToken();
@@ -164,9 +187,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       register,
       logout,
       handleGoogleAuth,
+      exchangeOAuthCode,
       updateProfile,
     }),
-    [user, loading, login, adminLogin, register, logout, handleGoogleAuth, updateProfile],
+    [user, loading, login, adminLogin, register, logout, handleGoogleAuth, exchangeOAuthCode, updateProfile],
   );
 
   return (

@@ -70,7 +70,7 @@ const navSections: NavSection[] = [
     id: 'reports',
     label: 'LAPORAN',
     children: [
-      { to: '/admin/reports', label: 'Penjualan', icon: BarChart3 },
+      { to: '/admin/reports', label: 'Penjualan', icon: BarChart3, end: true },
       { to: '/admin/reports/products', label: 'Produk Terlaris', icon: Trophy },
       { to: '/admin/reports/customers', label: 'Pelanggan', icon: Users },
     ],

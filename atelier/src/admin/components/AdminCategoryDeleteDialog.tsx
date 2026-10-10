@@ -22,7 +22,7 @@ export default function AdminCategoryDeleteDialog({
         type="button"
         className="absolute inset-0 bg-black/35 backdrop-blur-[2px]"
         onClick={onClose}
-        aria-label="Cancel delete category"
+        aria-label="Batal hapus kategori"
       />
 
       <div className="relative z-10 w-full max-w-[420px] rounded-t-2xl border border-[#E8E4DC] bg-white p-6 shadow-2xl sm:rounded-2xl">
@@ -32,13 +32,13 @@ export default function AdminCategoryDeleteDialog({
           </div>
           <div>
             <h2 className="font-editorial text-[20px] font-medium text-[#1A1A1A]">
-              Delete category?
+              Hapus kategori?
             </h2>
             <p className="mt-1.5 text-[13px] leading-relaxed text-[#6B6B6B]">
-              Are you sure you want to delete this category?
+              Apakah Anda yakin ingin menghapus kategori ini?
             </p>
             <p className="mt-1.5 text-[12px] font-medium text-[#8C3A1E]">
-              This action cannot be undone.
+              Tindakan ini tidak dapat dibatalkan.
             </p>
             <p className="mt-2 text-[12px] text-[#8A847B]">
               {category.name} · #{category.id}
@@ -59,7 +59,7 @@ export default function AdminCategoryDeleteDialog({
             disabled={isDeleting}
             className="rounded-xl border border-[#EDEAE3] px-5 py-2.5 text-[12px] font-semibold text-[#4A4A4A] transition-colors hover:bg-[#F3F1EC] disabled:opacity-50"
           >
-            Cancel
+            Batal
           </button>
           <button
             type="button"
@@ -69,7 +69,7 @@ export default function AdminCategoryDeleteDialog({
             disabled={isDeleting}
             className="rounded-xl bg-[#A05050] px-5 py-2.5 text-[12px] font-semibold uppercase tracking-[0.1em] text-white transition-colors hover:bg-[#8C3A1E] disabled:opacity-50"
           >
-            {isDeleting ? 'Deleting...' : 'Delete'}
+            {isDeleting ? 'Menghapus...' : 'Hapus'}
           </button>
         </div>
       </div>
