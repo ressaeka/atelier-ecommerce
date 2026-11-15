@@ -84,8 +84,11 @@ function formatDate(iso: string): string {
   }
 }
 
-function formatOrderNumber(id: number): string {
-  return `#ORD-${id}`;
+function formatOrderNumber(id: number, orderNumber?: string | null): string {
+  if (orderNumber) {
+    return orderNumber.startsWith('#') ? orderNumber : `#${orderNumber}`;
+  }
+  return `#ATL-${id}`;
 }
 
 export default function AdminOrdersTable({
@@ -181,7 +184,7 @@ export default function AdminOrdersTable({
                 }`}
               >
                 <td className="whitespace-nowrap px-4 py-3.5 font-editorial text-[12.5px] font-semibold text-[#1A1A1A]">
-                  {formatOrderNumber(order.id)}
+                  {formatOrderNumber(order.id, order.orderNumber)}
                 </td>
                 <td className="px-4 py-3.5 text-[12.5px] text-[#4A4A4A]">
                   <p className="font-medium text-[#1A1A1A]">

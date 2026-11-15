@@ -115,7 +115,9 @@ export default function AdminGlobalSearchDropdown({
                       <ShoppingCart size={13} />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[12.5px] font-medium text-[#1A1A1A]">#ORD-{o.id} · {o.recipientName}</span>
+                      <span className="block truncate text-[12.5px] font-medium text-[#1A1A1A]">
+                        {o.orderNumber ? (o.orderNumber.startsWith('#') ? o.orderNumber : `#${o.orderNumber}`) : `#ATL-${o.id}`} · {o.recipientName}
+                      </span>
                       <span className="block text-[11px] text-[#8A847B]">{formatPrice(o.total)} · {o.status}</span>
                     </span>
                   </button>

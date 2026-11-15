@@ -7,6 +7,8 @@ import {
   Users,
   BarChart3,
   Trophy,
+  PieChart,
+  MapPin,
   X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -73,6 +75,8 @@ const navSections: NavSection[] = [
       { to: '/admin/reports', label: 'Laporan Penjualan', icon: BarChart3, end: true },
       { to: '/admin/reports/products', label: 'Produk Terlaris', icon: Trophy },
       { to: '/admin/reports/customers', label: 'Laporan Pelanggan', icon: Users },
+      { to: '/admin/reports/categories', label: 'Performa Kategori', icon: PieChart },
+      { to: '/admin/reports/regions', label: 'Penjualan per Wilayah', icon: MapPin },
     ],
   },
 ];

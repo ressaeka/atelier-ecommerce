@@ -165,7 +165,7 @@ export const SalesReportKpi = memo(function SalesReportKpi({
                 <TrendingUp size={16} strokeWidth={1.8} aria-hidden="true" />
               </span>
               <h2 className="text-[13px] font-medium text-[#3F3B36]">
-                Rata-rata Nilai Transaksi (AOV)
+                Rata-rata Nilai Transaksi
               </h2>
             </div>
           </div>

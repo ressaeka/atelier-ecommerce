@@ -147,9 +147,20 @@ export default function AdminCategoriesTable({
               >
                 <td className="px-4 py-3.5">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#EDEAE3] bg-[#F7F6F2] text-[#8A847B]">
-                      <Tags size={14} strokeWidth={1.6} />
-                    </div>
+                    {category.image ? (
+                      <img
+                        src={category.image}
+                        alt={category.name}
+                        className="h-9 w-9 shrink-0 rounded-lg border border-[#EDEAE3] object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[#EDEAE3] bg-[#F7F6F2] text-[#8A847B]">
+                        <Tags size={14} strokeWidth={1.6} />
+                      </div>
+                    )}
                     <p className="text-[12.5px] font-medium text-[#1A1A1A]">
                       {category.name || '-'}
                     </p>

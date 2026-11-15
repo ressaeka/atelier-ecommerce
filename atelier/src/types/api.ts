@@ -99,6 +99,7 @@ export interface ProductQuery {
 export interface Category {
   id: number;
   name: string;
+  image?: string | null;
   productCount: number;
   createdAt: string;
   updatedAt: string;
@@ -301,6 +302,7 @@ export interface OrderItem {
 
 export interface Order {
   id: number;
+  orderNumber?: string | null;
   userId: number;
   status: OrderStatus;
   subtotal: number;
@@ -377,6 +379,9 @@ export interface SalesReportKpiComparison {
 export interface SalesReportSummary {
   totalRevenue: number;
   grossRevenue?: number;
+  grossSales?: number;
+  nonCancelledRevenue?: number;
+  cancelledOrdersAmount?: number;
   discountTotal?: number;
   refundTotal?: number;
   netRevenue?: number;
@@ -389,6 +394,13 @@ export interface SalesReportSummary {
 }
 
 export interface SalesReportRevenueBreakdown {
+  grossSales?: number;
+  grossSalesCount?: number;
+  nonCancelledAmount?: number;
+  nonCancelledCount?: number;
+  cancelledOrdersAmount?: number;
+  cancelledOrdersCount?: number;
+  completedRevenue?: number;
   grossProductSales: number;
   shippingRevenue: number;
   grossRevenue: number;

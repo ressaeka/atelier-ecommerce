@@ -20,7 +20,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({
 }) => {
   const [imgError, setImgError] = useState(false);
 
-  const categoryImage = resolveCategoryImage(category.name);
+  const categoryImage = category.image || resolveCategoryImage(category.name);
 
   return (
     <Link

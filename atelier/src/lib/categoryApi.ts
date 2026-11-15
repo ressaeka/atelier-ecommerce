@@ -14,10 +14,12 @@ import type { Category, PaginationMeta } from '../types/api';
 /** Matches CreateCategoryDto / updateCategorySchema on backend */
 export interface CreateCategoryRequest {
   name: string;
+  image?: string | null;
 }
 
 export interface UpdateCategoryRequest {
-  name: string;
+  name?: string;
+  image?: string | null;
 }
 
 export interface CategoryListResponse {
@@ -73,6 +75,17 @@ export async function updateCategory(
 
 export async function deleteCategory(id: number): Promise<Category> {
   return api.delete<Category>(`/category/${id}`);
+}
+
+export async function uploadCategoryImage(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const data = await api.post<{ url: string }>('/category/upload-image', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+  return data.url;
 }
 
 /** Client-side validation aligned with backend Zod schemas */

@@ -29,9 +29,6 @@ const ORDERED_STATUSES: OrderStatus[] = [
 ];
 
 const RECOGNIZED_STATUS_SET = new Set<OrderStatus>([
-  'PAID',
-  'PROCESSING',
-  'SHIPPED',
   'DELIVERED',
 ]);
 

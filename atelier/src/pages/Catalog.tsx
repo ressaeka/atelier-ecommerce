@@ -11,6 +11,8 @@ import {
 import {
   Search,
   Heart,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 import { useWishlist } from '../contexts/WishlistContext';
@@ -74,6 +76,93 @@ const Catalog: React.FC = () => {
         ? Number(value)
         : null;
     });
+
+  /* =======================================================
+     CATEGORY SCROLL & NAVIGATION
+  ======================================================== */
+
+  const categoryScrollRef =
+    useRef<HTMLDivElement>(null);
+
+  const [canScrollLeft, setCanScrollLeft] =
+    useState(false);
+
+  const [canScrollRight, setCanScrollRight] =
+    useState(false);
+
+  const checkCategoryScroll =
+    useCallback(() => {
+      const el =
+        categoryScrollRef.current;
+      if (!el) return;
+      const {
+        scrollLeft,
+        scrollWidth,
+        clientWidth,
+      } = el;
+      setCanScrollLeft(
+        scrollLeft > 4,
+      );
+      setCanScrollRight(
+        scrollLeft + clientWidth <
+          scrollWidth - 4,
+      );
+    }, []);
+
+  useEffect(() => {
+    checkCategoryScroll();
+    const handleResize = () =>
+      checkCategoryScroll();
+    window.addEventListener(
+      'resize',
+      handleResize,
+    );
+    return () =>
+      window.removeEventListener(
+        'resize',
+        handleResize,
+      );
+  }, [categories, checkCategoryScroll]);
+
+  useEffect(() => {
+    if (
+      activeCategoryId !== null &&
+      categoryScrollRef.current
+    ) {
+      const activeEl =
+        document.getElementById(
+          `filter-cat-${activeCategoryId}`,
+        );
+      if (activeEl) {
+        activeEl.scrollIntoView({
+          behavior: 'smooth',
+          block: 'nearest',
+          inline: 'center',
+        });
+      }
+    }
+  }, [activeCategoryId]);
+
+  const scrollCategories = (
+    direction: 'left' | 'right',
+  ) => {
+    const el =
+      categoryScrollRef.current;
+    if (!el) return;
+    const scrollAmount = Math.max(
+      280,
+      Math.floor(
+        el.clientWidth * 0.6,
+      ),
+    );
+    el.scrollBy({
+      left:
+        direction === 'left'
+          ? -scrollAmount
+          : scrollAmount,
+      behavior: 'smooth',
+    });
+  };
 
   /* =======================================================
      SEARCH
@@ -712,17 +801,49 @@ const Catalog: React.FC = () => {
 
           <div className="mx-auto max-w-[1400px]">
 
-            <h1
-              className="mb-8 text-[52px] font-normal leading-[1.05] text-[#1A1A1A] lg:text-[64px]"
-              style={{
-                fontFamily:
-                  "'Poppins', system-ui, -apple-system, sans-serif",
-              }}
-            >
-              Kategori
-            </h1>
+            <div className="mb-8 flex items-end justify-between">
+              <h1
+                className="text-[52px] font-normal leading-[1.05] text-[#1A1A1A] lg:text-[64px]"
+                style={{
+                  fontFamily:
+                    "'Poppins', system-ui, -apple-system, sans-serif",
+                }}
+              >
+                Kategori
+              </h1>
 
-            <div className="flex justify-center gap-5 overflow-x-auto pb-2 scrollbar-hide">
+              {/* Navigation arrows */}
+              <div className="flex items-center gap-2 pb-2">
+                <button
+                  type="button"
+                  onClick={() => scrollCategories('left')}
+                  disabled={!canScrollLeft}
+                  aria-label="Kategori sebelumnya"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-[#D5D0C7] bg-[#EDE9E2] text-[#1A1A1A] transition-colors hover:border-[#1A1A1A] hover:bg-[#FAF9F5] disabled:cursor-not-allowed disabled:opacity-25"
+                >
+                  <ChevronLeft size={18} strokeWidth={1.5} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollCategories('right')}
+                  disabled={!canScrollRight}
+                  aria-label="Kategori berikutnya"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-[#D5D0C7] bg-[#EDE9E2] text-[#1A1A1A] transition-colors hover:border-[#1A1A1A] hover:bg-[#FAF9F5] disabled:cursor-not-allowed disabled:opacity-25"
+                >
+                  <ChevronRight size={18} strokeWidth={1.5} />
+                </button>
+              </div>
+            </div>
+
+            <div className="relative">
+              <div
+                ref={categoryScrollRef}
+                onScroll={checkCategoryScroll}
+                className="flex justify-start gap-5 overflow-x-auto pb-4 pt-1 px-1 scrollbar-hide scroll-smooth"
+                style={{
+                  WebkitOverflowScrolling: 'touch',
+                }}
+              >
 
               {/* =================================================
                   ALL
@@ -811,6 +932,7 @@ const Catalog: React.FC = () => {
                     category.id;
 
                   const categoryImage =
+                    category.image ||
                     resolveCategoryImage(
                       category.name,
                     );
@@ -906,6 +1028,8 @@ const Catalog: React.FC = () => {
                   );
                 },
               )}
+
+              </div>
 
             </div>
 

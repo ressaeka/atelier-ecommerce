@@ -230,7 +230,7 @@ export const SalesReportFilters = memo(function SalesReportFilters({
               type="text"
               value={search}
               onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Cari pelanggan / #ORD..."
+              placeholder="Cari pelanggan / #ATL..."
               autoComplete="off"
               className="h-10 w-full rounded-xl border border-[#ECE7DE] bg-[#FAF8F4] pl-8 pr-8 text-[12.5px] text-[#1A1A1A] placeholder:text-[#A39D93] focus:border-[#5C4033] focus:bg-white focus:outline-none"
             />

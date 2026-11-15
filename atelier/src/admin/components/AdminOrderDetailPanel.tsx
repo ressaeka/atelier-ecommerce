@@ -40,8 +40,11 @@ const PAYMENT_METHOD_LABEL: Record<PaymentMethodCode, string> = {
   QRIS: 'QRIS',
 };
 
-function formatOrderNumber(id: number): string {
-  return `#ORD-${id}`;
+function formatOrderNumber(id: number, orderNumber?: string | null): string {
+  if (orderNumber) {
+    return orderNumber.startsWith('#') ? orderNumber : `#${orderNumber}`;
+  }
+  return `#ATL-${id}`;
 }
 
 function paymentStatusLabel(status: string): string {
@@ -108,7 +111,7 @@ export default function AdminOrderDetailPanel({
               Detail Pesanan
             </p>
             <h2 className="mt-1 font-editorial text-[22px] font-medium text-[#1A1A1A]">
-              {formatOrderNumber(order.id)}
+              {formatOrderNumber(order.id, order.orderNumber)}
             </h2>
             <p className="mt-1 text-[12px] text-[#6B6B6B]">
               {formatDate(order.createdAt)}

@@ -35,6 +35,12 @@ const AdminBestSellingProductsPage = lazy(
 const AdminCustomerReportPage = lazy(
   () => import('./admin/pages/AdminCustomerReportPage'),
 );
+const AdminCategoryReportPage = lazy(
+  () => import('./admin/pages/AdminCategoryReportPage'),
+);
+const AdminRegionalSalesReportPage = lazy(
+  () => import('./admin/pages/AdminRegionalSalesReportPage'),
+);
 import CustomerOnlyRoute from './components/CustomerOnlyRoute';
 import RequireAuth from './components/RequireAuth';
 import UserProfile from './pages/UserProfile';
@@ -168,6 +174,22 @@ export function App() {
                   element={
                     <Suspense fallback={<div className="min-h-[40vh]" />}>
                       <AdminCustomerReportPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="reports/categories"
+                  element={
+                    <Suspense fallback={<div className="min-h-[40vh]" />}>
+                      <AdminCategoryReportPage />
+                    </Suspense>
+                  }
+                />
+                <Route
+                  path="reports/regions"
+                  element={
+                    <Suspense fallback={<div className="min-h-[40vh]" />}>
+                      <AdminRegionalSalesReportPage />
                     </Suspense>
                   }
                 />

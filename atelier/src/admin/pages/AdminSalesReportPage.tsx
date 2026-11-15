@@ -43,13 +43,10 @@ const DEFAULT_SUMMARY: SalesReportSummary = {
 
 const DEFAULT_METHODOLOGY = {
   recognizedStatuses: [
-    'PAID',
-    'PROCESSING',
-    'SHIPPED',
     'DELIVERED',
   ] as OrderStatus[],
   recognitionBasis:
-    'Pendapatan diakui berdasarkan pesanan pada rentang periode (Asia/Jakarta, WIB) yang telah terverifikasi pembayarannya.',
+    'Pendapatan sah (completed revenue) diakui secara definitif dari pesanan yang telah selesai diterima pelanggan (DELIVERED). Pesanan dalam proses (PROCESSING) dan pengiriman (SHIPPED) belum diakui sebagai pendapatan selesai.',
   cancellationPolicy:
     'Pesanan berstatus CANCELLED dan EXPIRED dikecualikan sepenuhnya (Rp 0 pendapatan diakui).',
   discountPolicy:
@@ -161,12 +158,12 @@ export default function AdminSalesReportPage() {
     data?.statusDistribution ?? DEFAULT_STATUS_DISTRIBUTION;
 
   const statusTotals = useMemo<StatusTotals>(() => {
-    const succeeded =
+    const succeeded = statusDistribution.DELIVERED ?? 0;
+    const pending =
+      (statusDistribution.PENDING ?? 0) +
       (statusDistribution.PAID ?? 0) +
       (statusDistribution.PROCESSING ?? 0) +
-      (statusDistribution.SHIPPED ?? 0) +
-      (statusDistribution.DELIVERED ?? 0);
-    const pending = statusDistribution.PENDING ?? 0;
+      (statusDistribution.SHIPPED ?? 0);
     const cancelledOrExpired =
       (statusDistribution.CANCELLED ?? 0) + (statusDistribution.EXPIRED ?? 0);
     const total = succeeded + pending + cancelledOrExpired;

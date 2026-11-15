@@ -1,12 +1,22 @@
 const CATEGORY_IMAGES: Record<string, string> = {
   Tailoring: '/images/jas.jpeg',
   Suits: '/images/jas.jpeg',
+  Outerwear: '/images/jas.jpeg',
+  Blazer: '/images/jas.jpeg',
   Rajut: '/images/rajut-kasual.jpeg',
+  Cardigan: '/images/rajut-kasual.jpeg',
   Kemeja: '/images/kameja-linen.jpeg',
   Linen: '/images/kameja-linen.jpeg',
+  Atasan: '/images/silk-blouse.jpeg',
+  Blouse: '/images/silk-blouse.jpeg',
+  Bawahan: '/images/recomed3.jpeg',
+  Trousers: '/images/recomed3.jpeg',
+  Skirt: '/images/recomed3.jpeg',
+  Dress: '/images/recomend2.jpeg',
+  Gaun: '/images/recomend2.jpeg',
   Aksesori: '/images/dompet.jpeg',
   Dompet: '/images/dompet.jpeg',
-  Sepatu: '/images/tas_sepatu.jpeg',
+  Sepatu: '/images/sepatu(1).jpeg',
   Tas: '/images/tas_sepatu.jpeg',
 };
 
@@ -14,18 +24,33 @@ export function resolveCategoryImage(
   categoryName: string,
 ): string | null {
   const lower =
-    categoryName.toLowerCase();
+    categoryName.toLowerCase().trim();
 
+  // 1. Exact match
   for (const [
     keyword,
     path,
   ] of Object.entries(
     CATEGORY_IMAGES,
   )) {
+    if (lower === keyword.toLowerCase()) {
+      return path;
+    }
+  }
+
+  // 2. Substring match (skip 'tas' inside 'atasan')
+  for (const [
+    keyword,
+    path,
+  ] of Object.entries(
+    CATEGORY_IMAGES,
+  )) {
+    const kwLower = keyword.toLowerCase();
+    if (kwLower === 'tas' && lower.includes('atasan')) {
+      continue;
+    }
     if (
-      lower.includes(
-        keyword.toLowerCase(),
-      )
+      lower.includes(kwLower)
     ) {
       return path;
     }
