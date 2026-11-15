@@ -33,7 +33,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const fetchCountRef = useRef(0);
 
   const refresh = useCallback(async (isInitial = false) => {
-    if (!user) {
+    if (!user || user.role !== 'USER') {
       setCart(null);
       setInitialLoading(false);
       return;

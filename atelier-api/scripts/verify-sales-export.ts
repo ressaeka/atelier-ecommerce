@@ -35,7 +35,7 @@ async function verify() {
     throw new Error('Expected 2 sheets in workbook');
   }
 
-  const wsSummary = wb1.getWorksheet('Ringkasan Penjualan')!;
+  const wsSummary = wb1.getWorksheet('Ringkasan Pendapatan')!;
   const wsDetail = wb1.getWorksheet('Detail Transaksi')!;
   console.log('Sheet 1 row count:', wsSummary.rowCount);
   console.log('Sheet 2 row count:', wsDetail.rowCount);

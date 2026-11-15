@@ -1,4 +1,3 @@
-import { useMemo, useState } from 'react';
 import {
   Area,
   AreaChart,
@@ -15,25 +14,7 @@ interface SalesChartProps {
   data: AdminSalesPoint[];
 }
 
-const FILTER_OPTIONS = [
-  {
-    value: '7d',
-    label: '7 Hari Terakhir',
-    days: 7,
-  },
-  {
-    value: '30d',
-    label: '30 Hari Terakhir',
-    days: 30,
-  },
-  {
-    value: '3m',
-    label: '3 Bulan',
-    days: 90,
-  },
-] as const;
-
-type FilterValue = (typeof FILTER_OPTIONS)[number]['value'];
+const SALES_CHART_DAYS = 7;
 
 function formatCompactRp(value: number): string {
   if (value >= 1_000_000) {
@@ -54,19 +35,7 @@ function formatFullRp(value: number): string {
 }
 
 export default function SalesChart({ data }: SalesChartProps) {
-  const [filter, setFilter] = useState<FilterValue>('7d');
-
-  const selectedFilter = FILTER_OPTIONS.find(
-    (option) => option.value === filter,
-  );
-
-  const chartData = useMemo(() => {
-    if (!selectedFilter) {
-      return data;
-    }
-
-    return data.slice(-selectedFilter.days);
-  }, [data, selectedFilter]);
+  const chartData = data.slice(-SALES_CHART_DAYS);
 
   return (
     <section className="flex h-full flex-col rounded-2xl border border-[#E8E4DC] bg-white p-5 shadow-[0_1px_2px_rgba(26,26,26,0.03)] sm:p-6">
@@ -75,26 +44,12 @@ export default function SalesChart({ data }: SalesChartProps) {
           Grafik Penjualan
         </h2>
 
-        <div className="relative">
-          <select
-            value={filter}
-            onChange={(event) =>
-              setFilter(event.target.value as FilterValue)
-            }
-            aria-label="Filter rentang grafik penjualan"
-            className="h-9 appearance-none rounded-xl border border-[#E8E4DC] bg-[#FAFAF8] pl-3.5 pr-8 text-[12px] font-medium text-[#4A4A4A] focus:border-[#B7C9D9] focus:outline-none"
-          >
-            {FILTER_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-[#8A847B]">
-            ▼
-          </span>
-        </div>
+        <span
+          aria-label="Rentang grafik penjualan"
+          className="inline-flex h-9 items-center rounded-xl border border-[#E8E4DC] bg-[#FAFAF8] px-3.5 text-[12px] font-medium text-[#4A4A4A]"
+        >
+          7 Hari Terakhir
+        </span>
       </div>
 
       <div className="h-[280px] w-full sm:h-[300px]">
@@ -168,7 +123,7 @@ export default function SalesChart({ data }: SalesChartProps) {
                 border: '1px solid #E8E4DC',
                 boxShadow: '0 8px 24px rgba(26,26,26,0.06)',
                 fontSize: 12,
-                fontFamily: 'Inter, sans-serif',
+                fontFamily: 'Poppins, system-ui, -apple-system, sans-serif',
               }}
               formatter={(value: number | string) => [
                 formatFullRp(Number(value)),

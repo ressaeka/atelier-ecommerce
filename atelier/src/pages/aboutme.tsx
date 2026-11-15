@@ -16,10 +16,10 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
 const DISPLAY_FONT =
-  "'Libre Bodoni', 'Bodoni Moda', 'Playfair Display', Georgia, serif";
+  "'Poppins', system-ui, -apple-system, sans-serif";
 
 const BODY_FONT =
-  "'Inter', 'Plus Jakarta Sans', system-ui, sans-serif";
+  "'Poppins', system-ui, -apple-system, sans-serif";
 
 interface PlaceholderPageProps {
   title: string;

@@ -2,6 +2,9 @@ import { z } from 'zod';
 
 export const SalesReportQuerySchema = z
   .object({
+    periodType: z.enum(['today', 'monthly', 'yearly', 'custom']).optional(),
+    month: z.coerce.number().int().min(1).max(12).optional(),
+    year: z.coerce.number().int().min(2000).max(2100).optional(),
     startDate: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/, 'Format startDate harus YYYY-MM-DD')
@@ -23,6 +26,10 @@ export const SalesReportQuerySchema = z
       ])
       .default('ALL'),
     search: z.string().trim().optional(),
+    sortBy: z
+      .enum(['createdAt', 'total', 'recognizedRevenue', 'status'])
+      .optional(),
+    sortOrder: z.enum(['asc', 'desc']).optional(),
     page: z.coerce.number().int().positive().default(1),
     limit: z.coerce.number().int().positive().max(100).default(10),
   })

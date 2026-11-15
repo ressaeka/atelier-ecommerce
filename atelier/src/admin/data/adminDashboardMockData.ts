@@ -106,19 +106,19 @@ export interface AdminDashboardData {
   isMock: boolean;
 }
 
-/** Soft blue accent mengikuti sistem warna Atelier (bukan Bootstrap). */
+/** Warm brown accent mengikuti sistem warna Atelier (tanpa biru/ungu). */
 export const ADMIN_PAYMENT_COLORS = [
-  '#6B8FAD',
-  '#A8C5D8',
-  '#C9A66B',
-  '#B8B4AA',
+  '#9A7458',
+  '#5C4033',
+  '#C2A48A',
+  '#DDBF9F',
 ] as const;
 
 export const ADMIN_REPORT_PROMO: AdminReportPromo = {
   title: 'Butuh laporan lain?',
   description:
-    'Kamu bisa mengunduh laporan penjualan, produk terlaris, dan pelanggan dalam format Excel.',
-  ctaLabel: 'Lihat Semua Laporan',
+    'Unduh laporan penjualan, produk terlaris, dan pelanggan (Excel).',
+  ctaLabel: 'Lihat semua laporan',
 };
 
 export const adminDashboardMockData: AdminDashboardData = {
@@ -320,8 +320,8 @@ export const adminDashboardMockData: AdminDashboardData = {
   reportPromo: {
     title: 'Butuh laporan lain?',
     description:
-      'Kamu bisa mengunduh laporan penjualan, produk terlaris, dan pelanggan dalam format Excel.',
-    ctaLabel: 'Lihat Semua Laporan',
+      'Unduh laporan penjualan, produk terlaris, dan pelanggan (Excel).',
+    ctaLabel: 'Lihat semua laporan',
   },
 };
 
@@ -329,36 +329,36 @@ export const ADMIN_ORDER_STATUS_META: Record<
   AdminOrderStatus,
   { className: string; dotClassName: string }
 > = {
-Diproses: {
-    className: 'bg-[#E3EEF8] text-[#4A7BA8]',
-    dotClassName: 'bg-[#5E96C8]',
+  Diproses: {
+    className: 'bg-[#FBF1E1] text-[#9A5B14]',
+    dotClassName: 'bg-[#9A5B14]',
   },
   Dikirim: {
-    className: 'bg-[#FDF0E0] text-[#A67C3D]',
-    dotClassName: 'bg-[#C9944A]',
+    className: 'bg-[#FBF1E1] text-[#9A5B14]',
+    dotClassName: 'bg-[#9A5B14]',
   },
   Selesai: {
-    className: 'bg-[#E4F4EA] text-[#3D8B5C]',
-    dotClassName: 'bg-[#4DA66D]',
+    className: 'bg-[#E7F3EC] text-[#2F7A4F]',
+    dotClassName: 'bg-[#2F7A4F]',
   },
   Dibatalkan: {
-    className: 'bg-[#F6E0E0] text-[#A05050]',
-    dotClassName: 'bg-[#C06060]',
+    className: 'bg-[#FBECEA] text-[#B4382E]',
+    dotClassName: 'bg-[#B4382E]',
   },
   Menunggu: {
-    className: 'bg-[#FDF3D9] text-[#A67C3D]',
-    dotClassName: 'bg-[#C9944A]',
+    className: 'bg-[#FBF1E1] text-[#9A5B14]',
+    dotClassName: 'bg-[#9A5B14]',
   },
   'Menunggu Pembayaran': {
-    className: 'bg-[#FDF3D9] text-[#A67C3D]',
-    dotClassName: 'bg-[#C9944A]',
+    className: 'bg-[#FBF1E1] text-[#9A5B14]',
+    dotClassName: 'bg-[#9A5B14]',
   },
   Dibayar: {
-    className: 'bg-[#E3EEF8] text-[#4A7BA8]',
-    dotClassName: 'bg-[#5E96C8]',
+    className: 'bg-[#FBF1E1] text-[#9A5B14]',
+    dotClassName: 'bg-[#9A5B14]',
   },
   Kedaluwarsa: {
-    className: 'bg-[#EEEEEE] text-[#6A6A6A]',
-    dotClassName: 'bg-[#9A9A9A]',
+    className: 'bg-[#FBECEA] text-[#B4382E]',
+    dotClassName: 'bg-[#B4382E]',
   },
 };

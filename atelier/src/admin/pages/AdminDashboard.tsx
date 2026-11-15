@@ -1,11 +1,11 @@
 import { useMemo } from 'react';
-import BestSellingProducts from '../components/BestSellingProducts';
-import DashboardStatCard from '../components/DashboardStatCard';
+import { AlertCircle, ChevronRight, Inbox, Truck } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import AnalyticsSection from '../components/analytics/AnalyticsSection';
 import PaymentMethodChart from '../components/PaymentMethodChart';
 import RecentOrders from '../components/RecentOrders';
 import ReportPromoCard from '../components/ReportPromoCard';
-import SalesChart from '../components/SalesChart';
-import SalesReport from '../components/SalesReport';
+import { CardHeader } from '../components/ui/AdminPrimitives';
 import { useAdminDashboardData } from '../hooks/useAdminDashboardData';
 
 function formatIndonesianDate(date: Date): string {
@@ -17,102 +17,78 @@ function formatIndonesianDate(date: Date): string {
   });
 }
 
+const numberFormatter = new Intl.NumberFormat('id-ID');
+
 export default function AdminDashboard() {
-  const { data, isLoading, error, refetch } = useAdminDashboardData();
+  const {
+    data,
+    isLoading: isOpsLoading,
+    error: opsError,
+    refetch: refetchOps,
+  } = useAdminDashboardData();
   const today = useMemo(() => formatIndonesianDate(new Date()), []);
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <p className="text-[11px] uppercase tracking-[0.22em] text-[#8A847B]">
-          Memuat dashboard…
-        </p>
-      </div>
+  const allTimeOrderCount = useMemo(() => {
+    const fromMethods = data.paymentMethods.reduce(
+      (sum, m) => sum + (m.orders ?? 0),
+      0,
     );
-  }
-
-  if (error) {
-    return (
-      <div className="space-y-6">
-        <header>
-          <h1 className="font-editorial text-[26px] font-medium tracking-tight text-[#1A1A1A] sm:text-[30px]">
-            Selamat datang, Admin!
-          </h1>
-          <p className="mt-1.5 text-[13px] text-[#6B6B6B]">
-            Berikut ringkasan aktivitas toko hari ini.
-          </p>
-        </header>
-
-        <div
-          role="alert"
-          className="rounded-2xl border border-[#F3B0A3] bg-[#FBD9D3] px-5 py-6"
-        >
-          <p className="text-[13px] font-semibold text-[#8C3A1E]">
-            Gagal memuat dashboard
-          </p>
-          <p className="mt-1.5 text-[12px] text-[#8C3A1E]/90">
-            Terjadi kendala saat memuat ringkasan toko. Silakan coba lagi.
-          </p>
-          <button
-            type="button"
-            onClick={refetch}
-            className="mt-4 rounded-xl bg-[#1A1A1A] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-white transition-colors hover:bg-[#333]"
-          >
-            Coba Lagi
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  const hasData =
-    data.kpis.length > 0 ||
-    data.recentOrders.length > 0 ||
-    data.bestSellingProducts.length > 0;
+    return fromMethods > 0 ? fromMethods : data.salesReport.totalOrders;
+  }, [data.paymentMethods, data.salesReport.totalOrders]);
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="font-editorial text-[26px] font-medium tracking-tight text-[#1A1A1A] sm:text-[30px]">
-            Selamat datang, Admin!
-          </h1>
-          <p className="mt-1.5 text-[13px] text-[#6B6B6B]">
-            Berikut ringkasan aktivitas toko hari ini.
+      {/* SCREEN 1: Unified Header + Business Analytics (Shared Period Filter) */}
+      <AnalyticsSection todayLabel={today} />
+
+      {/* SCREEN 2 (Row 4): Operational Monitoring, Payment Analytics & Reports Shortcut */}
+      <section aria-label="Operasional Toko" className="space-y-5">
+        <div className="flex flex-col gap-1 border-b border-[#ECE7DE] pb-2.5 sm:flex-row sm:items-end sm:justify-between">
+          <h2 className="font-editorial text-[24px] font-semibold tracking-tight text-[#1A1A1A]">
+            Operasional & Laporan Hari Ini
+          </h2>
+          <p className="text-[12.5px] font-medium text-[#6F6A62]">
+            {today} · pemantauan operasional real-time & pintasan laporan
           </p>
         </div>
-        <p className="text-[12px] font-medium text-[#8A847B] sm:text-right">
-          {today}
-        </p>
-      </header>
 
-      {!hasData && (
-        <div className="rounded-2xl border border-[#E8E4DC] bg-white px-6 py-10 text-center">
-          <p className="font-editorial text-[17px] text-[#1A1A1A]">
-            Belum ada data untuk ditampilkan
-          </p>
-          <p className="mt-2 text-[12px] text-[#8A847B]">
-            Belum ada data pesanan atau produk yang tercatat di toko.
-          </p>
-        </div>
-      )}
+        {isOpsLoading && (
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 min-[1440px]:grid-cols-3 xl:gap-6">
+            <div className="h-[400px] animate-pulse rounded-2xl border border-[#ECE7DE] bg-white/80" />
+            <div className="h-[400px] animate-pulse rounded-2xl border border-[#ECE7DE] bg-white/80" />
+            <div className="h-[400px] animate-pulse rounded-2xl border border-[#ECE7DE] bg-white/80 lg:col-span-2 min-[1440px]:col-span-1" />
+          </div>
+        )}
 
-      {/* KPI */}
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {data.kpis.map((card) => (
-          <DashboardStatCard key={card.id} card={card} />
-        ))}
-      </section>
+        {!isOpsLoading && opsError && (
+          <div
+            role="alert"
+            className="rounded-2xl border border-[#F5D6D2] bg-[#FBECEA] px-5 py-6"
+          >
+            <p className="text-[13.5px] font-semibold text-[#B4382E]">
+              Gagal memuat ringkasan operasional
+            </p>
+            <p className="mt-1.5 text-[12.5px] text-[#B4382E]/90">
+              Terjadi kendala saat memuat data operasional toko. Silakan coba
+              lagi.
+            </p>
+            <button
+              type="button"
+              onClick={refetchOps}
+              className="mt-4 min-h-[40px] rounded-xl bg-[#5C4033] px-4 py-2 text-[11.5px] font-semibold uppercase tracking-[0.12em] text-white transition-colors hover:bg-[#3D2920] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5C4033]"
+            >
+              Coba Lagi
+            </button>
+          </div>
+        )}
 
-      {/* Main grid */}
-      <section className="grid grid-cols-1 gap-5 xl:grid-cols-3">
-        {/* Left / center */}
-        <div className="space-y-5 xl:col-span-2">
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-            <div className="lg:col-span-2">
-              <SalesChart data={data.salesChart} />
-            </div>
+        {!isOpsLoading && !opsError && (
+          <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2 min-[1440px]:grid-cols-3 xl:gap-6">
+            <RecentOrders
+              orders={data.recentOrders}
+              totalOrdersCount={allTimeOrderCount}
+              toShipCount={data.todaySummary.toShip}
+            />
 
             <PaymentMethodChart
               methods={data.paymentMethods}
@@ -121,54 +97,107 @@ export default function AdminDashboard() {
               available={data.paymentMethodsAvailable}
             />
 
-            <RecentOrders orders={data.recentOrders} />
+            {/* Stacked Right Column: Ringkasan Hari Ini + Report Shortcuts */}
+            <div className="flex flex-col justify-between gap-5 lg:col-span-2 min-[1440px]:col-span-1">
+              <section className="flex flex-1 flex-col justify-between rounded-2xl border border-[#ECE7DE] bg-white p-5 shadow-[0_1px_3px_rgba(26,22,18,0.04)]">
+                <CardHeader
+                  icon={Inbox}
+                  title="Ringkasan Hari Ini"
+                  subtitle="Yang perlu ditindaklanjuti"
+                  scope="Real-time hari ini"
+                />
+
+                <ul className="space-y-2.5">
+                  <li>
+                    <Link
+                      to="/admin/orders"
+                      className="group flex items-center justify-between rounded-xl border border-[#ECE7DE] bg-[#FAF8F4] px-4 py-2.5 transition-colors hover:border-[#D6CFC2] hover:bg-[#F3EFE8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5C4033]"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#ECE7DE] bg-white text-[#5C4033]"
+                          aria-hidden="true"
+                        >
+                          <Inbox className="h-4 w-4" strokeWidth={1.75} />
+                        </span>
+                        <span className="text-[13.5px] font-medium text-[#3F3B36]">
+                          Pesanan baru
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-sans text-[21px] font-bold tabular-nums text-[#1A1A1A]">
+                          {numberFormatter.format(data.todaySummary.newOrders)}
+                        </span>
+                        <ChevronRight
+                          className="h-4 w-4 text-[#9B958C] transition-transform group-hover:translate-x-0.5"
+                          aria-hidden="true"
+                        />
+                      </div>
+                    </Link>
+                  </li>
+
+                  <li>
+                    <Link
+                      to="/admin/orders"
+                      className="group flex items-center justify-between rounded-xl border border-[#ECE7DE] bg-[#FAF8F4] px-4 py-2.5 transition-colors hover:border-[#D6CFC2] hover:bg-[#F3EFE8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5C4033]"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#ECE7DE] bg-white text-[#9A5B14]"
+                          aria-hidden="true"
+                        >
+                          <Truck className="h-4 w-4" strokeWidth={1.75} />
+                        </span>
+                        <span className="text-[13.5px] font-medium text-[#3F3B36]">
+                          Perlu dikirim
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-sans text-[21px] font-bold tabular-nums text-[#1A1A1A]">
+                          {numberFormatter.format(data.todaySummary.toShip)}
+                        </span>
+                        <ChevronRight
+                          className="h-4 w-4 text-[#9B958C] transition-transform group-hover:translate-x-0.5"
+                          aria-hidden="true"
+                        />
+                      </div>
+                    </Link>
+                  </li>
+
+                  <li>
+                    <Link
+                      to="/admin/products"
+                      className="group flex items-center justify-between rounded-xl border border-[#ECE7DE] bg-[#FAF8F4] px-4 py-2.5 transition-colors hover:border-[#D6CFC2] hover:bg-[#F3EFE8] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5C4033]"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[#ECE7DE] bg-white text-[#B4382E]"
+                          aria-hidden="true"
+                        >
+                          <AlertCircle className="h-4 w-4" strokeWidth={1.75} />
+                        </span>
+                        <span className="text-[13.5px] font-medium text-[#3F3B36]">
+                          Stok menipis
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-sans text-[21px] font-bold tabular-nums text-[#1A1A1A]">
+                          {numberFormatter.format(data.todaySummary.lowStock)}
+                        </span>
+                        <ChevronRight
+                          className="h-4 w-4 text-[#9B958C] transition-transform group-hover:translate-x-0.5"
+                          aria-hidden="true"
+                        />
+                      </div>
+                    </Link>
+                  </li>
+                </ul>
+              </section>
+
+              <ReportPromoCard promo={data.reportPromo} />
+            </div>
           </div>
-
-          <SalesReport
-            rows={data.salesReport.rows}
-            totalOrders={data.salesReport.totalOrders}
-            rangeLabel={data.salesReport.rangeLabel}
-          />
-        </div>
-
-        {/* Right — items-start prevents grid stretch; promo + ringkasan height:auto */}
-        <div className="flex flex-col gap-5 self-start">
-          <BestSellingProducts products={data.bestSellingProducts} />
-          <ReportPromoCard promo={data.reportPromo} />
-
-          {/* Today summary — bound to real backend metrics */}
-          <section className="rounded-2xl border border-[#E8E4DC] bg-white p-5 shadow-[0_1px_2px_rgba(26,26,26,0.03)] sm:p-6">
-            <h2 className="font-editorial text-[17px] font-medium tracking-tight text-[#1A1A1A]">
-              Ringkasan Hari Ini
-            </h2>
-            <ul className="mt-4 space-y-3">
-              <li className="flex items-center justify-between rounded-xl border border-[#F0EDE7] bg-[#FCFBF9] px-4 py-3">
-                <span className="text-[12.5px] text-[#6B6B6B]">
-                  Pesanan baru
-                </span>
-                <span className="font-editorial text-[15px] font-semibold text-[#1A1A1A]">
-                  {data.todaySummary.newOrders}
-                </span>
-              </li>
-              <li className="flex items-center justify-between rounded-xl border border-[#F0EDE7] bg-[#FCFBF9] px-4 py-3">
-                <span className="text-[12.5px] text-[#6B6B6B]">
-                  Perlu dikirim
-                </span>
-                <span className="font-editorial text-[15px] font-semibold text-[#1A1A1A]">
-                  {data.todaySummary.toShip}
-                </span>
-              </li>
-              <li className="flex items-center justify-between rounded-xl border border-[#F0EDE7] bg-[#FCFBF9] px-4 py-3">
-                <span className="text-[12.5px] text-[#6B6B6B]">
-                  Stok menipis
-                </span>
-                <span className="font-editorial text-[15px] font-semibold text-[#A67C3D]">
-                  {data.todaySummary.lowStock}
-                </span>
-              </li>
-            </ul>
-          </section>
-        </div>
+        )}
       </section>
     </div>
   );

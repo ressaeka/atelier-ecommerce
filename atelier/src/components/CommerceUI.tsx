@@ -8,7 +8,7 @@ import { ChevronDown, Check } from 'lucide-react';
  * the "- 1X +" stepper) so the four pages stay visually consistent.
  */
 
-export const SERIF = "'Libre Bodoni', 'Bodoni Moda', 'Playfair Display', Georgia, serif";
+export const SERIF = "'Poppins', system-ui, -apple-system, sans-serif";
 
 /** Editorial serif text — used for every heading, product name, price and label. */
 export const Serif: React.FC<{

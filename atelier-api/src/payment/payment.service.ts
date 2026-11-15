@@ -92,7 +92,7 @@ export class PaymentService {
 
     const attempt = await this.paymentRepository.getNextAttempt(order.id);
 
-    const midtransOrderId = `ATELIER-${order.id}-${attempt}`;
+    let midtransOrderId = `ATELIER-${order.id}-${attempt}`;
 
     const frontendUrl = (
       this.configService.get<string>('midtrans.frontendUrl') ??
@@ -102,18 +102,30 @@ export class PaymentService {
 
     const successUrl = `${frontendUrl}/payment/success/${order.id}`;
 
-    const payload: SnapTransactionPayload = {
+    const buildPayload = (orderIdStr: string): SnapTransactionPayload => ({
       transaction_details: {
-        order_id: midtransOrderId,
+        order_id: orderIdStr,
         gross_amount: order.total,
       },
 
-      item_details: order.items.map((item) => ({
-        id: String(item.productId),
-        price: item.price,
-        quantity: item.quantity,
-        name: item.product.name,
-      })),
+      item_details: [
+        ...order.items.map((item) => ({
+          id: String(item.productId),
+          price: item.price,
+          quantity: item.quantity,
+          name: item.product.name.slice(0, 50),
+        })),
+        ...(order.shippingFee > 0
+          ? [
+              {
+                id: 'SHIPPING',
+                price: order.shippingFee,
+                quantity: 1,
+                name: 'Ongkos Kirim',
+              },
+            ]
+          : []),
+      ],
 
       customer_details: {
         first_name: order.recipientName,
@@ -136,12 +148,48 @@ export class PaymentService {
         error: successUrl,
         pending: successUrl,
       },
-    };
+    });
 
-    // Midtrans SDK typing is too generic
-    const transaction = (await this.snap.createTransaction(
-      payload,
-    )) as unknown as SnapTransactionResponse;
+    let transaction: SnapTransactionResponse;
+    try {
+      transaction = await this.snap.createTransaction(
+        buildPayload(midtransOrderId),
+      );
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : String(err);
+      const isOrderIdTaken =
+        errMsg.includes('already been taken') ||
+        errMsg.includes('sudah digunakan') ||
+        errMsg.includes('transaction_details.order_id');
+
+      if (isOrderIdTaken) {
+        midtransOrderId = `ATELIER-${order.id}-${Date.now()}`;
+        this.logger.warn(
+          `Midtrans order_id ATELIER-${order.id}-${attempt} sudah terpakai di Midtrans; mencoba ulang dengan ${midtransOrderId}`,
+        );
+        try {
+          transaction = await this.snap.createTransaction(
+            buildPayload(midtransOrderId),
+          );
+        } catch (retryErr: unknown) {
+          const retryMsg =
+            retryErr instanceof Error ? retryErr.message : String(retryErr);
+          this.logger.error(
+            `Gagal membuat transaksi Midtrans saat retry (${midtransOrderId}): ${retryMsg}`,
+          );
+          throw new BadRequestException(
+            'Gagal menginisialisasi pembayaran Midtrans. Silakan coba lagi.',
+          );
+        }
+      } else {
+        this.logger.error(
+          `Gagal membuat transaksi Midtrans (${midtransOrderId}): ${errMsg}`,
+        );
+        throw new BadRequestException(
+          'Gagal menginisialisasi pembayaran Midtrans. Silakan coba lagi.',
+        );
+      }
+    }
 
     const snapToken = transaction.token;
     const redirectUrl = transaction.redirect_url;

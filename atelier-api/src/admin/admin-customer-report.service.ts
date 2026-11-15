@@ -1,17 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { OrderStatus, Prisma } from '../../generated/prisma/client.js';
+import { Prisma } from '../../generated/prisma/client.js';
 import type { CustomerReportQueryDto } from './dto/customer-report-query.dto.js';
+import {
+  BUSINESS_TIMEZONE,
+  BUSINESS_TZ_OFFSET_MS,
+  REVENUE_STATUSES,
+} from './admin.constants.js';
 
-const BUSINESS_TZ_OFFSET_MS = 7 * 60 * 60 * 1000; // WIB (UTC+7)
-const BUSINESS_TZ = 'Asia/Jakarta';
+export { REVENUE_STATUSES };
 
-export const REVENUE_STATUSES: OrderStatus[] = [
-  OrderStatus.PAID,
-  OrderStatus.PROCESSING,
-  OrderStatus.SHIPPED,
-  OrderStatus.DELIVERED,
-];
+const BUSINESS_TZ = BUSINESS_TIMEZONE;
 
 function parseWibDateToUtcRange(
   startDateStr?: string,
@@ -170,9 +169,10 @@ export class AdminCustomerReportService {
     const purchasingCustomerRatio =
       totalRegisteredCustomers > 0
         ? Number(
-            ((activePurchasingCustomers / totalRegisteredCustomers) * 100).toFixed(
-              1,
-            ),
+            (
+              (activePurchasingCustomers / totalRegisteredCustomers) *
+              100
+            ).toFixed(2),
           )
         : 0;
 

@@ -362,18 +362,68 @@ export interface ApiError {
 }
 
 // ─── Sales Report ───────────────────────────────────────────
+export type SalesReportPeriodType = 'today' | 'monthly' | 'yearly' | 'custom';
+export type SalesReportGranularity = 'hourly' | 'daily' | 'monthly';
+export type KpiTrendDirection = 'UP' | 'DOWN' | 'FLAT' | 'NO_BASELINE';
+
+export interface SalesReportKpiComparison {
+  currentValue: number;
+  previousValue: number;
+  percentageChange: number | null;
+  trend: KpiTrendDirection;
+  comparisonAvailable: boolean;
+}
+
 export interface SalesReportSummary {
   totalRevenue: number;
+  grossRevenue?: number;
+  discountTotal?: number;
+  refundTotal?: number;
+  netRevenue?: number;
   totalOrders: number;
+  allStatusesOrderCount?: number;
   completedOrders: number;
   totalItemsSold: number;
+  uniqueProductsSold?: number;
   averageOrderValue: number;
 }
 
+export interface SalesReportRevenueBreakdown {
+  grossProductSales: number;
+  shippingRevenue: number;
+  grossRevenue: number;
+  discountTotal: number;
+  discountAvailable: boolean;
+  refundTotal: number;
+  refundAvailable: boolean;
+  netRevenue: number;
+  excludedCancelledCount: number;
+  excludedCancelledAmount: number;
+  excludedPendingCount: number;
+  excludedPendingAmount: number;
+  methodology: {
+    recognizedStatuses: OrderStatus[];
+    recognitionBasis: string;
+    cancellationPolicy: string;
+    discountPolicy: string;
+    refundPolicy: string;
+    shippingPolicy: string;
+    doubleCountingProtection: string;
+  };
+}
+
 export interface SalesReportDailyTrend {
+  bucket?: string;
   date: string;
+  label?: string;
+  fullLabel?: string;
+  grossRevenue?: number;
+  discount?: number;
+  refund?: number;
   revenue: number;
   orderCount: number;
+  completedOrderCount?: number;
+  itemsSold?: number;
 }
 
 export interface SalesReportTransactionItem {
@@ -392,11 +442,17 @@ export interface SalesReportTransaction {
   createdAt: string;
   dateWib: string;
   recipientName: string;
+  customerName?: string;
+  customerEmail?: string | null;
   phone: string;
   city: string;
   province: string;
   subtotal: number;
   shippingFee: number;
+  grossAmount?: number;
+  discount?: number;
+  refund?: number;
+  recognizedRevenue?: number;
   total: number;
   status: OrderStatus;
   isRevenue: boolean;
@@ -408,12 +464,28 @@ export interface SalesReportTransaction {
 
 export interface SalesReportResponse {
   period: {
+    periodType?: SalesReportPeriodType;
+    granularity?: SalesReportGranularity;
+    month?: number;
+    year?: number;
     startDate: string;
     endDate: string;
+    periodLabel?: string;
+    comparisonStartDate?: string;
+    comparisonEndDate?: string;
+    comparisonLabel?: string;
     timezone: string;
   };
   summary: SalesReportSummary;
+  kpis?: {
+    totalRevenue: SalesReportKpiComparison;
+    completedOrders: SalesReportKpiComparison;
+    averageOrderValue: SalesReportKpiComparison;
+    totalItemsSold: SalesReportKpiComparison;
+  };
+  revenueBreakdown?: SalesReportRevenueBreakdown;
   statusDistribution: Record<OrderStatus, number>;
+  trend?: SalesReportDailyTrend[];
   dailyTrends: SalesReportDailyTrend[];
   transactions: {
     data: SalesReportTransaction[];
@@ -421,11 +493,22 @@ export interface SalesReportResponse {
   };
 }
 
+export type SalesReportSortBy =
+  | 'createdAt'
+  | 'total'
+  | 'recognizedRevenue'
+  | 'status';
+
 export interface SalesReportQuery {
+  periodType?: SalesReportPeriodType;
+  month?: number;
+  year?: number;
   startDate?: string;
   endDate?: string;
   status?: string;
   search?: string;
+  sortBy?: SalesReportSortBy;
+  sortOrder?: 'asc' | 'desc';
   page?: number;
   limit?: number;
 }

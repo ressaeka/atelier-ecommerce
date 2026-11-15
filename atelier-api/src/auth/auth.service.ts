@@ -173,7 +173,11 @@ export class AuthService {
     }
 
     try {
-      const parsed = JSON.parse(rawData);
+      const parsed = JSON.parse(rawData) as {
+        access_token: string;
+        refresh_token: string;
+        user?: unknown;
+      };
       return successResponse(parsed, 'Pertukaran token berhasil');
     } catch {
       throw new UnauthorizedException('Format data authorization code rusak');

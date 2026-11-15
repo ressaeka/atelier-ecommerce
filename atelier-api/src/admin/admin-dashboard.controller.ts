@@ -6,6 +6,11 @@ import { AdminDashboardService } from './admin-dashboard.service.js';
 import { AdminSalesReportService } from './admin-sales-report.service.js';
 import { AdminBestSellingService } from './admin-best-selling.service.js';
 import { AdminCustomerReportService } from './admin-customer-report.service.js';
+import { AdminAnalyticsService } from './admin-analytics.service.js';
+import {
+  AnalyticsQueryDto,
+  AnalyticsQuerySchema,
+} from './dto/analytics-query.dto.js';
 import {
   SalesReportQueryDto,
   SalesReportQuerySchema,
@@ -34,6 +39,7 @@ export class AdminDashboardController {
     private readonly adminSalesReportService: AdminSalesReportService,
     private readonly adminBestSellingService: AdminBestSellingService,
     private readonly adminCustomerReportService: AdminCustomerReportService,
+    private readonly adminAnalyticsService: AdminAnalyticsService,
   ) {}
 
   /**
@@ -92,10 +98,7 @@ export class AdminDashboardController {
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
-    res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="${filename}"`,
-    );
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.end(buffer);
   }
@@ -133,9 +136,25 @@ export class AdminDashboardController {
     @Query(new ZodValidationPipe(CustomerReportQuerySchema))
     query: CustomerReportQueryDto,
   ) {
-    const data =
-      await this.adminCustomerReportService.getCustomerReport(query);
+    const data = await this.adminCustomerReportService.getCustomerReport(query);
     return successResponse(data, 'Laporan pelanggan berhasil diambil');
   }
-}
 
+  /**
+   * ADMIN-only Business Analytics overview with period presets (7d, 30d, 1y, custom).
+   */
+  @Get('analytics/overview')
+  @UseGuards(RolesGuard, PermissionsGuard)
+  @Roles('ADMIN')
+  @Permissions('order:read')
+  @ApiOperation({
+    summary: 'Business Analytics overview admin (ADMIN only)',
+  })
+  async getAnalyticsOverview(
+    @Query(new ZodValidationPipe(AnalyticsQuerySchema))
+    query: AnalyticsQueryDto,
+  ) {
+    const data = await this.adminAnalyticsService.getOverview(query);
+    return successResponse(data, 'Business Analytics berhasil diambil');
+  }
+}

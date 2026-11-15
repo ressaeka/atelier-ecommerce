@@ -70,19 +70,19 @@ const navSections: NavSection[] = [
     id: 'reports',
     label: 'LAPORAN',
     children: [
-      { to: '/admin/reports', label: 'Penjualan', icon: BarChart3, end: true },
+      { to: '/admin/reports', label: 'Laporan Penjualan', icon: BarChart3, end: true },
       { to: '/admin/reports/products', label: 'Produk Terlaris', icon: Trophy },
-      { to: '/admin/reports/customers', label: 'Pelanggan', icon: Users },
+      { to: '/admin/reports/customers', label: 'Laporan Pelanggan', icon: Users },
     ],
   },
 ];
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
   [
-    'group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13px] font-medium transition-all duration-200',
+    'relative flex h-[42px] items-center gap-3 rounded-xl px-3.5 text-[14.5px] transition-all duration-150',
     isActive
-      ? 'bg-[#EEF4F9] text-[#2F5D86]'
-      : 'text-[#4A4A4A] hover:bg-[#F3F1EC] hover:text-[#1A1A1A]',
+      ? 'bg-[#F4EFE8] font-semibold text-[#5C4033] before:absolute before:inset-y-2 before:left-0 before:w-[3px] before:rounded-full before:bg-[#5C4033]'
+      : 'font-medium text-[#3F3B36] hover:bg-[#FAF8F4] hover:text-[#1A1A1A]',
   ].join(' ');
 
 function isSectionActive(section: NavSection, pathname: string): boolean {
@@ -106,32 +106,22 @@ export default function AdminSidebar({
   const content = (
     <div className="flex h-full flex-col bg-white">
       {/* Brand */}
-      <div className="border-b border-[#EDEAE3] px-6 pb-6 pt-7">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-editorial text-[19px] font-semibold uppercase tracking-[0.22em] text-[#1A1A1A]">
-                ATELIER
-              </span>
-              <span className="mt-1 inline-block h-1.5 w-1.5 rounded-full bg-[#A33A2B]" />
-            </div>
-            <p className="mt-1.5 font-editorial text-[11px] italic text-[#8A847B]">
-              Fashion for Your Story
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onCloseMobile}
-            className="rounded-lg p-1.5 text-[#6B6B6B] transition-colors hover:bg-[#F3F1EC] hover:text-[#1A1A1A] lg:hidden"
-            aria-label="Tutup sidebar"
-          >
-            <X size={18} />
-          </button>
-        </div>
+      <div className="flex h-16 items-center justify-between px-6">
+        <span className="font-editorial text-[20px] font-semibold uppercase tracking-[0.26em] text-[#5C4033]">
+          ATELIER
+        </span>
+        <button
+          type="button"
+          onClick={onCloseMobile}
+          className="rounded-lg p-1.5 text-[#6F6A62] transition-colors hover:bg-[#F4EFE8] hover:text-[#1A1A1A] lg:hidden"
+          aria-label="Tutup sidebar"
+        >
+          <X size={18} />
+        </button>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-4 py-6">
+      <nav className="flex-1 overflow-y-auto px-3.5 py-3">
         <ul className="space-y-5">
           {navSections.map((section) => {
             const sectionActive = isSectionActive(section, location.pathname);
@@ -147,7 +137,7 @@ export default function AdminSidebar({
                   >
                     {section.icon && (
                       <section.icon
-                        size={17}
+                        size={18}
                         strokeWidth={1.75}
                         className="shrink-0"
                       />
@@ -161,31 +151,24 @@ export default function AdminSidebar({
             return (
               <li key={section.id}>
                 <p
-                  className={`mb-2 px-2 text-[10px] font-semibold uppercase tracking-[0.18em] ${
-                    sectionActive ? 'text-[#2F5D86]' : 'text-[#B0AAA0]'
+                  className={`mb-2 px-3 text-[11.5px] font-semibold uppercase tracking-wider ${
+                    sectionActive ? 'text-[#5C4033]' : 'text-[#6F6A62]'
                   }`}
                 >
                   {section.label}
                 </p>
-                <ul className="space-y-0.5">
+                <ul className="space-y-1">
                   {section.children?.map((child) => (
                     <li key={child.to}>
                       <NavLink
                         to={child.to}
                         end={child.end}
                         onClick={onCloseMobile}
-                        className={({ isActive }) =>
-                          [
-                            'flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-[13px] font-medium transition-all duration-200',
-                            isActive
-                              ? 'bg-[#EEF4F9] text-[#2F5D86]'
-                              : 'text-[#4A4A4A] hover:bg-[#F3F1EC] hover:text-[#1A1A1A]',
-                          ].join(' ')
-                        }
+                        className={linkClass}
                       >
                         {child.icon && (
                           <child.icon
-                            size={16}
+                            size={18}
                             strokeWidth={1.75}
                             className="shrink-0"
                           />
@@ -202,7 +185,7 @@ export default function AdminSidebar({
       </nav>
 
       {/* Account section — Profile / Logout */}
-      <div className="border-t border-[#EDEAE3] px-3 py-3">
+      <div className="p-3.5">
         <AdminAccountMenu variant="sidebar" onNavigate={onCloseMobile} />
       </div>
     </div>
@@ -211,7 +194,7 @@ export default function AdminSidebar({
   return (
     <>
       {/* Desktop */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[260px] border-r border-[#EDEAE3] shadow-[1px_0_0_0_rgba(0,0,0,0.02)] lg:block">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[248px] border-r border-[#ECE7DE] lg:block">
         {content}
       </aside>
 

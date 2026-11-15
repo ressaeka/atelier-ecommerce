@@ -28,14 +28,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }, [mobileOpen, closeMobile]);
 
   return (
-    <div className="min-h-screen bg-[#F7F6F2] text-[#1A1A1A] antialiased">
+    <div className="min-h-screen bg-[#F6F4EF] font-sans text-[#1A1A1A] antialiased">
       <AdminSidebar mobileOpen={mobileOpen} onCloseMobile={closeMobile} />
 
-      <div className="flex min-h-screen flex-col lg:pl-[260px]">
+      <div className="flex min-h-screen flex-col lg:pl-[248px]">
         <AdminTopbar onOpenMobileSidebar={() => setMobileOpen(true)} />
 
-        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
-          <div className="mx-auto w-full max-w-[1280px]">{children}</div>
+        <main className="flex-1 px-4 py-6 sm:px-6 lg:px-10 lg:py-8">
+          <div className="mx-auto w-full max-w-[1640px]">{children}</div>
         </main>
       </div>
     </div>

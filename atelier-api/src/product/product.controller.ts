@@ -83,7 +83,7 @@ export class ProductController {
   @Post('upload-image')
   @UseGuards(RolesGuard, PermissionsGuard)
   @Roles('ADMIN')
-  @Permissions(PERMISSIONS.PRODUCT_CREATE)
+  @Permissions(PERMISSIONS.PRODUCT_CREATE, PERMISSIONS.PRODUCT_UPDATE)
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
@@ -128,7 +128,7 @@ export class ProductController {
   @ApiOperation({
     summary: 'Upload foto produk (Admin only, max 5MB)',
   })
-  async uploadImage(
+  uploadImage(
     @UploadedFile()
     file?: Express.Multer.File,
   ) {

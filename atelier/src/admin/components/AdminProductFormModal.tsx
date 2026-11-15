@@ -2,7 +2,6 @@ import { useState, useRef } from 'react';
 import {
   X,
   Upload,
-  Image as ImageIcon,
   Trash2,
   CheckCircle2,
   Loader2,
@@ -16,6 +15,7 @@ import {
   validateUpdateProductPayload,
   uploadProductImage,
 } from '../../lib/productApi';
+import { resolveImageUrl } from '../../lib/utils';
 
 interface AdminProductFormModalProps {
   mode: 'create' | 'edit';
@@ -58,6 +58,15 @@ function formFromProduct(product: AdminProductItem): FormState {
   };
 }
 
+function toDisplayPreviewUrl(rawUrl: string | null | undefined, name?: string): string | null {
+  if (!rawUrl || !rawUrl.trim()) return null;
+  const trimmed = rawUrl.trim();
+  if (trimmed.startsWith('blob:') || trimmed.startsWith('data:')) {
+    return trimmed;
+  }
+  return resolveImageUrl(trimmed, 160, 160, name);
+}
+
 export default function AdminProductFormModal({
   mode,
   product,
@@ -71,12 +80,32 @@ export default function AdminProductFormModal({
   const [form, setForm] = useState<FormState>(() =>
     isEdit && product ? formFromProduct(product) : emptyForm(),
   );
+
+  // Pisahkan state foto secara eksplisit:
+  // - existingImage: path/URL foto lama yang sudah tersimpan di database (mode edit)
+  // - newImage: File baru yang dipilih dari perangkat
+  // - imageUrl: URL eksternal (https://...) atau URL hasil upload baru
+  const [existingImage, setExistingImage] = useState<string | null>(() =>
+    isEdit && product?.image ? product.image.trim() : null,
+  );
+  const [newImage, setNewImage] = useState<File | null>(null);
+  const [imageUrl, setImageUrl] = useState<string>(() => {
+    const initialImg = isEdit && product?.image ? product.image.trim() : '';
+    return initialImg.startsWith('http://') || initialImg.startsWith('https://')
+      ? initialImg
+      : '';
+  });
+
   const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(() => product?.image || null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(() =>
+    toDisplayPreviewUrl(product?.image, product?.name),
+  );
   const [imageInputMode, setImageInputMode] = useState<'upload' | 'url'>('upload');
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const activeImageValue = imageUrl.trim() || existingImage?.trim() || form.image.trim();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -97,6 +126,8 @@ export default function AdminProductFormModal({
       return;
     }
 
+    setNewImage(file);
+
     // Tampilkan pratinjau lokal instan
     const localUrl = URL.createObjectURL(file);
     setPreviewUrl(localUrl);
@@ -104,16 +135,23 @@ export default function AdminProductFormModal({
     setIsUploading(true);
     try {
       const res = await uploadProductImage(file);
+      setImageUrl(res.url);
+      setExistingImage(null);
       setForm((prev) => ({ ...prev, image: res.url }));
-      setPreviewUrl(res.url);
+      setPreviewUrl(toDisplayPreviewUrl(res.url, form.name));
       if (fieldErrors.image) {
         setFieldErrors((prev) => ({ ...prev, image: undefined }));
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Gagal mengunggah foto.';
       setUploadError(msg);
-      // Batalkan preview jika upload gagal dan belum ada gambar tersimpan
-      if (!form.image) {
+      setNewImage(null);
+      // Kembalikan preview ke foto lama jika masih ada, atau kosongkan
+      if (existingImage) {
+        setPreviewUrl(toDisplayPreviewUrl(existingImage, form.name));
+      } else if (imageUrl) {
+        setPreviewUrl(toDisplayPreviewUrl(imageUrl, form.name));
+      } else {
         setPreviewUrl(null);
       }
     } finally {
@@ -126,11 +164,26 @@ export default function AdminProductFormModal({
   };
 
   const handleRemoveImage = () => {
+    setExistingImage(null);
+    setNewImage(null);
+    setImageUrl('');
     setForm((prev) => ({ ...prev, image: '' }));
     setPreviewUrl(null);
     setUploadError(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
+    }
+  };
+
+  const handleImageUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setImageUrl(val);
+    setNewImage(null);
+    setExistingImage(null);
+    setForm((prev) => ({ ...prev, image: val }));
+    setPreviewUrl(val.trim() ? toDisplayPreviewUrl(val.trim(), form.name) : null);
+    if (fieldErrors.image) {
+      setFieldErrors((prev) => ({ ...prev, image: undefined }));
     }
   };
 
@@ -146,15 +199,19 @@ export default function AdminProductFormModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isSubmitting) return;
+    if (isSubmitting || isUploading) return;
 
     const errors: Partial<Record<keyof FormState, string>> = {};
 
     if (!form.name.trim()) {
       errors.name = 'Nama produk wajib diisi.';
     }
-    if (!form.image.trim()) {
-      errors.image = 'Alamat gambar wajib diisi.';
+
+    const resolvedImage = imageUrl.trim() || existingImage?.trim() || form.image.trim();
+    if (!resolvedImage) {
+      errors.image = isEdit
+        ? 'Foto produk telah dihapus. Silakan unggah foto pengganti atau masukkan URL gambar sebelum menyimpan.'
+        : 'Alamat gambar wajib diisi.';
     }
     if (form.categoryId === '') {
       errors.categoryId = 'Kategori wajib dipilih.';
@@ -176,17 +233,23 @@ export default function AdminProductFormModal({
     const categoryId = Number(form.categoryId);
 
     if (isEdit) {
-      // UpdateProductDto — send only defined fields from the form
+      const originalImage = product?.image?.trim() ?? '';
+      const hasImageChanged = resolvedImage !== originalImage;
+
+      // Jika foto lama masih dipertahankan dan tidak memilih foto/URL baru,
+      // pertahankan foto lama tanpa memicu validasi ulang sebagai URL baru
       const payload: UpdateProductRequest = {
         name: form.name.trim(),
         description: form.description.trim() || undefined,
         price,
         stock,
-        image: form.image.trim(),
+        ...(hasImageChanged ? { image: resolvedImage } : {}),
         categoryId,
       };
 
-      const clientError = validateUpdateProductPayload(payload);
+      const clientError = validateUpdateProductPayload(payload, {
+        existingImage: originalImage,
+      });
       if (clientError) {
         setFieldErrors({ image: clientError });
         return;
@@ -201,7 +264,7 @@ export default function AdminProductFormModal({
       description: form.description.trim() || undefined,
       price,
       stock,
-      image: form.image.trim(),
+      image: resolvedImage,
       categoryId,
     };
 
@@ -448,10 +511,14 @@ export default function AdminProductFormModal({
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 text-[12px] font-semibold text-[#2D5A27]">
                           <CheckCircle2 className="h-3.5 w-3.5 text-[#2D5A27]" />
-                          Foto Siap Disimpan
+                          {newImage
+                            ? `Foto Baru (${newImage.name})`
+                            : existingImage
+                              ? 'Foto Tersimpan Saat Ini'
+                              : 'Foto Siap Disimpan'}
                         </div>
                         <p className="mt-0.5 truncate text-[11px] text-[#8A847B]">
-                          {form.image}
+                          {activeImageValue}
                         </p>
                         <div className="mt-2.5 flex items-center gap-2">
                           <button
@@ -519,11 +586,8 @@ export default function AdminProductFormModal({
                   id="product-image"
                   name="image"
                   type="url"
-                  value={form.image}
-                  onChange={(e) => {
-                    handleChange(e);
-                    setPreviewUrl(e.target.value.trim() || null);
-                  }}
+                  value={imageUrl || existingImage || ''}
+                  onChange={handleImageUrlChange}
                   disabled={isSubmitting}
                   className="h-10 w-full rounded-xl border border-[#EDEAE3] bg-[#FAFAF8] px-3 text-[13px] text-[#1A1A1A] focus:border-[#B7C9D9] focus:bg-white focus:outline-none disabled:opacity-60"
                   placeholder="https://images.unsplash.com/photo-..."

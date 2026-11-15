@@ -38,7 +38,7 @@ export function WishlistProvider({
   const [loading, setLoading] = useState(false);
 
   const refresh = useCallback(async () => {
-    if (!user) {
+    if (!user || user.role !== 'USER') {
       setWishlist(null);
       return;
     }

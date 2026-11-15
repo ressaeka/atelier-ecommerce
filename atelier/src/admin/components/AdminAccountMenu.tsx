@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronDown, ChevronUp, LogOut, UserRound } from 'lucide-react';
+import { ChevronDown, LogOut, UserRound } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface AdminAccountMenuProps {
@@ -75,19 +75,19 @@ export default function AdminAccountMenu({
         <button
           type="button"
           onClick={() => setOpen((v) => !v)}
-          className="flex items-center gap-2 rounded-xl border border-[#EDEAE3] bg-white py-1.5 pl-1.5 pr-2.5 transition-colors hover:bg-[#FAFAF8]"
+          className="flex items-center gap-2.5 rounded-xl px-2 py-1 transition-colors hover:bg-[#FAF8F4]"
           aria-label="Account menu"
           aria-expanded={open}
         >
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#1A1A1A] text-[12px] font-medium text-white">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#5C4033] text-[12px] font-semibold text-white">
             {initial}
           </div>
-          <span className="hidden max-w-[120px] truncate text-[13px] font-medium text-[#1A1A1A] sm:block">
+          <span className="hidden max-w-[120px] truncate text-[13.5px] font-medium text-[#1A1A1A] sm:block">
             {name}
           </span>
           <ChevronDown
             size={14}
-            className={`shrink-0 text-[#6B6B6B] transition-transform duration-200 ${
+            className={`shrink-0 text-[#6F6A62] transition-transform duration-200 ${
               open ? 'rotate-180' : ''
             }`}
           />
@@ -102,16 +102,16 @@ export default function AdminAccountMenu({
               aria-label="Tutup menu akun"
             />
             <div className={menuPanelClass}>
-              <div className="border-b border-[#F0EDE7] px-3 py-2.5">
+              <div className="border-b border-[#ECE7DE] px-3 py-2.5">
                 <p className="truncate text-[13px] font-semibold text-[#1A1A1A]">
                   {name}
                 </p>
-                <p className="truncate text-[11px] text-[#8A847B]">{email}</p>
+                <p className="truncate text-[11.5px] text-[#6F6A62]">{email}</p>
               </div>
               <button
                 type="button"
                 onClick={handleProfile}
-                className={`${menuItemClass} mt-1 text-[#4A4A4A] hover:bg-[#F3F1EC] hover:text-[#1A1A1A]`}
+                className={`${menuItemClass} mt-1 text-[#3F3B36] hover:bg-[#F4EFE8] hover:text-[#1A1A1A]`}
               >
                 <UserRound size={15} strokeWidth={1.75} className="shrink-0" />
                 Profile
@@ -121,7 +121,7 @@ export default function AdminAccountMenu({
                 onClick={() => {
                   void handleLogout();
                 }}
-                className={`${menuItemClass} mt-0.5 text-[#A05050] hover:bg-[#FBF0F0]`}
+                className={`${menuItemClass} mt-0.5 text-[#B4382E] hover:bg-[#FBECEA]`}
               >
                 <LogOut size={15} strokeWidth={1.75} className="shrink-0" />
                 Logout
@@ -139,22 +139,27 @@ export default function AdminAccountMenu({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-3 rounded-xl px-2 py-2 text-left transition-colors hover:bg-[#F3F1EC]"
+        className="flex w-full items-center gap-3 rounded-2xl border border-[#ECE7DE] bg-white px-3 py-2.5 text-left transition-colors hover:bg-[#FAF8F4]"
         aria-label="Account menu"
         aria-expanded={open}
       >
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#1A1A1A] text-[13px] font-medium text-white">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#5C4033] text-[13px] font-semibold text-white">
           {initial}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[13px] font-semibold text-[#1A1A1A]">
+          <p className="truncate text-[13.5px] font-semibold leading-tight text-[#1A1A1A]">
             {name}
           </p>
-          <p className="truncate text-[11px] text-[#8A847B]">{email}</p>
+          <p
+            className="mt-0.5 truncate text-[12px] leading-tight text-[#6F6A62]"
+            title={email}
+          >
+            {email}
+          </p>
         </div>
-        <ChevronUp
+        <ChevronDown
           size={14}
-          className={`shrink-0 text-[#8A847B] transition-transform duration-200 ${
+          className={`shrink-0 text-[#6F6A62] transition-transform duration-200 ${
             open ? 'rotate-180' : ''
           }`}
         />
@@ -165,7 +170,7 @@ export default function AdminAccountMenu({
           <button
             type="button"
             onClick={handleProfile}
-            className={`${menuItemClass} text-[#4A4A4A] hover:bg-[#F3F1EC] hover:text-[#1A1A1A]`}
+            className={`${menuItemClass} text-[#3F3B36] hover:bg-[#F4EFE8] hover:text-[#1A1A1A]`}
           >
             <UserRound size={15} strokeWidth={1.75} className="shrink-0" />
             Profile
@@ -175,7 +180,7 @@ export default function AdminAccountMenu({
             onClick={() => {
               void handleLogout();
             }}
-            className={`${menuItemClass} mt-0.5 text-[#A05050] hover:bg-[#FBF0F0]`}
+            className={`${menuItemClass} mt-0.5 text-[#B4382E] hover:bg-[#FBECEA]`}
           >
             <LogOut size={15} strokeWidth={1.75} className="shrink-0" />
             Logout

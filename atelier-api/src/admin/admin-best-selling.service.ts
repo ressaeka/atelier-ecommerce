@@ -1,17 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service.js';
-import { OrderStatus } from '../../generated/prisma/client.js';
 import type { BestSellingQueryDto } from './dto/best-selling-query.dto.js';
+import {
+  BUSINESS_TIMEZONE,
+  BUSINESS_TZ_OFFSET_MS,
+  REVENUE_STATUSES,
+} from './admin.constants.js';
 
-const BUSINESS_TZ_OFFSET_MS = 7 * 60 * 60 * 1000; // WIB (UTC+7)
-const BUSINESS_TZ = 'Asia/Jakarta';
-
-const REVENUE_STATUSES: OrderStatus[] = [
-  OrderStatus.PAID,
-  OrderStatus.PROCESSING,
-  OrderStatus.SHIPPED,
-  OrderStatus.DELIVERED,
-];
+const BUSINESS_TZ = BUSINESS_TIMEZONE;
 
 function parseWibDateToUtcRange(
   startDateStr?: string,
@@ -44,9 +40,7 @@ function parseWibDateToUtcRange(
   const [ey, em, ed] = endYmd.split('-').map(Number);
 
   const start = new Date(Date.UTC(sy, sm - 1, sd) - BUSINESS_TZ_OFFSET_MS);
-  const end = new Date(
-    Date.UTC(ey, em - 1, ed + 1) - BUSINESS_TZ_OFFSET_MS,
-  );
+  const end = new Date(Date.UTC(ey, em - 1, ed + 1) - BUSINESS_TZ_OFFSET_MS);
 
   return { start, end, startYmd, endYmd };
 }
@@ -70,7 +64,8 @@ export class AdminBestSellingService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getBestSellingProducts(query: BestSellingQueryDto) {
-    const { startDate, endDate, search, sortBy, sortOrder, page, limit } = query;
+    const { startDate, endDate, search, sortBy, sortOrder, page, limit } =
+      query;
     const { start, end, startYmd, endYmd } = parseWibDateToUtcRange(
       startDate,
       endDate,

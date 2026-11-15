@@ -3,23 +3,39 @@ import React from 'react';
 interface ErrorBoundaryState {
   hasError: boolean;
   message: string;
+  isChunkError: boolean;
+}
+
+function isDynamicChunkLoadError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error ?? '');
+  return /Failed to fetch dynamically imported module|Importing a module script failed|ChunkLoadError|Unable to preload CSS/i.test(
+    msg,
+  );
 }
 
 /**
  * Safety net for unexpected render/runtime errors.
  * Shows an in-app error panel instead of a full white screen.
- * Does NOT force page reload.
+ * Recovers via state reset, or safe full-page reload if a lazy chunk failed after deployment.
  */
 export default class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
   ErrorBoundaryState
 > {
-  state: ErrorBoundaryState = { hasError: false, message: '' };
+  state: ErrorBoundaryState = {
+    hasError: false,
+    message: '',
+    isChunkError: false,
+  };
 
   static getDerivedStateFromError(error: unknown): ErrorBoundaryState {
     return {
       hasError: true,
-      message: error instanceof Error ? error.message : 'Terjadi kesalahan tak terduga.',
+      message:
+        error instanceof Error
+          ? error.message
+          : 'Terjadi kesalahan tak terduga.',
+      isChunkError: isDynamicChunkLoadError(error),
     };
   }
 
@@ -28,7 +44,11 @@ export default class ErrorBoundary extends React.Component<
   }
 
   handleReset = () => {
-    this.setState({ hasError: false, message: '' });
+    if (this.state.isChunkError) {
+      window.location.reload();
+      return;
+    }
+    this.setState({ hasError: false, message: '', isChunkError: false });
   };
 
   render() {

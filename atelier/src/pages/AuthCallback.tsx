@@ -58,7 +58,7 @@ export default function AuthCallback() {
       <div className="text-center">
         <p
           className="text-[20px] font-normal tracking-[0.04em] text-[#1A1A1A] mb-2"
-          style={{ fontFamily: "'Libre Bodoni', 'Playfair Display', Georgia, serif" }}
+          style={{ fontFamily: "'Poppins', system-ui, -apple-system, sans-serif" }}
         >
           ATELIER
         </p>

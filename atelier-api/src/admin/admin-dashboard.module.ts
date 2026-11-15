@@ -4,6 +4,7 @@ import { AdminDashboardService } from './admin-dashboard.service.js';
 import { AdminSalesReportService } from './admin-sales-report.service.js';
 import { AdminBestSellingService } from './admin-best-selling.service.js';
 import { AdminCustomerReportService } from './admin-customer-report.service.js';
+import { AdminAnalyticsService } from './admin-analytics.service.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 
 @Module({
@@ -14,12 +15,14 @@ import { PrismaModule } from '../prisma/prisma.module.js';
     AdminSalesReportService,
     AdminBestSellingService,
     AdminCustomerReportService,
+    AdminAnalyticsService,
   ],
   exports: [
     AdminDashboardService,
     AdminSalesReportService,
     AdminBestSellingService,
     AdminCustomerReportService,
+    AdminAnalyticsService,
   ],
 })
 export class AdminDashboardModule {}

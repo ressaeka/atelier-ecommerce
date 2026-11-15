@@ -20,6 +20,4 @@ export const CustomerReportQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(100).default(10),
 });
 
-export type CustomerReportQueryDto = z.infer<
-  typeof CustomerReportQuerySchema
->;
+export type CustomerReportQueryDto = z.infer<typeof CustomerReportQuerySchema>;

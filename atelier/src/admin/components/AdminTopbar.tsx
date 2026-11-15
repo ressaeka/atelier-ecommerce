@@ -125,21 +125,32 @@ export default function AdminTopbar({ onOpenMobileSidebar }: AdminTopbarProps) {
     inputRef.current?.focus();
   };
 
+  useEffect(() => {
+    const onGlobalShortcut = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', onGlobalShortcut);
+    return () => document.removeEventListener('keydown', onGlobalShortcut);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-30 border-b border-[#EDEAE3] bg-white/90 backdrop-blur-md">
-      <div className="flex h-[68px] items-center gap-3 px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-30 border-b border-[#ECE7DE] bg-white">
+      <div className="flex h-16 items-center gap-3 px-4 sm:px-6 lg:px-10">
         <button
           type="button"
           onClick={onOpenMobileSidebar}
-          className="rounded-lg border border-[#EDEAE3] p-2 text-[#1A1A1A] transition-colors hover:bg-[#F3F1EC] lg:hidden"
+          className="rounded-lg border border-[#ECE7DE] p-2 text-[#1A1A1A] transition-colors hover:bg-[#FAF8F4] lg:hidden"
           aria-label="Buka menu sidebar"
         >
           <Menu size={18} />
         </button>
 
-        <div ref={containerRef} className="relative hidden min-w-0 flex-1 sm:block lg:max-w-md">
+        <div ref={containerRef} className="relative hidden min-w-0 flex-1 sm:block lg:w-[440px] lg:max-w-[440px]">
           <form onSubmit={handleSubmit} role="search" className="relative">
-            <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#A39E95]" />
+            <Search size={16} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#A39D93]" />
             <input
               ref={inputRef}
               type="search"
@@ -147,22 +158,26 @@ export default function AdminTopbar({ onOpenMobileSidebar }: AdminTopbarProps) {
               onChange={(e) => setQuery(e.target.value)}
               onFocus={() => { if (query.trim().length >= 2) setOpen(true); }}
               onKeyDown={handleKeyDown}
-              placeholder="Search products, orders, customers..."
-              aria-label="Search admin"
+              placeholder="Cari produk, pesanan, pelanggan..."
+              aria-label="Cari di halaman admin"
               aria-expanded={showDropdown}
               aria-controls="admin-global-search-list"
               autoComplete="off"
-              className="h-10 w-full rounded-xl border border-[#EDEAE3] bg-[#FAFAF8] pl-10 pr-9 text-[13px] text-[#1A1A1A] placeholder:text-[#A39E95] transition-colors focus:border-[#B7C9D9] focus:bg-white focus:outline-none"
+              className="h-10 w-full rounded-xl border border-[#ECE7DE] bg-[#FAF8F4] pl-10 pr-16 text-[13.5px] text-[#1A1A1A] placeholder:text-[#6F6A62] transition-colors focus:border-[#9A7458] focus:bg-white focus:outline-none"
             />
-            {query && (
+            {query ? (
               <button
                 type="button"
                 onClick={handleClear}
-                aria-label="Clear search"
-                className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-[#A39E95] hover:bg-[#F3F1EC] hover:text-[#1A1A1A]"
+                aria-label="Hapus pencarian"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded-full p-1 text-[#6F6A62] hover:bg-[#F4EFE8] hover:text-[#1A1A1A]"
               >
                 <X size={14} />
               </button>
+            ) : (
+              <kbd className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 rounded-md border border-[#ECE7DE] bg-white px-1.5 py-0.5 font-sans text-[11px] font-medium text-[#6F6A62]">
+                Ctrl K
+              </kbd>
             )}
           </form>
 
@@ -170,7 +185,7 @@ export default function AdminTopbar({ onOpenMobileSidebar }: AdminTopbarProps) {
             <div
               id="admin-global-search-list"
               role="listbox"
-              className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-2xl border border-[#EDEAE3] bg-white shadow-xl"
+              className="absolute left-0 right-0 top-[calc(100%+8px)] z-50 overflow-hidden rounded-2xl border border-[#ECE7DE] bg-white shadow-xl"
             >
               <AdminGlobalSearchDropdown
                 results={results}
@@ -186,33 +201,33 @@ export default function AdminTopbar({ onOpenMobileSidebar }: AdminTopbarProps) {
           )}
         </div>
 
-        <div className="ml-auto flex items-center gap-2 sm:gap-3">
+        <div className="ml-auto flex items-center gap-2.5">
           <AdminAccountMenu variant="topbar" />
         </div>
       </div>
 
-      <div ref={mobileContainerRef} className="border-t border-[#F0EDE7] px-4 pb-3 pt-2 sm:hidden">
+      <div ref={mobileContainerRef} className="border-t border-[#ECE7DE] px-4 pb-3 pt-2 sm:hidden">
         <form onSubmit={handleSubmit} role="search" className="relative">
-          <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#A39E95]" />
+          <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#A39D93]" />
           <input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => { if (query.trim().length >= 2) setOpen(true); }}
             onKeyDown={handleKeyDown}
-            placeholder="Search products, orders, customers..."
-            aria-label="Search admin"
+            placeholder="Cari produk, pesanan, pelanggan..."
+            aria-label="Cari di halaman admin"
             autoComplete="off"
-            className="h-9 w-full rounded-xl border border-[#EDEAE3] bg-[#FAFAF8] pl-9 pr-8 text-[13px] text-[#1A1A1A] placeholder:text-[#A39E95] focus:border-[#B7C9D9] focus:bg-white focus:outline-none"
+            className="h-9 w-full rounded-xl border border-[#ECE7DE] bg-[#FAF8F4] pl-9 pr-8 text-[13px] text-[#1A1A1A] placeholder:text-[#6F6A62] focus:border-[#9A7458] focus:bg-white focus:outline-none"
           />
           {query && (
-            <button type="button" onClick={handleClear} aria-label="Clear search" className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-[#A39E95]">
+            <button type="button" onClick={handleClear} aria-label="Hapus pencarian" className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-[#6F6A62]">
               <X size={14} />
             </button>
           )}
         </form>
         {showDropdown && (
-          <div className="mt-2 overflow-hidden rounded-2xl border border-[#EDEAE3] bg-white shadow-xl">
+          <div className="mt-2 overflow-hidden rounded-2xl border border-[#ECE7DE] bg-white shadow-xl">
             <AdminGlobalSearchDropdown
               results={results}
               isLoading={isLoading}

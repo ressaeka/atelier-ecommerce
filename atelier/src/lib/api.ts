@@ -170,6 +170,7 @@ export const api = {
   async get<T>(
     endpoint: string,
     params?: Record<string, string | number | boolean | undefined>,
+    config?: { signal?: AbortSignal },
   ): Promise<T> {
     const filteredParams = params
       ? Object.fromEntries(
@@ -178,7 +179,10 @@ export const api = {
           ),
         )
       : undefined;
-    const { data } = await http.get<T>(endpoint, { params: filteredParams });
+    const { data } = await http.get<T>(endpoint, {
+      params: filteredParams,
+      signal: config?.signal,
+    });
     return data;
   },
 

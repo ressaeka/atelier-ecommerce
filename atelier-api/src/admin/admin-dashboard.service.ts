@@ -12,26 +12,24 @@ import type {
   AdminDashboardStatusDistribution,
 } from '../common/types/admin-dashboard.types.js';
 
-/**
- * Business day timezone: Asia/Jakarta (WIB, UTC+7).
- * Used consistently for "hari ini", sales chart, and KPI comparisons.
- */
-const BUSINESS_TZ_OFFSET_MS = 7 * 60 * 60 * 1000;
-const BUSINESS_TZ = 'Asia/Jakarta';
-
-const REVENUE_STATUSES = [
-  'PAID',
-  'PROCESSING',
-  'SHIPPED',
-  'DELIVERED',
-] as const;
+import {
+  BUSINESS_TIMEZONE,
+  BUSINESS_TZ_OFFSET_MS,
+  ORDER_EXCLUDED_STATUSES,
+  REVENUE_STATUSES,
+} from './admin.constants.js';
 
 const LOW_STOCK_THRESHOLD = 5;
 const SALES_CHART_DAYS = 7;
 const RECENT_ORDERS_LIMIT = 5;
 const SALES_REPORT_LIMIT = 5;
 
-function businessDayRange(
+interface SalesChartRow {
+  date: string;
+  revenue: bigint | number | null;
+}
+
+export function businessDayRange(
   reference: Date,
   daysAgo: number,
 ): { start: Date; end: Date } {
@@ -42,21 +40,21 @@ function businessDayRange(
     shifted.getUTCDate(),
   );
   const start = new Date(
-    dayUtcMidnight - BUSINESS_TZ_OFFSET_MS + daysAgo * 24 * 60 * 60 * 1000,
+    dayUtcMidnight - BUSINESS_TZ_OFFSET_MS - daysAgo * 24 * 60 * 60 * 1000,
   );
   const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
   return { start, end };
 }
 
-function toYmd(date: Date): string {
-  const ymd = new Date(date.getTime() - BUSINESS_TZ_OFFSET_MS);
+export function toYmd(date: Date): string {
+  const ymd = new Date(date.getTime() + BUSINESS_TZ_OFFSET_MS);
   const y = ymd.getUTCFullYear();
   const m = String(ymd.getUTCMonth() + 1).padStart(2, '0');
   const d = String(ymd.getUTCDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 }
 
-function formatRangeLabel(start: Date, end: Date): string {
+export function formatRangeLabel(start: Date, end: Date): string {
   const fmt = (d: Date) => toYmd(d).split('-').reverse().join(' ');
   return `${fmt(start)} - ${fmt(new Date(end.getTime() - 1))}`;
 }
@@ -73,7 +71,7 @@ function emptyStatusDistribution(): AdminDashboardStatusDistribution {
   };
 }
 
-function safePercent(current: number, previous: number): number | null {
+export function safePercent(current: number, previous: number): number | null {
   if (previous === 0) {
     return null;
   }
@@ -121,8 +119,11 @@ export class AdminDashboardService {
       recentOrdersRaw,
       reportOrdersRaw,
       completedPaymentsRaw,
+      salesChartRows,
     ] = await Promise.all([
-      this.prisma.order.count(),
+      this.prisma.order.count({
+        where: { status: { notIn: [...ORDER_EXCLUDED_STATUSES] } },
+      }),
       this.prisma.user.count({ where: { role: 'USER' } }),
       this.prisma.product.count(),
       this.prisma.order.count({ where: { status: 'PENDING' } }),
@@ -151,10 +152,16 @@ export class AdminDashboardService {
         _sum: { total: true },
       }),
       this.prisma.order.count({
-        where: { createdAt: { gte: today.start, lt: today.end } },
+        where: {
+          createdAt: { gte: today.start, lt: today.end },
+          status: { notIn: [...ORDER_EXCLUDED_STATUSES] },
+        },
       }),
       this.prisma.order.count({
-        where: { createdAt: { gte: yesterday.start, lt: yesterday.end } },
+        where: {
+          createdAt: { gte: yesterday.start, lt: yesterday.end },
+          status: { notIn: [...ORDER_EXCLUDED_STATUSES] },
+        },
       }),
       this.prisma.user.count({
         where: {
@@ -170,8 +177,13 @@ export class AdminDashboardService {
       }),
       this.prisma.orderItem.groupBy({
         by: ['productId'],
+        where: {
+          order: {
+            status: { in: [...REVENUE_STATUSES] },
+          },
+        },
         _sum: { quantity: true },
-        orderBy: { _sum: { quantity: 'desc' } },
+        orderBy: [{ _sum: { quantity: 'desc' } }, { productId: 'asc' }],
         take: 5,
       }),
       this.prisma.order.findMany({
@@ -211,22 +223,30 @@ export class AdminDashboardService {
         where: { status: PaymentStatus.PAID },
         select: { paymentMethod: true },
       }),
+      this.prisma.$queryRaw<SalesChartRow[]>`
+        SELECT
+          to_char(("createdAt" AT TIME ZONE 'UTC') AT TIME ZONE 'Asia/Jakarta', 'YYYY-MM-DD') AS "date",
+          COALESCE(SUM(total), 0)::bigint AS "revenue"
+        FROM "Order"
+        WHERE "createdAt" >= ${chartStart.start}
+          AND "createdAt" < ${today.end}
+          AND status = ANY(${[...REVENUE_STATUSES]}::"OrderStatus"[])
+        GROUP BY 1
+        ORDER BY 1 ASC
+      `,
     ]);
 
-    // Sales chart: DB-side sums per business day (not full-table download)
+    // Sales chart: 1 DB GROUP BY query + chronological 7-day zero-filling (WIB)
+    const chartRevenueByDate = new Map<string, number>();
+    for (const row of salesChartRows) {
+      chartRevenueByDate.set(row.date, Number(row.revenue ?? 0));
+    }
     const salesChart: AdminDashboardSalesPoint[] = [];
     for (let daysAgo = SALES_CHART_DAYS - 1; daysAgo >= 0; daysAgo--) {
-      const range = businessDayRange(now, daysAgo);
-      const agg = await this.prisma.order.aggregate({
-        where: {
-          createdAt: { gte: range.start, lt: range.end },
-          status: { in: [...REVENUE_STATUSES] },
-        },
-        _sum: { total: true },
-      });
+      const dateYmd = toYmd(businessDayRange(now, daysAgo).start);
       salesChart.push({
-        date: toYmd(range.start),
-        revenue: agg._sum.total ?? 0,
+        date: dateYmd,
+        revenue: chartRevenueByDate.get(dateYmd) ?? 0,
       });
     }
 
@@ -320,7 +340,7 @@ export class AdminDashboardService {
       salesReport: {
         rows: salesReportRows,
         totalOrders,
-        rangeLabel: formatRangeLabel(chartStart.start, chartStart.end),
+        rangeLabel: formatRangeLabel(chartStart.start, today.end),
       },
       paymentMethods: paymentMethodDistribution.paymentMethods,
       paymentMethodsAvailable:
@@ -331,7 +351,7 @@ export class AdminDashboardService {
         customers: comparison(customersNewToday, customersNewYesterday),
       },
       lowStockThreshold: LOW_STOCK_THRESHOLD,
-      timezone: BUSINESS_TZ,
+      timezone: BUSINESS_TIMEZONE,
     };
   }
 }

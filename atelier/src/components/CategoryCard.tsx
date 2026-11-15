@@ -10,10 +10,10 @@ interface CategoryCardProps {
 }
 
 const DISPLAY_FONT =
-  "'Libre Bodoni', 'Bodoni Moda', 'Playfair Display', Georgia, serif";
+  "'Poppins', system-ui, -apple-system, sans-serif";
 
 const BODY_FONT =
-  "'Inter', 'Plus Jakarta Sans', system-ui, sans-serif";
+  "'Poppins', system-ui, -apple-system, sans-serif";
 
 const CategoryCard: React.FC<CategoryCardProps> = ({
   category,

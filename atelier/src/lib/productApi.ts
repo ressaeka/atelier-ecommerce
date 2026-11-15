@@ -87,6 +87,7 @@ export function validateCreateProductPayload(body: CreateProductRequest): string
 
 export function validateUpdateProductPayload(
   body: UpdateProductRequest,
+  options?: { existingImage?: string | null },
 ): string | null {
   if (body.name !== undefined && !body.name.trim()) {
     return 'Nama produk tidak boleh kosong.';
@@ -106,8 +107,14 @@ export function validateUpdateProductPayload(
   ) {
     return 'Stok harus bilangan bulat minimal 0.';
   }
-  if (body.image !== undefined && !isValidImageUrl(body.image)) {
-    return 'Gambar produk harus berupa file yang valid atau URL (https://...).';
+  if (body.image !== undefined) {
+    const trimmed = body.image.trim();
+    const preservedExisting =
+      Boolean(options?.existingImage) &&
+      trimmed === options?.existingImage?.trim();
+    if (!preservedExisting && !isValidImageUrl(trimmed)) {
+      return 'Gambar produk harus berupa file yang valid atau URL (https://...).';
+    }
   }
   if (
     body.categoryId !== undefined &&
@@ -118,11 +125,22 @@ export function validateUpdateProductPayload(
   return null;
 }
 
-function isValidImageUrl(value: string): boolean {
+export function isValidImageUrl(value: string): boolean {
   if (!value || typeof value !== 'string') return false;
-  if (value.startsWith('/uploads/') || value.startsWith('uploads/')) return true;
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  if (
+    trimmed.startsWith('/uploads/') ||
+    trimmed.startsWith('uploads/') ||
+    trimmed.startsWith('/images/') ||
+    trimmed.startsWith('images/') ||
+    trimmed.startsWith('/public/') ||
+    trimmed.startsWith('public/')
+  ) {
+    return true;
+  }
   try {
-    const url = new URL(value);
+    const url = new URL(trimmed);
     return url.protocol === 'http:' || url.protocol === 'https:';
   } catch {
     return false;

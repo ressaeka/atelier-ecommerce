@@ -105,7 +105,8 @@ export class AuthController {
   @Public()
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Tukar temporary authorization code menjadi token autentikasi (alias)',
+    summary:
+      'Tukar temporary authorization code menjadi token autentikasi (alias)',
   })
   async exchangeOAuthCode(
     @Body(new ZodValidationPipe(oauthExchangeSchema))

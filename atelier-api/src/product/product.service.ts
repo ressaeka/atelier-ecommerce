@@ -120,10 +120,18 @@ export class ProductService {
     id: number,
     updateProductDto: UpdateProductDto,
   ): Promise<Product> {
-    const { categoryId, ...rest } = updateProductDto;
+    const { categoryId, image, ...rest } = updateProductDto;
+    const normalizedImage =
+      typeof image === 'string' && image.trim().length > 0
+        ? image.trim()
+        : undefined;
 
     const data: Prisma.ProductUpdateInput = {
       ...rest,
+
+      ...(normalizedImage !== undefined && {
+        image: normalizedImage,
+      }),
 
       ...(categoryId !== undefined && {
         category: {

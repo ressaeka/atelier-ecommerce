@@ -74,22 +74,16 @@ export function resolveImageUrl(
   }
 
   /*
-   * Absolute frontend path
+   * Backend/storage path yang masih
+   * diawali "/public/" atau "public/"
    *
-   * /images/kemeja.jpg
-   * /uploads/kemeja.jpg
+   * /public/images/foo.jpg → /images/foo.jpg
+   * public/images/foo.jpg  → /images/foo.jpg
    */
-  if (cleanUrl.startsWith('/')) {
-    return cleanUrl;
+  if (cleanUrl.startsWith('/public/')) {
+    return `/${cleanUrl.slice('/public/'.length)}`;
   }
 
-  /*
-   * Backend/storage path yang masih
-   * diawali "public/"
-   *
-   * public/images/foo.jpg
-   * → /images/foo.jpg
-   */
   if (
     cleanUrl.startsWith(
       'public/',
@@ -98,6 +92,16 @@ export function resolveImageUrl(
     return `/${cleanUrl.slice(
       'public/'.length,
     )}`;
+  }
+
+  /*
+   * Absolute frontend path
+   *
+   * /images/kemeja.jpg
+   * /uploads/kemeja.jpg
+   */
+  if (cleanUrl.startsWith('/')) {
+    return cleanUrl;
   }
 
   /*
