@@ -380,6 +380,7 @@ export interface SalesReportSummary {
   totalRevenue: number;
   grossRevenue?: number;
   grossSales?: number;
+  completedRevenue?: number;
   nonCancelledRevenue?: number;
   cancelledOrdersAmount?: number;
   discountTotal?: number;
@@ -388,6 +389,8 @@ export interface SalesReportSummary {
   totalOrders: number;
   allStatusesOrderCount?: number;
   completedOrders: number;
+  succeededOrders?: number;
+  cancelledOrders?: number;
   totalItemsSold: number;
   uniqueProductsSold?: number;
   averageOrderValue: number;

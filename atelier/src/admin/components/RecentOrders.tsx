@@ -1,3 +1,4 @@
+
 import { ArrowRight, ShoppingCart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import type { AdminRecentOrder } from '../data/adminDashboardMockData';
@@ -56,7 +57,8 @@ export default function RecentOrders({
         }
       />
 
-      <div className="flex flex-1 flex-col justify-center">
+      {/* Order list - aligned to the top */}
+      <div className="flex min-h-0 flex-1 flex-col justify-start">
         {orders.length === 0 ? (
           <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed border-[#ECE7DE] bg-[#FAF8F4] px-4 py-10 text-center text-[13px] text-[#6F6A62]">
             Belum ada pesanan terbaru.

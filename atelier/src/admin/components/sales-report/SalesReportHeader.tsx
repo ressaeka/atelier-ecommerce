@@ -1,17 +1,19 @@
 import { memo } from 'react';
 import { Link } from 'react-router-dom';
-import { Download, FileSpreadsheet, RefreshCw } from 'lucide-react';
+import { Download, FileSpreadsheet, FileText, RefreshCw } from 'lucide-react';
 
 interface SalesReportHeaderProps {
   lastUpdatedWib: string;
   isLoading: boolean;
   isFetching: boolean;
   isExportingExcel: boolean;
+  isExportingPdf?: boolean;
   hasTransactions: boolean;
   hasError: boolean;
   onRefetch: () => void;
   onExportCsv: () => void;
   onExportExcel: () => void;
+  onExportPdf: () => void;
 }
 
 export const SalesReportHeader = memo(function SalesReportHeader({
@@ -19,11 +21,13 @@ export const SalesReportHeader = memo(function SalesReportHeader({
   isLoading,
   isFetching,
   isExportingExcel,
+  isExportingPdf = false,
   hasTransactions,
   hasError,
   onRefetch,
   onExportCsv,
   onExportExcel,
+  onExportPdf,
 }: SalesReportHeaderProps) {
   return (
     <header className="flex flex-col gap-3.5 lg:flex-row lg:items-end lg:justify-between">
@@ -93,6 +97,21 @@ export const SalesReportHeader = memo(function SalesReportHeader({
         >
           <Download size={14} strokeWidth={1.8} aria-hidden="true" />
           <span>Ekspor CSV</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={onExportPdf}
+          disabled={!hasTransactions || isLoading || isExportingPdf}
+          className="inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-[#D5C2B4] bg-[#F7F4EE] px-3.5 py-2 text-[12.5px] font-semibold text-[#5C4033] shadow-[0_1px_2px_rgba(92,64,51,0.06)] transition-colors hover:bg-[#EFE9E0] hover:text-[#3D2920] disabled:cursor-not-allowed disabled:opacity-40"
+          title="Unduh laporan eksekutif lengkap dalam format PDF"
+        >
+          {isExportingPdf ? (
+            <RefreshCw size={14} className="animate-spin text-[#5C4033]" aria-hidden="true" />
+          ) : (
+            <FileText size={14} strokeWidth={1.8} aria-hidden="true" />
+          )}
+          <span>{isExportingPdf ? 'Mengekspor PDF…' : 'Ekspor PDF'}</span>
         </button>
 
         <button

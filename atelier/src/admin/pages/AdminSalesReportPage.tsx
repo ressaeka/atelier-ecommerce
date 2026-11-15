@@ -26,6 +26,7 @@ import {
 } from '../components/sales-report/TransactionStatusChart';
 import { formatFullIndonesianDateTime } from '../components/sales-report/salesReportUtils';
 import { useAdminSalesReport } from '../hooks/useAdminSalesReport';
+import { exportSalesReportPdf } from '../utils/pdfReportGenerator';
 
 const DEFAULT_SUMMARY: SalesReportSummary = {
   totalRevenue: 0,
@@ -107,6 +108,7 @@ export default function AdminSalesReportPage() {
   } = useAdminSalesReport();
 
   const [isExportingExcel, setIsExportingExcel] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
   const summary = data?.summary ?? DEFAULT_SUMMARY;
@@ -302,6 +304,77 @@ export default function AdminSalesReportPage() {
     document.body.removeChild(link);
   }, [transactions, endDate, startDate]);
 
+  const handleExportPdf = useCallback(async () => {
+    if (isExportingPdf || !data) return;
+    setIsExportingPdf(true);
+    setExportError(null);
+    try {
+      const statusCounts = {
+        DELIVERED: { count: 0, amount: 0 },
+        PROCESSING: { count: 0, amount: 0 },
+        SHIPPED: { count: 0, amount: 0 },
+        CANCELLED: { count: 0, amount: 0 },
+      };
+
+      for (const t of transactions) {
+        const st = t.status as keyof typeof statusCounts;
+        if (statusCounts[st]) {
+          statusCounts[st].count += 1;
+          statusCounts[st].amount += t.total;
+        }
+      }
+
+      await exportSalesReportPdf({
+        periodLabel: periodDisplayLabel,
+        summary: {
+          grossSales: summary.grossSales ?? summary.totalRevenue ?? 0,
+          completedRevenue: summary.completedRevenue ?? summary.totalRevenue ?? 0,
+          nonCancelledRevenue: summary.nonCancelledRevenue ?? summary.totalRevenue ?? 0,
+          cancelledOrdersAmount: summary.cancelledOrdersAmount ?? statusCounts.CANCELLED.amount,
+          totalOrders: summary.totalOrders ?? 0,
+          succeededOrders: summary.completedOrders ?? statusCounts.DELIVERED.count,
+          cancelledOrders: statusCounts.CANCELLED.count,
+          averageOrderValue: summary.averageOrderValue ?? 0,
+        },
+        breakdown: {
+          deliveredCount: statusCounts.DELIVERED.count || summary.completedOrders,
+          deliveredAmount: statusCounts.DELIVERED.amount || summary.totalRevenue,
+          processingCount: statusCounts.PROCESSING.count,
+          processingAmount: statusCounts.PROCESSING.amount,
+          shippedCount: statusCounts.SHIPPED.count,
+          shippedAmount: statusCounts.SHIPPED.amount,
+          cancelledCount: statusCounts.CANCELLED.count,
+          cancelledAmount: statusCounts.CANCELLED.amount,
+        },
+        transactions: transactions.map((t) => ({
+          id: t.id,
+          orderNumber: t.orderNumber || `#${t.id}`,
+          date: formatFullIndonesianDateTime(t.createdAt),
+          customerName: t.customerName ?? t.recipientName ?? 'Pelanggan',
+          paymentMethod: t.paymentMethod ?? '-',
+          status: t.status,
+          totalAmount: t.total,
+          itemCount: t.itemsCount ?? 1,
+        })),
+        chartElementId: 'sales-revenue-chart-card',
+      });
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : 'Terjadi kendala saat mengekspor laporan ke PDF.';
+      setExportError(msg);
+    } finally {
+      setIsExportingPdf(false);
+    }
+  }, [
+    isExportingPdf,
+    data,
+    periodDisplayLabel,
+    summary,
+    transactions,
+  ]);
+
   return (
     <div className="space-y-5">
       {/* 2.A. Compact Page Header */}
@@ -310,11 +383,13 @@ export default function AdminSalesReportPage() {
         isLoading={isLoading}
         isFetching={isFetching}
         isExportingExcel={isExportingExcel}
+        isExportingPdf={isExportingPdf}
         hasTransactions={transactions.length > 0}
         hasError={Boolean(error)}
         onRefetch={refetch}
         onExportCsv={handleExportCsv}
         onExportExcel={handleExportExcel}
+        onExportPdf={handleExportPdf}
       />
 
       {/* Export Error Alert */}

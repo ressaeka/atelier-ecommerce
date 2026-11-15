@@ -95,7 +95,10 @@ export const SalesRevenueChart = memo(function SalesRevenueChart({
   periodDisplayLabel,
 }: SalesRevenueChartProps) {
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-[#ECE7DE] bg-white p-5 shadow-[0_1px_3px_rgba(26,22,18,0.04)] sm:p-6 xl:col-span-2">
+    <div
+      id="sales-revenue-chart-card"
+      className="flex flex-col justify-between rounded-2xl border border-[#ECE7DE] bg-white p-5 shadow-[0_1px_3px_rgba(26,22,18,0.04)] sm:p-6 xl:col-span-2"
+    >
       <div className="mb-4 flex flex-wrap items-start justify-between gap-2.5">
         <div>
           <div className="flex flex-wrap items-center gap-2">

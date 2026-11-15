@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  FileText,
   MapPin,
   PackageCheck,
   RefreshCw,
@@ -24,6 +25,7 @@ import {
   ProgressBar,
   RankBadge,
 } from '../components/ui/AdminPrimitives';
+import { exportRegionalReportPdf } from '../utils/pdfReportGenerator';
 
 const PRESET_BUTTONS: Array<{ id: AnalyticsPreset; label: string }> = [
   { id: '7d', label: '7 Hari Terakhir' },
@@ -173,11 +175,53 @@ export default function AdminRegionalSalesReportPage() {
     setPage(1);
   };
 
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+
   const handleExport = () => {
     if (regions.length === 0) return;
     const start = data?.period?.startDate ?? 'start';
     const end = data?.period?.endDate ?? 'end';
     exportRegionalCsv(filteredRegions, start, end);
+  };
+
+  const handleExportPdf = async () => {
+    if (regions.length === 0 || isExportingPdf) return;
+    setIsExportingPdf(true);
+    try {
+      const periodLabel =
+        data?.period?.startDate && data?.period?.endDate
+          ? `${data.period.startDate} s/d ${data.period.endDate}`
+          : preset === '7d'
+            ? '7 Hari Terakhir'
+            : preset === '30d'
+              ? '30 Hari Terakhir'
+              : preset === '1y'
+                ? '1 Tahun Terakhir'
+                : 'Periode Kustom';
+
+      await exportRegionalReportPdf({
+        periodLabel,
+        summary: {
+          totalRevenue,
+          totalOrders,
+          topRegion: topRegion?.province ?? '-',
+          averageOrderValue,
+        },
+        regions: filteredRegions.map((r, idx) => ({
+          rank: idx + 1,
+          province: r.province,
+          orders: r.orders,
+          unitsSold: r.unitsSold,
+          revenue: r.revenue,
+          contribution: r.percentageContribution,
+        })),
+        chartElementId: 'regional-analytics-card-container',
+      });
+    } catch (err) {
+      console.error('Export PDF regional failed:', err);
+    } finally {
+      setIsExportingPdf(false);
+    }
   };
 
   return (
@@ -238,6 +282,21 @@ export default function AdminRegionalSalesReportPage() {
           >
             <Download size={14} strokeWidth={1.8} aria-hidden="true" />
             <span>Ekspor CSV</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleExportPdf}
+            disabled={regions.length === 0 || isLoading || isExportingPdf}
+            className="inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-[#D5C2B4] bg-[#F7F4EE] px-3.5 py-2 text-[12.5px] font-semibold text-[#5C4033] shadow-[0_1px_2px_rgba(92,64,51,0.06)] transition-colors hover:bg-[#EFE9E0] hover:text-[#3D2920] disabled:cursor-not-allowed disabled:opacity-40"
+            title="Unduh laporan penjualan per wilayah format PDF"
+          >
+            {isExportingPdf ? (
+              <RefreshCw size={14} className="animate-spin text-[#5C4033]" aria-hidden="true" />
+            ) : (
+              <FileText size={14} strokeWidth={1.8} aria-hidden="true" />
+            )}
+            <span>{isExportingPdf ? 'Mengekspor PDF…' : 'Ekspor PDF'}</span>
           </button>
         </div>
       </header>
@@ -424,7 +483,7 @@ export default function AdminRegionalSalesReportPage() {
       {/* ── 4. Visual Section ── */}
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Visual Map/Card using Shared AnalyticsRegionalSalesCard */}
-        <div className="lg:col-span-7">
+        <div id="regional-analytics-card-container" className="lg:col-span-7">
           <AnalyticsRegionalSalesCard regions={regions} />
         </div>
 

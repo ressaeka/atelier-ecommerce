@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Download,
+  FileText,
   PieChart as PieChartIcon,
   RefreshCw,
   Search,
@@ -25,6 +26,7 @@ import {
   ProgressBar,
   RankBadge,
 } from '../components/ui/AdminPrimitives';
+import { exportCategoryReportPdf } from '../utils/pdfReportGenerator';
 
 const PRESET_BUTTONS: Array<{ id: AnalyticsPreset; label: string }> = [
   { id: '7d', label: '7 Hari Terakhir' },
@@ -170,11 +172,52 @@ export default function AdminCategoryReportPage() {
     setPage(1);
   };
 
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+
   const handleExport = () => {
     if (categories.length === 0) return;
     const start = data?.period?.startDate ?? 'start';
     const end = data?.period?.endDate ?? 'end';
     exportCategoryCsv(filteredCategories, start, end);
+  };
+
+  const handleExportPdf = async () => {
+    if (categories.length === 0 || isExportingPdf) return;
+    setIsExportingPdf(true);
+    try {
+      const periodLabel =
+        data?.period?.startDate && data?.period?.endDate
+          ? `${data.period.startDate} s/d ${data.period.endDate}`
+          : preset === '7d'
+            ? '7 Hari Terakhir'
+            : preset === '30d'
+              ? '30 Hari Terakhir'
+              : preset === '1y'
+                ? '1 Tahun Terakhir'
+                : 'Periode Kustom';
+
+      await exportCategoryReportPdf({
+        periodLabel,
+        summary: {
+          totalRevenue,
+          totalUnits,
+          topCategory: topCategory?.name ?? '-',
+          avgPerCategory: avgRevenuePerCategory,
+        },
+        categories: filteredCategories.map((c, idx) => ({
+          rank: idx + 1,
+          name: c.name,
+          unitsSold: c.unitsSold,
+          revenue: c.revenue,
+          contribution: c.percentageContribution,
+        })),
+        chartElementId: 'category-analytics-chart-container',
+      });
+    } catch (err) {
+      console.error('Export PDF category failed:', err);
+    } finally {
+      setIsExportingPdf(false);
+    }
   };
 
   return (
@@ -235,6 +278,21 @@ export default function AdminCategoryReportPage() {
           >
             <Download size={14} strokeWidth={1.8} aria-hidden="true" />
             <span>Ekspor CSV</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleExportPdf}
+            disabled={categories.length === 0 || isLoading || isExportingPdf}
+            className="inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-[#D5C2B4] bg-[#F7F4EE] px-3.5 py-2 text-[12.5px] font-semibold text-[#5C4033] shadow-[0_1px_2px_rgba(92,64,51,0.06)] transition-colors hover:bg-[#EFE9E0] hover:text-[#3D2920] disabled:cursor-not-allowed disabled:opacity-40"
+            title="Unduh laporan performa kategori format PDF"
+          >
+            {isExportingPdf ? (
+              <RefreshCw size={14} className="animate-spin text-[#5C4033]" aria-hidden="true" />
+            ) : (
+              <FileText size={14} strokeWidth={1.8} aria-hidden="true" />
+            )}
+            <span>{isExportingPdf ? 'Mengekspor PDF…' : 'Ekspor PDF'}</span>
           </button>
         </div>
       </header>
@@ -421,7 +479,7 @@ export default function AdminCategoryReportPage() {
       {/* ── 4. Visual Chart Section ── */}
       <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
         {/* Visual Donut Chart using Shared AnalyticsCategoryChart */}
-        <div className="lg:col-span-7">
+        <div id="category-analytics-chart-container" className="lg:col-span-7">
           <AnalyticsCategoryChart categories={categories} />
         </div>
 
