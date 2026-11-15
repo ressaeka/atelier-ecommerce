@@ -87,8 +87,9 @@ model UserIdentity {
 }
 
 model Category {
-  id   Int    @id @default(autoincrement())
-  name String @unique @db.VarChar(50)
+  id    Int     @id @default(autoincrement())
+  name  String  @unique @db.VarChar(50)
+  image String? @db.VarChar(255)
 
   products Product[]
 
@@ -223,6 +224,8 @@ model WishlistItem {
 
 model Order {
   id Int @id @default(autoincrement())
+
+  orderNumber String? @unique @db.VarChar(50)
 
   userId Int
   user   User @relation(fields: [userId], references: [id])

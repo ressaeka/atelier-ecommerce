@@ -27,6 +27,7 @@ export class CategoryService {
 
     const category = await this.categoryRepository.create({
       name: dto.name,
+      image: dto.image ?? null,
     });
 
     return this.toEntity(category);
@@ -143,6 +144,7 @@ export class CategoryService {
   private toEntity(category: {
     id: number;
     name: string;
+    image?: string | null;
     createdAt: Date;
     updatedAt: Date;
     _count?: { products: number };
@@ -151,6 +153,7 @@ export class CategoryService {
 
     entity.id = category.id;
     entity.name = category.name;
+    entity.image = category.image ?? null;
     entity.createdAt = category.createdAt;
     entity.updatedAt = category.updatedAt;
     (entity as Category & { productCount: number }).productCount =

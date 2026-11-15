@@ -510,6 +510,7 @@ export class AdminSalesReportService {
         { phone: { contains: search, mode: 'insensitive' } },
         { user: { name: { contains: search, mode: 'insensitive' } } },
         { user: { email: { contains: search, mode: 'insensitive' } } },
+        { orderNumber: { contains: search, mode: 'insensitive' } },
       ];
       if (!Number.isNaN(parsedId) && parsedId > 0) {
         orConditions.push({ id: parsedId });
@@ -578,6 +579,8 @@ export class AdminSalesReportService {
       compCompletedOrdersCount,
       compItemsAggregate,
       periodOrdersForTrend,
+      grossSalesAggregate,
+      nonCancelledAggregate,
     ] = await Promise.all([
       // 1. Current period revenue aggregate (subtotal, shippingFee, total)
       this.prisma.order.aggregate({
@@ -658,6 +661,21 @@ export class AdminSalesReportService {
           },
         },
       }),
+      // 13. Gross sales (all orders in period)
+      this.prisma.order.aggregate({
+        where: periodAllStatusesWhere,
+        _sum: { total: true },
+        _count: { _all: true },
+      }),
+      // 14. Non-cancelled orders in period (DELIVERED, SHIPPED, PROCESSING, PAID, PENDING)
+      this.prisma.order.aggregate({
+        where: {
+          ...periodAllStatusesWhere,
+          status: { notIn: [OrderStatus.CANCELLED, OrderStatus.EXPIRED] },
+        },
+        _sum: { total: true },
+        _count: { _all: true },
+      }),
     ]);
 
     const grossProductSales = revenueAggregate._sum.subtotal ?? 0;
@@ -734,7 +752,21 @@ export class AdminSalesReportService {
 
     const trend = Array.from(trendMap.values());
 
+    const grossSalesAmount = grossSalesAggregate._sum.total ?? 0;
+    const grossSalesCount = grossSalesAggregate._count._all ?? 0;
+    const nonCancelledAmount = nonCancelledAggregate._sum.total ?? 0;
+    const nonCancelledCount = nonCancelledAggregate._count._all ?? 0;
+    const cancelledAmount = cancelledExpiredAggregate._sum.total ?? 0;
+    const cancelledCount = cancelledExpiredAggregate._count._all ?? 0;
+
     const revenueBreakdown = {
+      grossSales: grossSalesAmount,
+      grossSalesCount,
+      nonCancelledAmount,
+      nonCancelledCount,
+      cancelledOrdersAmount: cancelledAmount,
+      cancelledOrdersCount: cancelledCount,
+      completedRevenue: totalRevenue,
       grossProductSales,
       shippingRevenue,
       grossRevenue,
@@ -743,14 +775,14 @@ export class AdminSalesReportService {
       refundTotal,
       refundAvailable: false,
       netRevenue,
-      excludedCancelledCount: cancelledExpiredAggregate._count._all ?? 0,
-      excludedCancelledAmount: cancelledExpiredAggregate._sum.total ?? 0,
+      excludedCancelledCount: cancelledCount,
+      excludedCancelledAmount: cancelledAmount,
       excludedPendingCount: pendingAggregate._count._all ?? 0,
       excludedPendingAmount: pendingAggregate._sum.total ?? 0,
       methodology: {
         recognizedStatuses: REVENUE_STATUSES,
         recognitionBasis:
-          'Pendapatan diakui berdasarkan pesanan pada rentang periode (Asia/Jakarta, WIB) yang telah terverifikasi pembayarannya (PAID, PROCESSING, SHIPPED, DELIVERED).',
+          'Pendapatan sah (completed revenue) diakui berdasarkan pesanan yang telah selesai diterima pelanggan (DELIVERED). Pesanan dalam proses (PROCESSING) dan pengiriman (SHIPPED) belum diakui sebagai pendapatan selesai.',
         cancellationPolicy:
           'Pesanan berstatus CANCELLED dan EXPIRED dikecualikan sepenuhnya (Rp 0 pendapatan diakui).',
         discountPolicy:
@@ -770,6 +802,9 @@ export class AdminSalesReportService {
       summary: {
         totalRevenue,
         grossRevenue,
+        grossSales: grossSalesAmount,
+        nonCancelledRevenue: nonCancelledAmount,
+        cancelledOrdersAmount: cancelledAmount,
         discountTotal,
         refundTotal,
         netRevenue,
@@ -849,7 +884,11 @@ export class AdminSalesReportService {
 
       return {
         id: order.id,
-        orderNumber: `#ORD-${order.id}`,
+        orderNumber: order.orderNumber
+          ? order.orderNumber.startsWith('#')
+            ? order.orderNumber
+            : `#${order.orderNumber}`
+          : `#ATL-${order.id}`,
         createdAt: order.createdAt.toISOString(),
         dateWib: formatWibYmd(order.createdAt),
         recipientName: order.recipientName,
@@ -1046,16 +1085,37 @@ export class AdminSalesReportService {
 
     const summaryRowsData: Array<[string, number, string, string, boolean]> = [
       [
-        'Total Penjualan',
-        revenueBreakdown.grossRevenue,
-        'Nilai pesanan berhasil (PAID, PROCESSING, SHIPPED, DELIVERED) sebelum pengurangan',
+        'Total Penjualan Kotor (Gross Sales)',
+        revenueBreakdown.grossSales,
+        'Nilai seluruh pesanan yang tercatat pada periode ini (termasuk dibatalkan, diproses, dan dikirim)',
         '"Rp"#,##0',
         false,
       ],
       [
+        'Pesanan Dibatalkan (Cancelled Orders)',
+        revenueBreakdown.cancelledOrdersAmount,
+        'Nilai pesanan berstatus CANCELLED / EXPIRED (dikecualikan dari pendapatan sah)',
+        '"Rp"#,##0',
+        false,
+      ],
+      [
+        'Pesanan Tidak Dibatalkan (Non-Cancelled Orders)',
+        revenueBreakdown.nonCancelledAmount,
+        'Nilai pesanan aktif yang tidak dibatalkan (DELIVERED, SHIPPED, PROCESSING)',
+        '"Rp"#,##0',
+        false,
+      ],
+      [
+        'Pendapatan Selesai Diakui (Completed Orders / DELIVERED)',
+        revenueBreakdown.netRevenue,
+        'Total pendapatan sah dari pesanan selesai (DELIVERED) setelah dikurangi diskon & refund',
+        '"Rp"#,##0',
+        true,
+      ],
+      [
         'Total Diskon',
         revenueBreakdown.discountTotal,
-        'Potongan diskon/voucher pada pesanan berhasil (skema saat ini: Rp 0)',
+        'Potongan diskon/voucher pada pesanan selesai (skema saat ini: Rp 0)',
         '"Rp"#,##0',
         false,
       ],
@@ -1067,21 +1127,14 @@ export class AdminSalesReportService {
         false,
       ],
       [
-        'Total Pendapatan Setelah Pengurangan',
-        revenueBreakdown.netRevenue,
-        'Total Penjualan dikurangi Diskon dan Refund (bukan laba bersih; belum dikurangi HPP/operasional)',
-        '"Rp"#,##0',
-        true,
-      ],
-      [
-        'Jumlah Transaksi Berhasil',
+        'Jumlah Transaksi Berhasil (DELIVERED)',
         summary.completedOrders,
         `Dari total ${summary.totalOrders} transaksi yang tercatat pada filter periode`,
         '#,##0 "transaksi"',
         false,
       ],
       [
-        'Total Unit Produk Terjual',
+        'Total Unit Produk Terjual (DELIVERED)',
         summary.totalItemsSold,
         `Kuantitas unit produk dari ${summary.completedOrders} transaksi berhasil`,
         '#,##0 "unit"',
@@ -1090,7 +1143,7 @@ export class AdminSalesReportService {
       [
         'Average Order Value (AOV)',
         summary.averageOrderValue,
-        'Rata-rata nilai pendapatan per transaksi berhasil',
+        'Rata-rata nilai pendapatan per transaksi berhasil (DELIVERED)',
         '"Rp"#,##0',
         false,
       ],
@@ -1292,9 +1345,15 @@ export class AdminSalesReportService {
 
       const customerName = order.user?.name || order.recipientName;
 
+      const displayOrderNumber = order.orderNumber
+        ? order.orderNumber.startsWith('#')
+          ? order.orderNumber
+          : `#${order.orderNumber}`
+        : `#ATL-${order.id}`;
+
       const row = wsDetail.addRow([
         formatWibDateTime(order.createdAt),
-        `#ORD-${order.id}`,
+        displayOrderNumber,
         customerName,
         itemsCount,
         grossOrderAmount,

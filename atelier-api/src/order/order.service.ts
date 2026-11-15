@@ -208,10 +208,11 @@ export class OrderService {
 
     const where: Prisma.OrderWhereInput = {
       ...(search && {
-        recipientName: {
-          contains: search,
-          mode: 'insensitive',
-        },
+        OR: [
+          { recipientName: { contains: search, mode: 'insensitive' } },
+          { phone: { contains: search, mode: 'insensitive' } },
+          { orderNumber: { contains: search, mode: 'insensitive' } },
+        ],
       }),
 
       ...(userId !== undefined && {

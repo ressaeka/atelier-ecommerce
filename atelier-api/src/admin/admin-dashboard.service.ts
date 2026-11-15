@@ -191,6 +191,7 @@ export class AdminDashboardService {
         take: RECENT_ORDERS_LIMIT,
         select: {
           id: true,
+          orderNumber: true,
           recipientName: true,
           createdAt: true,
           total: true,
@@ -202,6 +203,7 @@ export class AdminDashboardService {
         take: SALES_REPORT_LIMIT,
         select: {
           id: true,
+          orderNumber: true,
           recipientName: true,
           createdAt: true,
           total: true,
@@ -285,7 +287,11 @@ export class AdminDashboardService {
     const recentOrders: AdminDashboardRecentOrder[] = recentOrdersRaw.map(
       (order) => ({
         id: order.id,
-        orderNumber: `#ORD-${order.id}`,
+        orderNumber: order.orderNumber
+          ? order.orderNumber.startsWith('#')
+            ? order.orderNumber
+            : `#${order.orderNumber}`
+          : `#ATL-${order.id}`,
         customerName: order.recipientName,
         createdAt: order.createdAt.toISOString(),
         total: order.total,
@@ -295,12 +301,18 @@ export class AdminDashboardService {
 
     const salesReportRows: AdminDashboardSalesReportRow[] = [];
     for (const order of reportOrdersRaw) {
+      const displayOrderNumber = order.orderNumber
+        ? order.orderNumber.startsWith('#')
+          ? order.orderNumber
+          : `#${order.orderNumber}`
+        : `#ATL-${order.id}`;
+
       for (const item of order.items) {
         if (salesReportRows.length >= SALES_REPORT_LIMIT * 3) break;
         salesReportRows.push({
           no: salesReportRows.length + 1,
           date: toYmd(order.createdAt),
-          orderNumber: `#ORD-${order.id}`,
+          orderNumber: displayOrderNumber,
           customerName: order.recipientName,
           product: item.product?.name ?? `Produk #${order.id}`,
           quantity: item.quantity,

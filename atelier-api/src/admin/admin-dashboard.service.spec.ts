@@ -20,12 +20,7 @@ import type { PrismaService } from '../prisma/prisma.service.js';
 describe('AdminDashboardService — Phase 1 Stabilization', () => {
   describe('Centralized Constants', () => {
     it('defines REVENUE_STATUSES, ORDER_EXCLUDED_STATUSES, VALID_ORDER_STATUSES, and BUSINESS_TIMEZONE', () => {
-      expect(REVENUE_STATUSES).toEqual([
-        'PAID',
-        'PROCESSING',
-        'SHIPPED',
-        'DELIVERED',
-      ]);
+      expect(REVENUE_STATUSES).toEqual(['DELIVERED']);
       expect(ORDER_EXCLUDED_STATUSES).toEqual(['CANCELLED', 'EXPIRED']);
       expect(VALID_ORDER_STATUSES).toEqual([
         'PENDING',
