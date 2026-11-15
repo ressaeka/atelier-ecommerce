@@ -89,6 +89,14 @@ function comparison(
   };
 }
 
+function formatOrderNumber(orderNumber: unknown, orderId: number): string {
+  if (typeof orderNumber !== 'string' || orderNumber.length === 0) {
+    return `#ATL-${orderId}`;
+  }
+
+  return orderNumber[0] === '#' ? orderNumber : `#${orderNumber}`;
+}
+
 @Injectable()
 export class AdminDashboardService {
   constructor(private readonly prisma: PrismaService) {}
@@ -287,11 +295,7 @@ export class AdminDashboardService {
     const recentOrders: AdminDashboardRecentOrder[] = recentOrdersRaw.map(
       (order) => ({
         id: order.id,
-        orderNumber: order.orderNumber
-          ? order.orderNumber.startsWith('#')
-            ? order.orderNumber
-            : `#${order.orderNumber}`
-          : `#ATL-${order.id}`,
+        orderNumber: formatOrderNumber(order.orderNumber, order.id),
         customerName: order.recipientName,
         createdAt: order.createdAt.toISOString(),
         total: order.total,
@@ -301,13 +305,15 @@ export class AdminDashboardService {
 
     const salesReportRows: AdminDashboardSalesReportRow[] = [];
     for (const order of reportOrdersRaw) {
-      const displayOrderNumber = order.orderNumber
-        ? order.orderNumber.startsWith('#')
-          ? order.orderNumber
-          : `#${order.orderNumber}`
-        : `#ATL-${order.id}`;
+      const displayOrderNumber = formatOrderNumber(order.orderNumber, order.id);
 
-      for (const item of order.items) {
+      const items = order.items as {
+        quantity: number;
+        subtotal: number | null;
+        product: { name: string } | null;
+      }[];
+
+      for (const item of items) {
         if (salesReportRows.length >= SALES_REPORT_LIMIT * 3) break;
         salesReportRows.push({
           no: salesReportRows.length + 1,

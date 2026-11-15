@@ -148,6 +148,22 @@ function daysInMonthUtc(year: number, month1Based: number): number {
   return new Date(Date.UTC(year, month1Based, 0)).getUTCDate();
 }
 
+function formatOrderNumber(
+  rawOrderNumber: unknown,
+  fallbackId: string | number,
+): string {
+  const normalized =
+    typeof rawOrderNumber === 'string' || typeof rawOrderNumber === 'number'
+      ? String(rawOrderNumber).trim()
+      : '';
+
+  if (!normalized) {
+    return `#ATL-${fallbackId}`;
+  }
+
+  return normalized.startsWith('#') ? normalized : `#${normalized}`;
+}
+
 function ymdToUtcRangeWib(
   startYmd: string,
   endYmd: string,
@@ -884,11 +900,7 @@ export class AdminSalesReportService {
 
       return {
         id: order.id,
-        orderNumber: order.orderNumber
-          ? order.orderNumber.startsWith('#')
-            ? order.orderNumber
-            : `#${order.orderNumber}`
-          : `#ATL-${order.id}`,
+        orderNumber: formatOrderNumber(order.orderNumber, order.id),
         createdAt: order.createdAt.toISOString(),
         dateWib: formatWibYmd(order.createdAt),
         recipientName: order.recipientName,
@@ -1345,11 +1357,13 @@ export class AdminSalesReportService {
 
       const customerName = order.user?.name || order.recipientName;
 
-      const displayOrderNumber = order.orderNumber
-        ? order.orderNumber.startsWith('#')
-          ? order.orderNumber
-          : `#${order.orderNumber}`
-        : `#ATL-${order.id}`;
+      const rawOrderNumber: unknown = order.orderNumber;
+      const displayOrderNumber =
+        typeof rawOrderNumber === 'string' && rawOrderNumber.length > 0
+          ? rawOrderNumber.startsWith('#')
+            ? rawOrderNumber
+            : `#${rawOrderNumber}`
+          : `#ATL-${order.id}`;
 
       const row = wsDetail.addRow([
         formatWibDateTime(order.createdAt),
