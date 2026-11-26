@@ -23,39 +23,126 @@ const CATEGORIES = [
 
 // 11 Produk
 const PRODUCTS = [
-  { name: 'Pearl Hair Clip Set', category: 'Aksesoris', price: 89000, image: '/images/products/pearl-hair-clip.jpg', description: 'Set jepit rambut mutiara elegan untuk berbagai gaya.' },
-  { name: 'Poplin Shirt Classic', category: 'Atasan', price: 299000, image: '/images/products/poplin-shirt.jpg', description: 'Kemeja poplin katun klasik dengan siluet rapi dan nyaman.' },
-  { name: 'Minimal Loafers', category: 'Sepatu', price: 654000, image: '/images/products/minimal-loafers.jpg', description: 'Loafers kulit minimalis serbaguna untuk acara formal maupun kasual.' },
-  { name: 'High-Waist Trousers', category: 'Bawahan', price: 384000, image: '/images/products/high-waist-trousers.jpg', description: 'Celana panjang high-waist potongan tailored yang mempertegas siluet.' },
-  { name: 'Ruffle Satin Blouse', category: 'Atasan', price: 354000, image: '/images/products/ruffle-satin-blouse.jpg', description: 'Blus satin lembut dengan aksen ruffle feminin dan anggun.' },
-  { name: 'Silk Slip Dress', category: 'Dress', price: 699000, image: '/images/products/silk-slip-dress.jpg', description: 'Gaun slip sutra mewah dengan sentuhan kilau alami.' },
-  { name: 'Knit Cardigan', category: 'Outerwear', price: 429000, image: '/images/products/knit-cardigan.jpg', description: 'Kardigan rajut premium bertekstur lembut untuk kehangatan seharian.' },
-  { name: 'Pleated Midi Skirt', category: 'Bawahan', price: 349000, image: '/images/products/pleated-midi-skirt.jpg', description: 'Rok midi lipit flowy dengan drape halus dan dinamis.' },
-  { name: 'Linen Oversized Shirt', category: 'Atasan', price: 329000, image: '/images/products/linen-oversized-shirt.jpg', description: 'Kemeja linen oversized bernapas dan nyaman untuk iklim tropis.' },
-  { name: 'Floral Wrap Dress', category: 'Dress', price: 549000, image: '/images/products/floral-wrap-dress.jpg', description: 'Gaun lilit motif floral elegan dengan siluet flattering.' },
-  { name: 'Classic Tailored Blazer', category: 'Outerwear', price: 789000, image: '/images/products/classic-blazer.jpg', description: 'Blazer tailored berstruktur rapi dengan garis potong kontemporer.' },
+  {
+    name: 'Pearl Hair Clip Set',
+    category: 'Aksesoris',
+    price: 89000,
+    image: '/images/products/pearl-hair-clip.jpg',
+    description: 'Set jepit rambut mutiara elegan untuk berbagai gaya.',
+  },
+  {
+    name: 'Poplin Shirt Classic',
+    category: 'Atasan',
+    price: 299000,
+    image: '/images/products/poplin-shirt.jpg',
+    description: 'Kemeja poplin katun klasik dengan siluet rapi dan nyaman.',
+  },
+  {
+    name: 'Minimal Loafers',
+    category: 'Sepatu',
+    price: 654000,
+    image: '/images/products/minimal-loafers.jpg',
+    description:
+      'Loafers kulit minimalis serbaguna untuk acara formal maupun kasual.',
+  },
+  {
+    name: 'High-Waist Trousers',
+    category: 'Bawahan',
+    price: 384000,
+    image: '/images/products/high-waist-trousers.jpg',
+    description:
+      'Celana panjang high-waist potongan tailored yang mempertegas siluet.',
+  },
+  {
+    name: 'Ruffle Satin Blouse',
+    category: 'Atasan',
+    price: 354000,
+    image: '/images/products/ruffle-satin-blouse.jpg',
+    description: 'Blus satin lembut dengan aksen ruffle feminin dan anggun.',
+  },
+  {
+    name: 'Silk Slip Dress',
+    category: 'Dress',
+    price: 699000,
+    image: '/images/products/silk-slip-dress.jpg',
+    description: 'Gaun slip sutra mewah dengan sentuhan kilau alami.',
+  },
+  {
+    name: 'Knit Cardigan',
+    category: 'Outerwear',
+    price: 429000,
+    image: '/images/products/knit-cardigan.jpg',
+    description:
+      'Kardigan rajut premium bertekstur lembut untuk kehangatan seharian.',
+  },
+  {
+    name: 'Pleated Midi Skirt',
+    category: 'Bawahan',
+    price: 349000,
+    image: '/images/products/pleated-midi-skirt.jpg',
+    description: 'Rok midi lipit flowy dengan drape halus dan dinamis.',
+  },
+  {
+    name: 'Linen Oversized Shirt',
+    category: 'Atasan',
+    price: 329000,
+    image: '/images/products/linen-oversized-shirt.jpg',
+    description:
+      'Kemeja linen oversized bernapas dan nyaman untuk iklim tropis.',
+  },
+  {
+    name: 'Floral Wrap Dress',
+    category: 'Dress',
+    price: 549000,
+    image: '/images/products/floral-wrap-dress.jpg',
+    description: 'Gaun lilit motif floral elegan dengan siluet flattering.',
+  },
+  {
+    name: 'Classic Tailored Blazer',
+    category: 'Outerwear',
+    price: 789000,
+    image: '/images/products/classic-blazer.jpg',
+    description:
+      'Blazer tailored berstruktur rapi dengan garis potong kontemporer.',
+  },
 ];
 
 // 18 Pelanggan
 const CUSTOMERS = [
-  { name: 'Alya Putri', email: 'alya.putri@atelier.id', phone: '+6281210000001', addressLine: 'Jl. Senopati No. 12', city: 'Jakarta Selatan', province: 'DKI Jakarta', postalCode: '12190' },
-  { name: 'Bunga Lestari', email: 'bunga.lestari@atelier.id', phone: '+6281210000002', addressLine: 'Jl. Riau No. 45', city: 'Bandung', province: 'Jawa Barat', postalCode: '40115' },
-  { name: 'Citra Dewi', email: 'citra.dewi@atelier.id', phone: '+6281210000003', addressLine: 'Jl. Darmo No. 88', city: 'Surabaya', province: 'Jawa Timur', postalCode: '60241' },
-  { name: 'Dinda Maharani', email: 'dinda.maharani@atelier.id', phone: '+6281210000004', addressLine: 'Jl. Kaliurang Km 5 No. 20', city: 'Sleman', province: 'DI Yogyakarta', postalCode: '55281' },
-  { name: 'Eka Prasetya', email: 'eka.prasetya@atelier.id', phone: '+6281210000005', addressLine: 'Jl. Pandanaran No. 34', city: 'Semarang', province: 'Jawa Tengah', postalCode: '50134' },
-  { name: 'Farah Nabila', email: 'farah.nabila@atelier.id', phone: '+6281210000006', addressLine: 'Jl. Kemang Raya No. 18', city: 'Jakarta Selatan', province: 'DKI Jakarta', postalCode: '12730' },
-  { name: 'Gita Anjani', email: 'gita.anjani@atelier.id', phone: '+6281210000007', addressLine: 'Jl. Dago No. 102', city: 'Bandung', province: 'Jawa Barat', postalCode: '40132' },
-  { name: 'Hana Safira', email: 'hana.safira@atelier.id', phone: '+6281210000008', addressLine: 'Jl. Manyar Kertoarjo No. 5', city: 'Surabaya', province: 'Jawa Timur', postalCode: '60118' },
-  { name: 'Indah Permata', email: 'indah.permata@atelier.id', phone: '+6281210000009', addressLine: 'Jl. Malioboro No. 60', city: 'Yogyakarta', province: 'DI Yogyakarta', postalCode: '55271' },
-  { name: 'Jessica Tanuwijaya', email: 'jessica.tanuwijaya@atelier.id', phone: '+6281210000010', addressLine: 'Jl. Boulevard Gading Serpong No. 8', city: 'Tangerang', province: 'Banten', postalCode: '15810' },
-  { name: 'Kevin Sanjaya', email: 'kevin.sanjaya@atelier.id', phone: '+6281210000011', addressLine: 'Jl. Pluit Indah No. 22', city: 'Jakarta Utara', province: 'DKI Jakarta', postalCode: '14450' },
-  { name: 'Larasati Putri', email: 'larasati.putri@atelier.id', phone: '+6281210000012', addressLine: 'Jl. Setiabudi No. 71', city: 'Bandung', province: 'Jawa Barat', postalCode: '40143' },
-  { name: 'Maya Anggraini', email: 'maya.anggraini@atelier.id', phone: '+6281210000013', addressLine: 'Jl. HR Muhammad No. 15', city: 'Surabaya', province: 'Jawa Timur', postalCode: '60226' },
-  { name: 'Nadia Rahma', email: 'nadia.rahma@atelier.id', phone: '+6281210000014', addressLine: 'Jl. Palagan Tentara Pelajar No. 9', city: 'Sleman', province: 'DI Yogyakarta', postalCode: '55581' },
-  { name: 'Olivia Santoso', email: 'olivia.santoso@atelier.id', phone: '+6281210000015', addressLine: 'Jl. Pemuda No. 90', city: 'Semarang', province: 'Jawa Tengah', postalCode: '50132' },
-  { name: 'Putri Wulandari', email: 'putri.wulandari@atelier.id', phone: '+6281210000016', addressLine: 'Jl. BSD Grand Boulevard No. 1', city: 'Tangerang Selatan', province: 'Banten', postalCode: '15339' },
-  { name: 'Qiana Salsabila', email: 'qiana.salsabila@atelier.id', phone: '+6281210000017', addressLine: 'Jl. Tebet Raya No. 40', city: 'Jakarta Selatan', province: 'DKI Jakarta', postalCode: '12820' },
-  { name: 'Rian Pratama', email: 'rian.pratama@atelier.id', phone: '+6281210000018', addressLine: 'Jl. Buah Batu No. 55', city: 'Bandung', province: 'Jawa Barat', postalCode: '40265' },
+  {
+    name: 'Alya Putri',
+    email: 'alya.putri@gmail.com',
+    phone: '+6281210000001',
+    addressLine: 'Jl. Senopati No. 12',
+    city: 'Jakarta Selatan',
+    province: 'DKI Jakarta',
+    postalCode: '12190',
+  },
+  {
+    name: 'Bunga Lestari',
+    email: 'bunga.lestari@gmail.com',
+    phone: '+6281210000002',
+    addressLine: 'Jl. Riau No. 45',
+    city: 'Bandung',
+    province: 'Jawa Barat',
+    postalCode: '40115',
+  },
+  { name: 'Citra Dewi', email: 'citradewi@gmail.com', phone: '+6281210000003', addressLine: 'Jl. Darmo No. 88', city: 'Surabaya', province: 'Jawa Timur', postalCode: '60241' },
+  { name: 'Dinda Maharani', email: 'dindamaharani@gmail.com', phone: '+6281210000004', addressLine: 'Jl. Kaliurang Km 5 No. 20', city: 'Sleman', province: 'DI Yogyakarta', postalCode: '55281' },
+  { name: 'Eka Prasetya', email: 'ekaprasetya@gmail.com', phone: '+6281210000005', addressLine: 'Jl. Pandanaran No. 34', city: 'Semarang', province: 'Jawa Tengah', postalCode: '50134' },
+  { name: 'Farah Nabila', email: 'farahnabila@gmail.com', phone: '+6281210000006', addressLine: 'Jl. Kemang Raya No. 18', city: 'Jakarta Selatan', province: 'DKI Jakarta', postalCode: '12730' },
+  { name: 'Gita Anjani', email: 'gitaanjani@gmail.com', phone: '+6281210000007', addressLine: 'Jl. Dago No. 102', city: 'Bandung', province: 'Jawa Barat', postalCode: '40132' },
+  { name: 'Hana Safira', email: 'hanasafira@gmail.com', phone: '+6281210000008', addressLine: 'Jl. Manyar Kertoarjo No. 5', city: 'Surabaya', province: 'Jawa Timur', postalCode: '60118' },
+  { name: 'Indah Permata', email: 'indahpermata@gmail.com', phone: '+6281210000009', addressLine: 'Jl. Malioboro No. 60', city: 'Yogyakarta', province: 'DI Yogyakarta', postalCode: '55271' },
+  { name: 'Jessica Tanuwijaya', email: 'jessicatanuwijaya@gmail.com', phone: '+6281210000010', addressLine: 'Jl. Boulevard Gading Serpong No. 8', city: 'Tangerang', province: 'Banten', postalCode: '15810' },
+  { name: 'Kevin Sanjaya', email: 'kevinsanjaya@gmail.com', phone: '+6281210000011', addressLine: 'Jl. Pluit Indah No. 22', city: 'Jakarta Utara', province: 'DKI Jakarta', postalCode: '14450' },
+  { name: 'Larasati Putri', email: 'larasatiputri@gmail.com', phone: '+6281210000012', addressLine: 'Jl. Setiabudi No. 71', city: 'Bandung', province: 'Jawa Barat', postalCode: '40143' },
+  { name: 'Maya Anggraini', email: 'mayaanggraini@gmail.com', phone: '+6281210000013', addressLine: 'Jl. HR Muhammad No. 15', city: 'Surabaya', province: 'Jawa Timur', postalCode: '60226' },
+  { name: 'Nadia Rahma', email: 'nadiarahma@gmail.com', phone: '+6281210000014', addressLine: 'Jl. Palagan Tentara Pelajar No. 9', city: 'Sleman', province: 'DI Yogyakarta', postalCode: '55581' },
+  { name: 'Olivia Santoso', email: 'oliviasantoso@gmail.com', phone: '+6281210000015', addressLine: 'Jl. Pemuda No. 90', city: 'Semarang', province: 'Jawa Tengah', postalCode: '50132' },
+  { name: 'Putri Wulandari', email: 'putriwulandari@gmail.com', phone: '+6281210000016', addressLine: 'Jl. BSD Grand Boulevard No. 1', city: 'Tangerang Selatan', province: 'Banten', postalCode: '15339' },
+  { name: 'Qiana Salsabila', email: 'qianasalsabila@gmail.com', phone: '+6281210000017', addressLine: 'Jl. Tebet Raya No. 40', city: 'Jakarta Selatan', province: 'DKI Jakarta', postalCode: '12820' },
+  { name: 'Rian Pratama', email: 'rianpratama@gmail.com', phone: '+6281210000018', addressLine: 'Jl. Buah Batu No. 55', city: 'Bandung', province: 'Jawa Barat', postalCode: '40265' },
 ];
 
 // 30 Transaksi Mei - Oktober 2026
@@ -164,9 +251,10 @@ async function seedMasterData() {
   for (const c of CUSTOMERS) {
     const username = c.name.toLowerCase().replace(/[^a-z0-9]/g, '');
     const user = await prisma.user.upsert({
-      where: { email: c.email },
+      where: { username },
       update: {
         name: c.name,
+        email: c.email,
         phone: c.phone,
         role: Role.USER,
       },

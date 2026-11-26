@@ -597,7 +597,7 @@ const PlaceholderPage: React.FC<
                   />
                 }
                 label="EMAIL"
-                value="hello@atelier.id"
+                value="hello@gmail.com"
               />
 
               <ContactCard
