@@ -17,8 +17,8 @@ frame names and were deliberately **not** rendered as UI.
 | Heart | `#F44336` | Filled favourite icon |
 | Accent | `#C1603C` / `#E8916B` | Active step, promo, guarantee badge |
 
-Typography throughout is the existing `Libre Bodoni` serif — headings, product
-names, prices, column labels and button text alike, matching the reference.
+Typography throughout uses the shared Poppins sans-serif family for headings,
+product names, prices, column labels and button text.
 
 ## Files added
 

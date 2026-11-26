@@ -72,7 +72,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
         <Link to={`/product/${product.id}`}>
           <h3
             className="text-[14px] leading-[1.3] text-[#1A1A1A] transition-colors duration-200 group-hover:text-[#444]"
-            style={{ fontFamily: "'Poppins', system-ui, -apple-system, sans-serif", fontWeight: 500 }}
+            style={{ fontFamily: 'var(--font-sans)', fontWeight: 500 }}
           >
             {product.name}
           </h3>

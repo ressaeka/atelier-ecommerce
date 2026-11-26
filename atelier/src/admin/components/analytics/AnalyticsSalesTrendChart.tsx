@@ -318,7 +318,7 @@ export default function AnalyticsSalesTrendChart({
                   backgroundColor: '#FFFFFF',
                   boxShadow: '0 8px 24px rgba(26,22,18,0.08)',
                   fontSize: 12,
-                  fontFamily: 'Poppins, system-ui, -apple-system, sans-serif',
+                  fontFamily: 'var(--font-sans)',
                 }}
                 formatter={(value: number, name: string) => {
                   if (name === 'Pendapatan') {

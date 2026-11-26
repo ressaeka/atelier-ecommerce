@@ -91,10 +91,10 @@ export const SalesReportKpi = memo(function SalesReportKpi({
   return (
     <section
       aria-label="Ringkasan KPI Pendapatan"
-      className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+      className="grid grid-cols-2 gap-3 lg:grid-cols-4"
     >
       {/* KPI 1: Total Pendapatan */}
-      <article className="flex min-h-[146px] flex-col justify-between rounded-2xl border border-[#ECE7DE] bg-white p-5 shadow-[0_1px_3px_rgba(26,22,18,0.04)]">
+      <article className="flex min-h-[146px] flex-col justify-between rounded-2xl border border-[#ECE7DE] bg-white p-4 shadow-[0_1px_3px_rgba(26,22,18,0.04)] sm:p-5">
         <div>
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2.5">
@@ -105,12 +105,9 @@ export const SalesReportKpi = memo(function SalesReportKpi({
                 Total Pendapatan
               </h2>
             </div>
-            <span className="shrink-0 whitespace-nowrap rounded-md border border-[#ECE7DE] bg-[#FAF8F4] px-2 py-0.5 text-[10.5px] font-medium text-[#6F6A62]">
-              Omzet Sah
-            </span>
           </div>
 
-          <p className="mt-3 text-[24px] font-bold leading-tight tracking-tight tabular-nums text-[#1A1A1A] min-[1440px]:text-[26px]">
+          <p className="mt-3 text-[24px] font-semibold leading-tight tracking-tight tabular-nums text-[#1A1A1A] min-[1440px]:text-[30px]">
             {formatPrice(summary.totalRevenue)}
           </p>
           <p className="mt-1 text-[11.5px] text-[#6F6A62]">
@@ -125,7 +122,7 @@ export const SalesReportKpi = memo(function SalesReportKpi({
       </article>
 
       {/* KPI 2: Total Transaksi Berhasil */}
-      <article className="flex min-h-[146px] flex-col justify-between rounded-2xl border border-[#ECE7DE] bg-white p-5 shadow-[0_1px_3px_rgba(26,22,18,0.04)]">
+      <article className="flex min-h-[146px] flex-col justify-between rounded-2xl border border-[#ECE7DE] bg-white p-4 shadow-[0_1px_3px_rgba(26,22,18,0.04)] sm:p-5">
         <div>
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2.5">
@@ -138,7 +135,7 @@ export const SalesReportKpi = memo(function SalesReportKpi({
             </div>
           </div>
 
-          <p className="mt-3 text-[24px] font-bold leading-tight tracking-tight tabular-nums text-[#1A1A1A] min-[1440px]:text-[26px]">
+          <p className="mt-3 text-[24px] font-semibold leading-tight tracking-tight tabular-nums text-[#1A1A1A] min-[1440px]:text-[30px]">
             {numberFormatter.format(summary.completedOrders)}{' '}
             <span className="text-[13.5px] font-medium text-[#6F6A62]">
               pesanan
@@ -157,7 +154,7 @@ export const SalesReportKpi = memo(function SalesReportKpi({
       </article>
 
       {/* KPI 3: Rata-rata Nilai Transaksi (AOV) */}
-      <article className="flex min-h-[146px] flex-col justify-between rounded-2xl border border-[#ECE7DE] bg-white p-5 shadow-[0_1px_3px_rgba(26,22,18,0.04)]">
+      <article className="flex min-h-[146px] flex-col justify-between rounded-2xl border border-[#ECE7DE] bg-white p-4 shadow-[0_1px_3px_rgba(26,22,18,0.04)] sm:p-5">
         <div>
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2.5">
@@ -170,7 +167,7 @@ export const SalesReportKpi = memo(function SalesReportKpi({
             </div>
           </div>
 
-          <p className="mt-3 text-[24px] font-bold leading-tight tracking-tight tabular-nums text-[#1A1A1A] min-[1440px]:text-[26px]">
+          <p className="mt-3 text-[24px] font-semibold leading-tight tracking-tight tabular-nums text-[#1A1A1A] min-[1440px]:text-[30px]">
             {formatPrice(summary.averageOrderValue)}
           </p>
           <p className="mt-1 text-[11.5px] text-[#6F6A62]">
@@ -185,7 +182,7 @@ export const SalesReportKpi = memo(function SalesReportKpi({
       </article>
 
       {/* KPI 4: Total Produk Terjual */}
-      <article className="flex min-h-[146px] flex-col justify-between rounded-2xl border border-[#ECE7DE] bg-white p-5 shadow-[0_1px_3px_rgba(26,22,18,0.04)]">
+      <article className="flex min-h-[146px] flex-col justify-between rounded-2xl border border-[#ECE7DE] bg-white p-4 shadow-[0_1px_3px_rgba(26,22,18,0.04)] sm:p-5">
         <div>
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2.5">
@@ -198,7 +195,7 @@ export const SalesReportKpi = memo(function SalesReportKpi({
             </div>
           </div>
 
-          <p className="mt-3 text-[24px] font-bold leading-tight tracking-tight tabular-nums text-[#1A1A1A] min-[1440px]:text-[26px]">
+          <p className="mt-3 text-[24px] font-semibold leading-tight tracking-tight tabular-nums text-[#1A1A1A] min-[1440px]:text-[30px]">
             {numberFormatter.format(summary.totalItemsSold)}{' '}
             <span className="text-[13.5px] font-medium text-[#6F6A62]">
               unit

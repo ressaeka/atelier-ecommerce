@@ -6,11 +6,9 @@ import ProductCard from './ProductCard';
 
 import type { Product } from '../types/api';
 
-const DISPLAY_FONT =
-  "'Poppins', system-ui, -apple-system, sans-serif";
+const DISPLAY_FONT = 'var(--font-sans)';
 
-const BODY_FONT =
-  "'Poppins', system-ui, -apple-system, sans-serif";
+const BODY_FONT = 'var(--font-sans)';
 
 interface ProductSectionProps {
   products: Product[];

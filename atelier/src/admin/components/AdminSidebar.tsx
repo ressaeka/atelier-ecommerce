@@ -54,7 +54,7 @@ const navSections: NavSection[] = [
   },
   {
     id: 'catalog',
-    label: 'KATALOG',
+    label: 'Katalog',
     children: [
       { to: '/admin/products', label: 'Produk', icon: Package },
       { to: '/admin/categories', label: 'Kategori', icon: Tags },
@@ -62,7 +62,7 @@ const navSections: NavSection[] = [
   },
   {
     id: 'sales',
-    label: 'PENJUALAN',
+    label: 'Penjualan',
     children: [
       { to: '/admin/orders', label: 'Pesanan', icon: ShoppingCart },
       { to: '/admin/customers', label: 'Pelanggan', icon: Users },
@@ -70,7 +70,7 @@ const navSections: NavSection[] = [
   },
   {
     id: 'reports',
-    label: 'LAPORAN',
+    label: 'Laporan',
     children: [
       { to: '/admin/reports', label: 'Laporan Penjualan', icon: BarChart3, end: true },
       { to: '/admin/reports/products', label: 'Produk Terlaris', icon: Trophy },
@@ -83,9 +83,9 @@ const navSections: NavSection[] = [
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
   [
-    'relative flex h-[42px] items-center gap-3 rounded-xl px-3.5 text-[14.5px] transition-all duration-150',
+    'relative flex h-[42px] items-center gap-3 whitespace-nowrap rounded-xl px-3.5 text-[14.5px] transition-all duration-150',
     isActive
-      ? 'bg-[#F4EFE8] font-semibold text-[#5C4033] before:absolute before:inset-y-2 before:left-0 before:w-[3px] before:rounded-full before:bg-[#5C4033]'
+      ? 'bg-[#F4EFEA] font-semibold text-[#5B3F36] before:absolute before:inset-y-2 before:left-0 before:w-[3px] before:rounded-full before:bg-[#5B3F36]'
       : 'font-medium text-[#3F3B36] hover:bg-[#FAF8F4] hover:text-[#1A1A1A]',
   ].join(' ');
 
@@ -155,8 +155,8 @@ export default function AdminSidebar({
             return (
               <li key={section.id}>
                 <p
-                  className={`mb-2 px-3 text-[11.5px] font-semibold uppercase tracking-wider ${
-                    sectionActive ? 'text-[#5C4033]' : 'text-[#6F6A62]'
+                  className={`mb-2 px-3 text-[11.5px] font-medium ${
+                    sectionActive ? 'text-[#5B3F36]' : 'text-[#8B7F79]'
                   }`}
                 >
                   {section.label}
@@ -177,7 +177,7 @@ export default function AdminSidebar({
                             className="shrink-0"
                           />
                         )}
-                        <span>{child.label}</span>
+                        <span className="whitespace-nowrap">{child.label}</span>
                       </NavLink>
                     </li>
                   ))}

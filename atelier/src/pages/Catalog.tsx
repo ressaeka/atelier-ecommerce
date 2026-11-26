@@ -806,7 +806,7 @@ const Catalog: React.FC = () => {
                 className="text-[52px] font-normal leading-[1.05] text-[#1A1A1A] lg:text-[64px]"
                 style={{
                   fontFamily:
-                    "'Poppins', system-ui, -apple-system, sans-serif",
+                    "var(--font-sans)",
                 }}
               >
                 Kategori
@@ -879,7 +879,7 @@ const Catalog: React.FC = () => {
                       className="text-[28px] text-[#5C5248]"
                       style={{
                         fontFamily:
-                          "'Poppins', system-ui, -apple-system, sans-serif",
+                          "var(--font-sans)",
                       }}
                     >
                       All
@@ -904,7 +904,7 @@ const Catalog: React.FC = () => {
                     }`}
                     style={{
                       fontFamily:
-                        "'Poppins', system-ui, -apple-system, sans-serif",
+                        "var(--font-sans)",
                     }}
                   >
                     Semua
@@ -982,7 +982,7 @@ const Catalog: React.FC = () => {
                                 className="text-[32px] text-[#8B8075]/60"
                                 style={{
                                   fontFamily:
-                                    "'Poppins', system-ui, -apple-system, sans-serif",
+                                    "var(--font-sans)",
                                 }}
                               >
                                 {category.name.charAt(
@@ -1008,7 +1008,7 @@ const Catalog: React.FC = () => {
                           }`}
                           style={{
                             fontFamily:
-                              "'Poppins', system-ui, -apple-system, sans-serif",
+                              "var(--font-sans)",
                           }}
                         >
                           {
@@ -1063,7 +1063,7 @@ const Catalog: React.FC = () => {
                   className="mb-3 text-[28px] font-normal leading-[1.1] text-[#1A1A1A] lg:text-[34px]"
                   style={{
                     fontFamily:
-                      "'Poppins', system-ui, -apple-system, sans-serif",
+                      "var(--font-sans)",
                   }}
                 >
                   {
@@ -1084,7 +1084,7 @@ const Catalog: React.FC = () => {
                     className="text-[25px] font-normal leading-[1.1] text-[#1A1A1A]"
                     style={{
                       fontFamily:
-                        "'Poppins', system-ui, -apple-system, sans-serif",
+                        "var(--font-sans)",
                     }}
                   >
                     &ldquo;
@@ -1279,7 +1279,7 @@ const Catalog: React.FC = () => {
                 className="text-[14px] text-[#999]"
                 style={{
                   fontFamily:
-                    "'Poppins', system-ui, -apple-system, sans-serif",
+                    "var(--font-sans)",
                 }}
               >
                 {searchQuery.trim()
@@ -1572,7 +1572,7 @@ const CatalogProductCard: React.FC<{
             className="line-clamp-2 text-[13px] font-normal leading-[1.35] text-[#1A1A1A] transition-colors duration-200 group-hover:text-[#555]"
             style={{
               fontFamily:
-                "'Libre Bodoni', 'Playfair Display', Georgia, serif",
+                "var(--font-sans)",
             }}
           >
             {

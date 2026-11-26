@@ -168,7 +168,7 @@ const ProductDetail: React.FC = () => {
         <main className="flex-1 flex flex-col items-center justify-center py-24 px-6">
           <h1
             className="text-[40px] text-[#1A1A1A] mb-4"
-            style={{ fontFamily: "'Poppins', system-ui, -apple-system, sans-serif", fontWeight: 500 }}
+style={{ fontFamily: 'var(--font-sans)', fontWeight: 500 }}
           >
             Produk Tidak Ditemukan
           </h1>
@@ -218,7 +218,7 @@ const ProductDetail: React.FC = () => {
               <p className="text-[10px] tracking-[0.16em] uppercase text-[#999] mb-2">ATELIER</p>
               <h1
                 className="text-[36px] lg:text-[44px] leading-[1.15] text-[#1A1A1A] mb-4"
-                style={{ fontFamily: "'Poppins', system-ui, -apple-system, sans-serif", fontWeight: 500 }}
+style={{ fontFamily: 'var(--font-sans)', fontWeight: 500 }}
               >
                 {product.name}
               </h1>

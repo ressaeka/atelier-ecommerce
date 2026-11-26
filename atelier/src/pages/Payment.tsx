@@ -1065,7 +1065,7 @@ const Payment: React.FC = () => {
                       className="shrink-0 bg-[#1A1A1A] px-4 text-[9px] uppercase tracking-[0.12em] text-white transition-colors hover:bg-[#333] sm:px-6 sm:text-[10px]"
                       style={{
                         fontFamily: SERIF,
-                        fontWeight: 700,
+                        fontWeight: 600,
                       }}
                     >
                       TERAPKAN
@@ -1318,7 +1318,7 @@ const Payment: React.FC = () => {
                 className="flex items-center gap-2.5 rounded-[6px] bg-[#0A0A0A] px-6 py-3.5 text-white transition-colors hover:bg-[#242424] disabled:cursor-not-allowed disabled:opacity-45 sm:px-10 sm:py-4"
                 style={{
                   fontFamily: SERIF,
-                  fontWeight: 700,
+                  fontWeight: 600,
                 }}
               >
                 <Printer

@@ -2,6 +2,40 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 
+const POPPINS_FONT_URLS = [
+  new URL('./fonts/Poppins-Regular.ttf', import.meta.url).href,
+  new URL('./fonts/Poppins-Medium.ttf', import.meta.url).href,
+  new URL('./fonts/Poppins-SemiBold.ttf', import.meta.url).href,
+];
+
+async function loadFontAsBase64(url: string): Promise<string> {
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Gagal memuat font PDF Poppins: ${response.status}`);
+  }
+
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+  }
+  return btoa(binary);
+}
+
+async function registerPoppinsFont(doc: jsPDF): Promise<void> {
+  const [regular, medium, semiBold] = await Promise.all(
+    POPPINS_FONT_URLS.map(loadFontAsBase64),
+  );
+
+  doc.addFileToVFS('Poppins-Regular.ttf', regular);
+  doc.addFileToVFS('Poppins-Medium.ttf', medium);
+  doc.addFileToVFS('Poppins-SemiBold.ttf', semiBold);
+  doc.addFont('Poppins-Regular.ttf', 'Poppins', 'normal');
+  doc.addFont('Poppins-Medium.ttf', 'Poppins', 'medium');
+  doc.addFont('Poppins-SemiBold.ttf', 'Poppins', 'bold');
+}
+
 // ─── Atelier Brand Colors ───────────────────────────────────────────────────
 const COLOR_ESPRESSO = [92, 64, 51] as const; // #5C4033
 const COLOR_CHARCOAL = [26, 26, 26] as const; // #1A1A1A
@@ -19,6 +53,60 @@ export function formatRupiah(value: number): string {
 
 export function formatNumber(value: number): string {
   return new Intl.NumberFormat('id-ID').format(value || 0);
+}
+
+export interface SimpleTablePdfData {
+  title: string;
+  periodLabel: string;
+  fileName: string;
+  headers: string[];
+  rows: Array<Array<string | number | null>>;
+}
+
+export async function exportSimpleTablePdf(
+  data: SimpleTablePdfData,
+): Promise<void> {
+  const doc = new jsPDF({
+    orientation: data.headers.length > 6 ? 'landscape' : 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  });
+  await registerPoppinsFont(doc);
+
+  doc.setFont('Poppins', 'bold');
+  doc.setFontSize(16);
+  doc.text(data.title, 14, 18);
+  doc.setFont('Poppins', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(...COLOR_MUTED);
+  doc.text(`Periode: ${data.periodLabel}`, 14, 25);
+  doc.text(`Dibuat: ${getCurrentTimestampWIB()}`, 14, 30);
+
+  autoTable(doc, {
+    startY: 36,
+    head: [data.headers],
+    body: data.rows.map((row) => row.map((value) => String(value ?? '-'))),
+    theme: 'grid',
+    styles: {
+      font: 'Poppins',
+      fontSize: 8,
+      cellPadding: 2,
+      textColor: [...COLOR_CHARCOAL],
+      lineColor: [...COLOR_LIGHT_BORDER],
+      lineWidth: 0.1,
+    },
+    headStyles: {
+      fillColor: [...COLOR_ESPRESSO],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+    },
+    alternateRowStyles: {
+      fillColor: [...COLOR_IVORY_BG],
+    },
+    margin: { left: 14, right: 14 },
+  });
+
+  doc.save(data.fileName);
 }
 
 export function getCurrentTimestampWIB(): string {
@@ -78,24 +166,24 @@ function drawReportHeader(
   doc.rect(14, currentY, pageWidth - 28, 28, 'S');
 
   // Brand Name & Eyebrow
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Poppins', 'bold');
   doc.setFontSize(16);
   doc.setTextColor(COLOR_CHARCOAL[0], COLOR_CHARCOAL[1], COLOR_CHARCOAL[2]);
   doc.text('A T E L I E R', 20, currentY + 9);
 
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('Poppins', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(COLOR_ESPRESSO[0], COLOR_ESPRESSO[1], COLOR_ESPRESSO[2]);
   doc.text('LUXURY READY-TO-WEAR · EXECUTIVE REPORT', 20, currentY + 14);
 
   // Document Title & Subtitle
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Poppins', 'bold');
   doc.setFontSize(10.5);
   doc.setTextColor(COLOR_CHARCOAL[0], COLOR_CHARCOAL[1], COLOR_CHARCOAL[2]);
   doc.text(title.toUpperCase(), 20, currentY + 21);
 
   if (subtitle) {
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('Poppins', 'normal');
     doc.setFontSize(7.2);
     doc.setTextColor(COLOR_MUTED[0], COLOR_MUTED[1], COLOR_MUTED[2]);
     doc.text(subtitle, 20, currentY + 25);
@@ -103,17 +191,17 @@ function drawReportHeader(
 
   // Right-aligned Metadata
   const rightX = pageWidth - 20;
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Poppins', 'bold');
   doc.setFontSize(7.5);
   doc.setTextColor(COLOR_MUTED[0], COLOR_MUTED[1], COLOR_MUTED[2]);
   doc.text('PERIODE LAPORAN', rightX, currentY + 8, { align: 'right' });
 
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Poppins', 'bold');
   doc.setFontSize(9);
   doc.setTextColor(COLOR_CHARCOAL[0], COLOR_CHARCOAL[1], COLOR_CHARCOAL[2]);
   doc.text(periodLabel || 'Semua Periode', rightX, currentY + 13, { align: 'right' });
 
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('Poppins', 'normal');
   doc.setFontSize(7);
   doc.setTextColor(COLOR_MUTED[0], COLOR_MUTED[1], COLOR_MUTED[2]);
   doc.text(`Dicetak: ${getCurrentTimestampWIB()}`, rightX, currentY + 19, { align: 'right' });
@@ -153,19 +241,19 @@ function drawKpiRow(
     doc.rect(x, startY, cardWidth, cardHeight, 'S');
 
     // Label
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('Poppins', 'bold');
     doc.setFontSize(6.5);
     doc.setTextColor(COLOR_MUTED[0], COLOR_MUTED[1], COLOR_MUTED[2]);
     doc.text(card.label.toUpperCase(), x + 3.5, startY + 5.5);
 
     // Value
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('Poppins', 'bold');
     doc.setFontSize(10.5);
     doc.setTextColor(card.highlight ? COLOR_ESPRESSO[0] : COLOR_CHARCOAL[0], card.highlight ? COLOR_ESPRESSO[1] : COLOR_CHARCOAL[1], card.highlight ? COLOR_ESPRESSO[2] : COLOR_CHARCOAL[2]);
     doc.text(card.value, x + 3.5, startY + 12.5);
 
     // Subtitle
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('Poppins', 'normal');
     doc.setFontSize(6.5);
     doc.setTextColor(COLOR_MUTED[0], COLOR_MUTED[1], COLOR_MUTED[2]);
     doc.text(card.sub, x + 3.5, startY + 18);
@@ -191,7 +279,7 @@ function addMultiPageFooters(doc: jsPDF, reportCode: string) {
     doc.line(14, pageHeight - 11, pageWidth - 14, pageHeight - 11);
 
     // Left notice
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('Poppins', 'normal');
     doc.setFontSize(6.8);
     doc.setTextColor(COLOR_MUTED[0], COLOR_MUTED[1], COLOR_MUTED[2]);
     doc.text(
@@ -201,7 +289,7 @@ function addMultiPageFooters(doc: jsPDF, reportCode: string) {
     );
 
     // Right page number
-    doc.setFont('helvetica', 'bold');
+    doc.setFont('Poppins', 'bold');
     doc.setFontSize(7.2);
     doc.setTextColor(COLOR_CHARCOAL[0], COLOR_CHARCOAL[1], COLOR_CHARCOAL[2]);
     doc.text(`Halaman ${i} dari ${totalPages}`, pageWidth - 14, pageHeight - 7, {
@@ -252,12 +340,12 @@ function renderExecutiveDecisionSupportPage(
   doc.setFillColor(COLOR_ESPRESSO[0], COLOR_ESPRESSO[1], COLOR_ESPRESSO[2]);
   doc.rect(14, y, 3, 18, 'F');
 
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Poppins', 'bold');
   doc.setFontSize(10.5);
   doc.setTextColor(COLOR_CHARCOAL[0], COLOR_CHARCOAL[1], COLOR_CHARCOAL[2]);
   doc.text('ANALISIS BISNIS & DUKUNGAN KEPUTUSAN EKSEKUTIF', 21, y + 7.5);
 
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('Poppins', 'normal');
   doc.setFontSize(7.2);
   doc.setTextColor(COLOR_MUTED[0], COLOR_MUTED[1], COLOR_MUTED[2]);
   doc.text(
@@ -269,7 +357,7 @@ function renderExecutiveDecisionSupportPage(
   y += 22;
 
   // 2. Executive Summary Block
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Poppins', 'bold');
   doc.setFontSize(8.2);
   doc.setTextColor(COLOR_CHARCOAL[0], COLOR_CHARCOAL[1], COLOR_CHARCOAL[2]);
   doc.text('A. RINGKASAN EKSEKUTIF KONDISI BISNIS (EXECUTIVE SUMMARY)', 14, y);
@@ -287,7 +375,7 @@ function renderExecutiveDecisionSupportPage(
     doc.setFillColor(COLOR_ESPRESSO[0], COLOR_ESPRESSO[1], COLOR_ESPRESSO[2]);
     doc.circle(18, itemY - 1, 0.9, 'F');
 
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('Poppins', 'normal');
     doc.setFontSize(6.8);
     doc.setTextColor(COLOR_CHARCOAL[0], COLOR_CHARCOAL[1], COLOR_CHARCOAL[2]);
     const splitText = doc.splitTextToSize(point, pageWidth - 42);
@@ -298,7 +386,7 @@ function renderExecutiveDecisionSupportPage(
   y += summaryHeight + 5;
 
   // 3. Business Insights & Recommendations Block
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Poppins', 'bold');
   doc.setFontSize(8.2);
   doc.setTextColor(COLOR_CHARCOAL[0], COLOR_CHARCOAL[1], COLOR_CHARCOAL[2]);
   doc.text('B. TEMUAN BISNIS (INSIGHTS) & REKOMENDASI STRATEGIS', 14, y);
@@ -349,7 +437,7 @@ function renderExecutiveDecisionSupportPage(
     y = 16;
   }
 
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Poppins', 'bold');
   doc.setFontSize(8.2);
   doc.setTextColor(COLOR_CHARCOAL[0], COLOR_CHARCOAL[1], COLOR_CHARCOAL[2]);
   doc.text('C. MATRIKS DUKUNGAN KEPUTUSAN PIMPINAN (DECISION SUPPORT MATRIX)', 14, y);
@@ -407,12 +495,12 @@ function renderExecutiveDecisionSupportPage(
   doc.setLineWidth(0.2);
   doc.rect(14, y, pageWidth - 28, 13, 'S');
 
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Poppins', 'bold');
   doc.setFontSize(6.2);
   doc.setTextColor(COLOR_ESPRESSO[0], COLOR_ESPRESSO[1], COLOR_ESPRESSO[2]);
   doc.text('KETENTUAN INTEGRITAS DATA & KETERBATASAN ANALISIS (GOVERNANCE NOTE):', 17, y + 4.2);
 
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('Poppins', 'normal');
   doc.setFontSize(5.6);
   doc.setTextColor(COLOR_MUTED[0], COLOR_MUTED[1], COLOR_MUTED[2]);
   doc.text(
@@ -472,6 +560,7 @@ export async function exportSalesReportPdf(data: SalesReportPdfData): Promise<vo
     unit: 'mm',
     format: 'a4',
   });
+  await registerPoppinsFont(doc);
 
   // 1. Header
   let y = drawReportHeader(
@@ -507,7 +596,7 @@ export async function exportSalesReportPdf(data: SalesReportPdfData): Promise<vo
   ]);
 
   // 3. Status Breakdown Table (Summary)
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Poppins', 'bold');
   doc.setFontSize(8.5);
   doc.setTextColor(COLOR_CHARCOAL[0], COLOR_CHARCOAL[1], COLOR_CHARCOAL[2]);
   doc.text('RINCIAN REKONSILIASI STATUS TRANSAKSI', 14, y);
@@ -580,7 +669,7 @@ export async function exportSalesReportPdf(data: SalesReportPdfData): Promise<vo
         y = 16;
       }
 
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('Poppins', 'bold');
       doc.setFontSize(8.5);
       doc.setTextColor(COLOR_CHARCOAL[0], COLOR_CHARCOAL[1], COLOR_CHARCOAL[2]);
       doc.text('VISUALISASI TREN PENDAPATAN & PESANAN', 14, y);
@@ -599,7 +688,7 @@ export async function exportSalesReportPdf(data: SalesReportPdfData): Promise<vo
     y = 16;
   }
 
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Poppins', 'bold');
   doc.setFontSize(8.5);
   doc.setTextColor(COLOR_CHARCOAL[0], COLOR_CHARCOAL[1], COLOR_CHARCOAL[2]);
   doc.text(`RINCIAN TRANSAKSI PESANAN (${data.transactions.length} DATA)`, 14, y);
@@ -762,6 +851,7 @@ export async function exportCategoryReportPdf(data: CategoryReportPdfData): Prom
     unit: 'mm',
     format: 'a4',
   });
+  await registerPoppinsFont(doc);
 
   // 1. Header
   let y = drawReportHeader(
@@ -800,7 +890,7 @@ export async function exportCategoryReportPdf(data: CategoryReportPdfData): Prom
   if (data.chartElementId) {
     const chartImg = await captureElementToImage(data.chartElementId);
     if (chartImg) {
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('Poppins', 'bold');
       doc.setFontSize(8.5);
       doc.setTextColor(COLOR_CHARCOAL[0], COLOR_CHARCOAL[1], COLOR_CHARCOAL[2]);
       doc.text('VISUALISASI DISTRIBUSI PENDAPATAN KATEGORI', 14, y);
@@ -814,7 +904,7 @@ export async function exportCategoryReportPdf(data: CategoryReportPdfData): Prom
   }
 
   // 4. Categories Data Table
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Poppins', 'bold');
   doc.setFontSize(8.5);
   doc.setTextColor(COLOR_CHARCOAL[0], COLOR_CHARCOAL[1], COLOR_CHARCOAL[2]);
   doc.text(`RINCIAN PERFORMA KATEGORI PRODUK (${data.categories.length} KATEGORI)`, 14, y);
@@ -967,6 +1057,7 @@ export async function exportRegionalReportPdf(data: RegionalReportPdfData): Prom
     unit: 'mm',
     format: 'a4',
   });
+  await registerPoppinsFont(doc);
 
   // 1. Header
   let y = drawReportHeader(
@@ -1005,7 +1096,7 @@ export async function exportRegionalReportPdf(data: RegionalReportPdfData): Prom
   if (data.chartElementId) {
     const chartImg = await captureElementToImage(data.chartElementId);
     if (chartImg) {
-      doc.setFont('helvetica', 'bold');
+      doc.setFont('Poppins', 'bold');
       doc.setFontSize(8.5);
       doc.setTextColor(COLOR_CHARCOAL[0], COLOR_CHARCOAL[1], COLOR_CHARCOAL[2]);
       doc.text('VISUALISASI PERINGKAT DISTRIBUSI WILAYAH', 14, y);
@@ -1019,7 +1110,7 @@ export async function exportRegionalReportPdf(data: RegionalReportPdfData): Prom
   }
 
   // 4. Regional Data Table
-  doc.setFont('helvetica', 'bold');
+  doc.setFont('Poppins', 'bold');
   doc.setFontSize(8.5);
   doc.setTextColor(COLOR_CHARCOAL[0], COLOR_CHARCOAL[1], COLOR_CHARCOAL[2]);
   doc.text(`RINCIAN PENJUALAN PROVINSI (${data.regions.length} WILAYAH)`, 14, y);

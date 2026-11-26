@@ -1,17 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
-  Download,
-  FileText,
-  MapPin,
-  PackageCheck,
-  RefreshCw,
   Search,
-  TrendingUp,
-  Wallet,
 } from 'lucide-react';
 
 import { useAdminAnalyticsOverview } from '../hooks/useAdminAnalyticsOverview';
@@ -19,26 +11,17 @@ import type {
   AnalyticsPreset,
   AnalyticsRegionalSales,
 } from '../types/analytics';
-import AnalyticsRegionalSalesCard from '../components/analytics/AnalyticsRegionalSalesCard';
 import {
   formatPrice,
   ProgressBar,
-  RankBadge,
 } from '../components/ui/AdminPrimitives';
 import { exportRegionalReportPdf } from '../utils/pdfReportGenerator';
-
-const PRESET_BUTTONS: Array<{ id: AnalyticsPreset; label: string }> = [
-  { id: '7d', label: '7 Hari Terakhir' },
-  { id: '30d', label: '30 Hari Terakhir' },
-  { id: '1y', label: '1 Tahun' },
-  { id: 'custom', label: 'Kustom' },
-];
+import { PeriodFilter, ReportPageHeader } from '../components/ReportControls';
 
 const numberFormatter = new Intl.NumberFormat('id-ID');
 const percentFormatter = new Intl.NumberFormat('id-ID', {
   maximumFractionDigits: 1,
 });
-
 function formatPercent(value: number): string {
   return `${percentFormatter.format(value)}%`;
 }
@@ -215,7 +198,6 @@ export default function AdminRegionalSalesReportPage() {
           revenue: r.revenue,
           contribution: r.percentageContribution,
         })),
-        chartElementId: 'regional-analytics-card-container',
       });
     } catch (err) {
       console.error('Export PDF regional failed:', err);
@@ -224,82 +206,46 @@ export default function AdminRegionalSalesReportPage() {
     }
   };
 
+  const tableTotalOrders = filteredRegions.reduce(
+    (sum, region) => sum + region.orders,
+    0,
+  );
+  const tableTotalUnits = filteredRegions.reduce(
+    (sum, region) => sum + region.unitsSold,
+    0,
+  );
+  const tableTotalRevenue = filteredRegions.reduce(
+    (sum, region) => sum + region.revenue,
+    0,
+  );
+  const tableTotalContribution = filteredRegions.reduce(
+    (sum, region) => sum + region.percentageContribution,
+    0,
+  );
+
   return (
     <div className="space-y-6">
-      {/* ── 1. Page Header ── */}
-      <header className="flex flex-col gap-3.5 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <nav
-            aria-label="Breadcrumb"
-            className="flex items-center gap-1.5 text-[12px] font-medium text-[#6F6A62]"
-          >
-            <Link to="/admin" className="transition-colors hover:text-[#5C4033]">
-              Admin
-            </Link>
-            <span aria-hidden="true">/</span>
-            <span>Laporan</span>
-            <span aria-hidden="true">/</span>
-            <span className="font-semibold text-[#5C4033]">
-              Penjualan per Wilayah
-            </span>
-          </nav>
-
-          <h1 className="mt-1 text-[26px] font-bold tracking-tight text-[#1A1A1A] sm:text-[28px]">
-            Penjualan per Wilayah
-          </h1>
-          <p className="mt-0.5 text-[13px] text-[#6F6A62]">
-            Distribusi spasial pesanan, volume unit terkirim, dan konsentrasi omzet per provinsi.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {data?.period ? (
-            <span className="mr-1 text-[12px] font-medium text-[#6F6A62]">
-              Periode: {data.period.startDate} s/d {data.period.endDate}
-            </span>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={refetch}
-            disabled={isLoading}
-            className="inline-flex min-h-[40px] items-center justify-center gap-2 rounded-xl border border-[#ECE7DE] bg-white px-3.5 py-2 text-[12.5px] font-semibold text-[#3F3B36] shadow-[0_1px_2px_rgba(26,22,18,0.03)] transition-colors hover:bg-[#FAF8F4] hover:text-[#1A1A1A] disabled:opacity-50"
-          >
-            <RefreshCw
-              size={14}
-              className={isLoading ? 'animate-spin' : undefined}
-              aria-hidden="true"
-            />
-            <span>Muat Ulang</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleExport}
-            disabled={regions.length === 0 || isLoading}
-            className="inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-[#ECE7DE] bg-white px-3.5 py-2 text-[12.5px] font-semibold text-[#3F3B36] shadow-[0_1px_2px_rgba(26,22,18,0.03)] transition-colors hover:bg-[#FAF8F4] hover:text-[#1A1A1A] disabled:cursor-not-allowed disabled:opacity-40"
-            title="Unduh data wilayah format CSV"
-          >
-            <Download size={14} strokeWidth={1.8} aria-hidden="true" />
-            <span>Ekspor CSV</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleExportPdf}
-            disabled={regions.length === 0 || isLoading || isExportingPdf}
-            className="inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-[#D5C2B4] bg-[#F7F4EE] px-3.5 py-2 text-[12.5px] font-semibold text-[#5C4033] shadow-[0_1px_2px_rgba(92,64,51,0.06)] transition-colors hover:bg-[#EFE9E0] hover:text-[#3D2920] disabled:cursor-not-allowed disabled:opacity-40"
-            title="Unduh laporan penjualan per wilayah format PDF"
-          >
-            {isExportingPdf ? (
-              <RefreshCw size={14} className="animate-spin text-[#5C4033]" aria-hidden="true" />
-            ) : (
-              <FileText size={14} strokeWidth={1.8} aria-hidden="true" />
-            )}
-            <span>{isExportingPdf ? 'Mengekspor PDF…' : 'Ekspor PDF'}</span>
-          </button>
-        </div>
-      </header>
+      <ReportPageHeader
+        title="Penjualan per Wilayah"
+        subtitle="Lihat provinsi yang paling banyak menyumbang pesanan dan pendapatan."
+        onRefresh={refetch}
+        isRefreshing={isLoading}
+        exportActions={[
+          {
+            format: 'csv',
+            label: 'Ekspor CSV',
+            onClick: handleExport,
+            disabled: regions.length === 0 || isLoading,
+          },
+          {
+            format: 'pdf',
+            label: 'Ekspor PDF',
+            onClick: () => void handleExportPdf(),
+            disabled: regions.length === 0 || isLoading || isExportingPdf,
+            busy: isExportingPdf,
+          },
+        ]}
+      />
 
       {error && (
         <div className="rounded-2xl border border-[#F3B0A3] bg-[#FBD9D3] p-4 text-[#8C3A1E]">
@@ -308,372 +254,206 @@ export default function AdminRegionalSalesReportPage() {
         </div>
       )}
 
-      {/* ── 2. Filters Bar ── */}
+      <PeriodFilter
+        activePreset={preset}
+        startDate={startDate}
+        endDate={endDate}
+        rangeStartDate={data?.period?.startDate ?? startDate}
+        rangeEndDate={data?.period?.endDate ?? endDate}
+        onPresetChange={handlePresetChange}
+        onApplyCustom={(customStart, customEnd) => {
+          setPreset('custom');
+          setStartDate(customStart);
+          setEndDate(customEnd);
+          setPage(1);
+        }}
+      />
+
       <section
-        aria-label="Filter Periode dan Pencarian"
-        className="rounded-2xl border border-[#ECE7DE] bg-white p-4 shadow-[0_1px_3px_rgba(26,22,18,0.04)]"
+        aria-label="Ringkasan penjualan wilayah"
+        className="grid grid-cols-2 divide-x divide-y divide-[#ECE6E0] overflow-hidden rounded-2xl border border-[#ECE6E0] bg-white xl:grid-cols-4 xl:divide-y-0"
       >
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          {/* Preset Buttons */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            {PRESET_BUTTONS.map((btn) => {
-              const active = preset === btn.id;
-              return (
-                <button
-                  key={btn.id}
-                  type="button"
-                  onClick={() => handlePresetChange(btn.id)}
-                  className={`rounded-xl px-3.5 py-2 text-[12px] font-semibold transition-colors ${
-                    active
-                      ? 'bg-[#1A1A1A] text-white shadow-sm'
-                      : 'border border-[#ECE7DE] bg-[#FAF8F4] text-[#6F6A62] hover:bg-[#F3EFE8] hover:text-[#1A1A1A]'
-                  }`}
-                >
-                  {btn.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Search Box */}
-          <div className="relative w-full sm:w-[260px]">
-            <Search
-              size={14}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A39D93]"
-              aria-hidden="true"
-            />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Cari provinsi / wilayah..."
-              className="h-10 w-full rounded-xl border border-[#ECE7DE] bg-[#FAF8F4] pl-9 pr-3 text-[12.5px] text-[#1A1A1A] placeholder:text-[#A39D93] focus:border-[#5C4033] focus:bg-white focus:outline-none"
-            />
-          </div>
-        </div>
-
-        {/* Custom Date Pickers (if preset === 'custom') */}
-        {preset === 'custom' && (
-          <div className="mt-3.5 flex flex-wrap items-center gap-3 border-t border-[#ECE7DE] pt-3 text-[12px]">
-            <span className="font-medium text-[#6F6A62]">Rentang Kustom:</span>
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="h-9 rounded-lg border border-[#ECE7DE] bg-[#FAF8F4] px-2.5 text-[12px] text-[#1A1A1A] focus:border-[#5C4033] focus:outline-none"
-                />
-              </div>
-              <span className="text-[#A39D93]">s/d</span>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="h-9 rounded-lg border border-[#ECE7DE] bg-[#FAF8F4] px-2.5 text-[12px] text-[#1A1A1A] focus:border-[#5C4033] focus:outline-none"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* ── 3. KPI Cards Grid ── */}
-      <section
-        aria-label="Ringkasan KPI Wilayah"
-        className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
-      >
-        {/* KPI 1: Total Pendapatan Wilayah */}
-        <article className="flex min-h-[140px] flex-col justify-between rounded-2xl border border-[#ECE7DE] bg-white p-5 shadow-[0_1px_3px_rgba(26,22,18,0.04)]">
-          <div>
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2.5">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#F4EFE8] text-[#5C4033]">
-                  <Wallet size={16} strokeWidth={1.8} aria-hidden="true" />
-                </span>
-                <h2 className="text-[13px] font-medium text-[#3F3B36]">
-                  Total Pendapatan
-                </h2>
-              </div>
-              <span className="rounded-md border border-[#ECE7DE] bg-[#FAF8F4] px-2 py-0.5 text-[10.5px] font-medium text-[#6F6A62]">
-                Omzet Sah
-              </span>
-            </div>
-            <p className="mt-3 text-[24px] font-bold leading-tight tracking-tight tabular-nums text-[#1A1A1A]">
-              {formatPrice(totalRevenue)}
-            </p>
-            <p className="mt-1 text-[11.5px] text-[#6F6A62]">
-              Dari pesanan berstatus selesai (DELIVERED)
-            </p>
-          </div>
+        <article className="min-w-0 p-4 sm:p-5">
+          <p className="text-[12px] text-[#8B7F79]">Total pendapatan</p>
+          <p className="mt-2 text-[24px] font-semibold leading-tight tabular-nums text-[#2A201D]">
+            {formatPrice(totalRevenue)}
+          </p>
+          <p className="mt-1 text-[12px] text-[#8B7F79]">
+            Dari pesanan selesai
+          </p>
         </article>
-
-        {/* KPI 2: Total Pesanan Terkirim */}
-        <article className="flex min-h-[140px] flex-col justify-between rounded-2xl border border-[#ECE7DE] bg-white p-5 shadow-[0_1px_3px_rgba(26,22,18,0.04)]">
-          <div>
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2.5">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#E7F3EC] text-[#2F7A4F]">
-                  <PackageCheck size={16} strokeWidth={1.8} aria-hidden="true" />
-                </span>
-                <h2 className="text-[13px] font-medium text-[#3F3B36]">
-                  Total Pesanan Wilayah
-                </h2>
-              </div>
-            </div>
-            <p className="mt-3 text-[24px] font-bold leading-tight tracking-tight tabular-nums text-[#1A1A1A]">
-              {numberFormatter.format(totalOrders)}{' '}
-              <span className="text-[13.5px] font-medium text-[#6F6A62]">pesanan</span>
-            </p>
-            <p className="mt-1 text-[11.5px] text-[#6F6A62]">
-              Volume {numberFormatter.format(totalUnits)} unit terkirim ke {regions.length} provinsi
-            </p>
-          </div>
+        <article className="min-w-0 p-4 sm:p-5">
+          <p className="text-[12px] text-[#8B7F79]">Total pesanan</p>
+          <p className="mt-2 text-[24px] font-semibold leading-tight tabular-nums text-[#2A201D]">
+            {numberFormatter.format(totalOrders)}
+          </p>
+          <p className="mt-1 text-[12px] text-[#8B7F79]">
+            <span className="tabular-nums">{numberFormatter.format(totalUnits)}</span>{' '}
+            unit terjual
+          </p>
         </article>
-
-        {/* KPI 3: Wilayah Teratas */}
-        <article className="flex min-h-[140px] flex-col justify-between rounded-2xl border border-[#ECE7DE] bg-white p-5 shadow-[0_1px_3px_rgba(26,22,18,0.04)]">
-          <div>
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2.5">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#FBF1E1] text-[#9A5B14]">
-                  <MapPin size={16} strokeWidth={1.8} aria-hidden="true" />
-                </span>
-                <h2 className="text-[13px] font-medium text-[#3F3B36]">
-                  Provinsi Teratas
-                </h2>
-              </div>
-            </div>
-            <p className="mt-3 truncate text-[22px] font-bold leading-tight tracking-tight text-[#1A1A1A]" title={topRegion?.province ?? '-'}>
-              {topRegion?.province ?? '-'}
-            </p>
-            <p className="mt-1 text-[11.5px] text-[#6F6A62]">
-              Kontribusi {formatPercent(topRegion?.percentageContribution ?? 0)} dari total omzet wilayah
-            </p>
-          </div>
+        <article className="min-w-0 p-4 sm:p-5">
+          <p className="text-[12px] text-[#8B7F79]">Provinsi teratas</p>
+          <p
+            className="mt-2 truncate text-[24px] font-semibold leading-tight text-[#2A201D]"
+            title={topRegion?.province ?? '-'}
+          >
+            {topRegion?.province ?? '-'}
+          </p>
+          <p className="mt-1 text-[12px] text-[#8B7F79]">
+            <span className="tabular-nums">
+              {formatPercent(topRegion?.percentageContribution ?? 0)}
+            </span>{' '}
+            dari omzet
+          </p>
         </article>
-
-        {/* KPI 4: Rata-rata per Pesanan (AOV) */}
-        <article className="flex min-h-[140px] flex-col justify-between rounded-2xl border border-[#ECE7DE] bg-white p-5 shadow-[0_1px_3px_rgba(26,22,18,0.04)]">
-          <div>
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2.5">
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#F4EFE8] text-[#5C4033]">
-                  <TrendingUp size={16} strokeWidth={1.8} aria-hidden="true" />
-                </span>
-                <h2 className="text-[13px] font-medium text-[#3F3B36]">
-                  Rata-rata Nilai Pesanan
-                </h2>
-              </div>
-            </div>
-            <p className="mt-3 text-[24px] font-bold leading-tight tracking-tight tabular-nums text-[#1A1A1A]">
-              {formatPrice(averageOrderValue)}
-            </p>
-            <p className="mt-1 text-[11.5px] text-[#6F6A62]">
-              Rata-rata belanja per pesanan antar wilayah
-            </p>
-          </div>
+        <article className="min-w-0 p-4 sm:p-5">
+          <p className="text-[12px] text-[#8B7F79]">Rata-rata per pesanan</p>
+          <p className="mt-2 text-[24px] font-semibold leading-tight tabular-nums text-[#2A201D]">
+            {formatPrice(averageOrderValue)}
+          </p>
+          <p className="mt-1 text-[12px] text-[#8B7F79]">
+            Dari semua wilayah
+          </p>
         </article>
       </section>
 
-      {/* ── 4. Visual Section ── */}
-      <section className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        {/* Visual Map/Card using Shared AnalyticsRegionalSalesCard */}
-        <div id="regional-analytics-card-container" className="lg:col-span-7">
-          <AnalyticsRegionalSalesCard regions={regions} />
-        </div>
-
-        {/* Regional Order Density Highlight */}
-        <div className="flex flex-col justify-between rounded-2xl border border-[#ECE7DE] bg-white p-6 shadow-[0_1px_3px_rgba(26,22,18,0.04)] lg:col-span-5">
-          <div>
-            <div className="flex items-center gap-2.5 border-b border-[#ECE7DE] pb-4">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#F4EFE8] text-[#5C4033]">
-                <MapPin size={18} strokeWidth={1.8} />
-              </span>
-              <div>
-                <h2 className="font-editorial text-[18px] font-semibold text-[#1A1A1A]">
-                  Kerapatan Pengiriman
-                </h2>
-                <p className="text-[12px] text-[#6F6A62]">
-                  Peringkat konsentrasi pesanan per provinsi
-                </p>
-              </div>
-            </div>
-
-            <ol className="mt-4 space-y-3">
-              {regions.slice(0, 5).map((r) => (
-                <li key={r.province} className="rounded-xl border border-[#ECE7DE] bg-[#FAF8F4] p-3">
-                  <div className="flex items-center justify-between text-[12.5px]">
-                    <div className="flex items-center gap-2 font-semibold text-[#1A1A1A]">
-                      <RankBadge rank={r.rank} />
-                      <span>{r.province}</span>
-                    </div>
-                    <span className="font-bold tabular-nums text-[#5C4033]">
-                      {formatPercent(r.percentageContribution)}
-                    </span>
-                  </div>
-                  <div className="mt-2">
-                    <ProgressBar value={r.percentageContribution} />
-                  </div>
-                  <div className="mt-2 flex items-center justify-between text-[11px] text-[#6F6A62]">
-                    <span>{numberFormatter.format(r.orders)} pesanan · {numberFormatter.format(r.unitsSold)} unit</span>
-                    <span>{formatPrice(r.revenue)}</span>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </div>
-      </section>
-
-      {/* ── 5. Detailed Regional Table ── */}
       <section
         aria-labelledby="regions-table-heading"
-        className="overflow-hidden rounded-2xl border border-[#ECE7DE] bg-white shadow-[0_1px_3px_rgba(26,22,18,0.04)]"
+        className="overflow-hidden rounded-2xl border border-[#ECE6E0] bg-white"
       >
-        <div className="flex flex-col gap-2 border-b border-[#ECE7DE] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="flex flex-col gap-3 border-b border-[#ECE6E0] px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div>
             <h2
               id="regions-table-heading"
-              className="text-[16px] font-semibold text-[#1A1A1A]"
+              className="text-[16px] font-semibold text-[#2A201D]"
             >
-              Tabel Rincian Penjualan per Provinsi
+              Rincian per provinsi
             </h2>
-            <p className="text-[12px] text-[#6F6A62]">
-              Menampilkan {filteredRegions.length} wilayah pengiriman pada periode terpilih
+            <p className="mt-0.5 text-[12px] text-[#8B7F79]">
+              <span className="tabular-nums">
+                {numberFormatter.format(filteredRegions.length)}
+              </span>{' '}
+              provinsi pada periode ini
             </p>
+          </div>
+          <div className="relative w-full sm:w-64">
+            <Search
+              size={15}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#8B7F79]"
+              aria-hidden="true"
+            />
+            <input
+              type="search"
+              aria-label="Cari provinsi"
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
+              placeholder="Cari provinsi"
+              className="h-10 w-full rounded-[10px] border border-[#ECE6E0] bg-[#FAF8F5] pl-9 pr-3 text-[13px] text-[#2A201D] placeholder:text-[#8B7F79] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#5B3F36]"
+            />
           </div>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[700px] border-collapse text-left">
+          <table className="w-full min-w-[760px] border-collapse text-left">
             <thead>
-              <tr className="border-b border-[#ECE7DE] bg-[#FAF8F4]">
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#6F6A62]"
-                >
-                  <button
-                    type="button"
-                    onClick={() => handleSort('rank')}
-                    className="inline-flex items-center gap-1 hover:text-[#1A1A1A]"
-                  >
-                    <span>#</span>
-                    <ArrowUpDown size={12} />
-                  </button>
-                </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#6F6A62]"
-                >
+              <tr className="border-b border-[#ECE6E0] bg-[#FAF8F5]">
+                <th scope="col" className="px-6 py-3 text-[12px] font-medium text-[#8B7F79]">
                   <button
                     type="button"
                     onClick={() => handleSort('province')}
-                    className="inline-flex items-center gap-1 hover:text-[#1A1A1A]"
+                    className="inline-flex items-center gap-1.5 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B3F36]"
                   >
-                    <span>Provinsi / Wilayah</span>
-                    <ArrowUpDown size={12} />
+                    Provinsi <ArrowUpDown size={12} aria-hidden="true" />
                   </button>
                 </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.1em] text-[#6F6A62]"
-                >
+                <th scope="col" className="px-4 py-3 text-right text-[12px] font-medium text-[#8B7F79]">
                   <button
                     type="button"
                     onClick={() => handleSort('orders')}
-                    className="inline-flex items-center gap-1 hover:text-[#1A1A1A]"
+                    className="inline-flex items-center gap-1.5 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B3F36]"
                   >
-                    <span>Pesanan</span>
-                    <ArrowUpDown size={12} />
+                    Pesanan <ArrowUpDown size={12} aria-hidden="true" />
                   </button>
                 </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.1em] text-[#6F6A62]"
-                >
+                <th scope="col" className="px-4 py-3 text-right text-[12px] font-medium text-[#8B7F79]">
                   <button
                     type="button"
                     onClick={() => handleSort('unitsSold')}
-                    className="inline-flex items-center gap-1 hover:text-[#1A1A1A]"
+                    className="inline-flex items-center gap-1.5 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B3F36]"
                   >
-                    <span>Unit Terjual</span>
-                    <ArrowUpDown size={12} />
+                    Unit terjual <ArrowUpDown size={12} aria-hidden="true" />
                   </button>
                 </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.1em] text-[#6F6A62]"
-                >
+                <th scope="col" className="px-4 py-3 text-right text-[12px] font-medium text-[#8B7F79]">
                   <button
                     type="button"
                     onClick={() => handleSort('revenue')}
-                    className="inline-flex items-center gap-1 hover:text-[#1A1A1A]"
+                    className="inline-flex items-center gap-1.5 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B3F36]"
                   >
-                    <span>Total Pendapatan</span>
-                    <ArrowUpDown size={12} />
+                    Pendapatan <ArrowUpDown size={12} aria-hidden="true" />
                   </button>
                 </th>
-                <th
-                  scope="col"
-                  className="px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.1em] text-[#6F6A62]"
-                >
+                <th scope="col" className="px-6 py-3 text-[12px] font-medium text-[#8B7F79]">
                   <button
                     type="button"
                     onClick={() => handleSort('percentageContribution')}
-                    className="inline-flex items-center gap-1 hover:text-[#1A1A1A]"
+                    className="inline-flex items-center gap-1.5 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B3F36]"
                   >
-                    <span>Kontribusi Omzet</span>
-                    <ArrowUpDown size={12} />
+                    Kontribusi omzet <ArrowUpDown size={12} aria-hidden="true" />
                   </button>
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#ECE7DE]">
+            <tbody className="divide-y divide-[#ECE6E0]">
               {paginatedRegions.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={6}
-                    className="px-6 py-12 text-center text-[13px] text-[#6F6A62]"
+                    colSpan={5}
+                    className="px-6 py-12 text-center text-[13px] text-[#8B7F79]"
                   >
                     {isLoading
                       ? 'Memuat data wilayah…'
-                      : 'Tidak ada data wilayah yang cocok dengan filter.'}
+                      : 'Tidak ada data wilayah yang cocok dengan pencarian.'}
                   </td>
                 </tr>
               ) : (
                 paginatedRegions.map((region) => (
                   <tr
                     key={region.province}
-                    className="transition-colors hover:bg-[#FAF8F4]"
+                    className="transition-colors hover:bg-[#FAF8F5]"
                   >
-                    <td className="px-4 py-3.5 text-[12.5px]">
-                      <RankBadge rank={region.rank} />
+                    <td className="px-6 py-3.5 text-[14px] font-normal text-[#2A201D]">
+                      <div className="flex items-center gap-3">
+                        <span
+                          aria-label={`Peringkat ${region.rank}`}
+                          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#5B3F36] text-[12px] font-medium tabular-nums text-white"
+                        >
+                          {region.rank}
+                        </span>
+                        <span>{region.province}</span>
+                      </div>
                     </td>
-                    <td className="px-4 py-3.5 text-[13px] font-semibold text-[#1A1A1A]">
-                      {region.province}
+                    <td className="px-4 py-3.5 text-right text-[14px] font-normal tabular-nums text-[#2A201D]">
+                      {numberFormatter.format(region.orders)}
                     </td>
-                    <td className="px-4 py-3.5 text-right text-[12.5px] tabular-nums text-[#3F3B36]">
-                      {numberFormatter.format(region.orders)}{' '}
-                      <span className="text-[11px] text-[#6F6A62]">pesanan</span>
+                    <td className="px-4 py-3.5 text-right text-[14px] font-normal tabular-nums text-[#2A201D]">
+                      {numberFormatter.format(region.unitsSold)}
                     </td>
-                    <td className="px-4 py-3.5 text-right text-[12.5px] tabular-nums text-[#3F3B36]">
-                      {numberFormatter.format(region.unitsSold)}{' '}
-                      <span className="text-[11px] text-[#6F6A62]">unit</span>
-                    </td>
-                    <td className="px-4 py-3.5 text-right text-[13px] font-bold tabular-nums text-[#1A1A1A]">
+                    <td className="px-4 py-3.5 text-right text-[14px] font-normal tabular-nums text-[#2A201D]">
                       {formatPrice(region.revenue)}
                     </td>
-                    <td className="px-4 py-3.5 text-right">
-                      <div className="flex items-center justify-end gap-2.5">
-                        <div className="w-20">
-                          <ProgressBar value={region.percentageContribution} />
-                        </div>
-                        <span className="w-12 text-right text-[12px] font-semibold tabular-nums text-[#5C4033]">
+                    <td className="px-6 py-3.5">
+                      <div className="flex items-center gap-3">
+                        <ProgressBar
+                          value={region.percentageContribution}
+                          colorClass="bg-[#5B3F36]"
+                          className="w-full max-w-[160px]"
+                        />
+                        <span className="w-12 shrink-0 text-right text-[13px] font-medium tabular-nums text-[#2A201D]">
                           {formatPercent(region.percentageContribution)}
                         </span>
                       </div>
@@ -682,37 +462,68 @@ export default function AdminRegionalSalesReportPage() {
                 ))
               )}
             </tbody>
+            {filteredRegions.length > 0 && (
+              <tfoot>
+                <tr className="border-t border-[#ECE6E0] bg-[#FAF8F5] text-[14px] font-medium text-[#2A201D]">
+                  <th scope="row" className="px-6 py-3.5 text-left">
+                    Total
+                  </th>
+                  <td className="px-4 py-3.5 text-right tabular-nums">
+                    {numberFormatter.format(tableTotalOrders)}
+                  </td>
+                  <td className="px-4 py-3.5 text-right tabular-nums">
+                    {numberFormatter.format(tableTotalUnits)}
+                  </td>
+                  <td className="px-4 py-3.5 text-right tabular-nums">
+                    {formatPrice(tableTotalRevenue)}
+                  </td>
+                  <td className="px-6 py-3.5 text-right tabular-nums">
+                    {formatPercent(tableTotalContribution)}
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
 
-        {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-between border-t border-[#ECE7DE] px-5 py-3 sm:px-6">
-            <span className="text-[12px] text-[#6F6A62]">
-              Halaman {page} dari {totalPages}
+          <div className="flex items-center justify-between border-t border-[#ECE6E0] px-5 py-3 sm:px-6">
+            <span className="text-[12px] text-[#8B7F79]">
+              Halaman <span className="tabular-nums">{page}</span> dari{' '}
+              <span className="tabular-nums">{totalPages}</span>
             </span>
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                onClick={() => setPage((current) => Math.max(1, current - 1))}
                 disabled={page <= 1}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#ECE7DE] bg-white text-[#3F3B36] transition-colors hover:bg-[#FAF8F4] disabled:opacity-40"
                 aria-label="Halaman sebelumnya"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#ECE6E0] bg-white text-[#5B3F36] transition-colors hover:bg-[#F4EFEA] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B3F36] disabled:opacity-40"
               >
-                <ChevronLeft size={14} />
+                <ChevronLeft size={15} />
               </button>
               <button
                 type="button"
-                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                onClick={() =>
+                  setPage((current) => Math.min(totalPages, current + 1))
+                }
                 disabled={page >= totalPages}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-[#ECE7DE] bg-white text-[#3F3B36] transition-colors hover:bg-[#FAF8F4] disabled:opacity-40"
                 aria-label="Halaman berikutnya"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] border border-[#ECE6E0] bg-white text-[#5B3F36] transition-colors hover:bg-[#F4EFEA] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5B3F36] disabled:opacity-40"
               >
-                <ChevronRight size={14} />
+                <ChevronRight size={15} />
               </button>
             </div>
           </div>
         )}
+
+        <p className="flex items-start gap-2 border-t border-[#ECE6E0] px-5 py-4 text-[12px] leading-relaxed text-[#8B7F79] sm:px-6">
+          <span
+            className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[#8B7F79]"
+            aria-hidden="true"
+          />
+          Provinsi lain akan muncul di sini setelah ada pesanan dari wilayah berbeda.
+        </p>
       </section>
     </div>
   );

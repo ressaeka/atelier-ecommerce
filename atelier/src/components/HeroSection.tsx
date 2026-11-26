@@ -1,11 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const DISPLAY_FONT =
-  "'Poppins', system-ui, -apple-system, sans-serif";
+const DISPLAY_FONT = 'var(--font-sans)';
 
-const BODY_FONT =
-  "'Poppins', system-ui, -apple-system, sans-serif";
+const BODY_FONT = 'var(--font-sans)';
 
 const HeroSection: React.FC = () => {
   return (

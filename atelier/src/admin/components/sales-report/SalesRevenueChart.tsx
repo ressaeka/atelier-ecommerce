@@ -39,17 +39,17 @@ const CHART_MARGIN = { top: 10, right: 8, left: 0, bottom: 0 };
 const X_AXIS_TICK = {
   fill: '#6F6A62',
   fontSize: 11,
-  fontFamily: 'Poppins, system-ui, sans-serif',
+  fontFamily: 'var(--font-sans)',
 };
 const Y_AXIS_REVENUE_TICK = {
   fill: '#6F6A62',
   fontSize: 11,
-  fontFamily: 'Poppins, system-ui, sans-serif',
+  fontFamily: 'var(--font-sans)',
 };
 const Y_AXIS_ORDERS_TICK = {
   fill: '#A39D93',
   fontSize: 11,
-  fontFamily: 'Poppins, system-ui, sans-serif',
+  fontFamily: 'var(--font-sans)',
 };
 const TOOLTIP_STYLE = {
   borderRadius: 12,
@@ -57,7 +57,7 @@ const TOOLTIP_STYLE = {
   backgroundColor: '#FFFFFF',
   boxShadow: '0 8px 24px rgba(26,22,18,0.08)',
   fontSize: 12,
-  fontFamily: 'Poppins, system-ui, sans-serif',
+  fontFamily: 'var(--font-sans)',
 };
 const BAR_RADIUS: [number, number, number, number] = [5, 5, 0, 0];
 const LINE_DOT = { r: 3, fill: '#5C4033', strokeWidth: 0 };
@@ -97,7 +97,7 @@ export const SalesRevenueChart = memo(function SalesRevenueChart({
   return (
     <div
       id="sales-revenue-chart-card"
-      className="flex flex-col justify-between rounded-2xl border border-[#ECE7DE] bg-white p-5 shadow-[0_1px_3px_rgba(26,22,18,0.04)] sm:p-6 xl:col-span-2"
+      className="flex h-full flex-col justify-between rounded-2xl border border-[#ECE7DE] bg-white p-5 shadow-[0_1px_3px_rgba(26,22,18,0.04)] sm:p-6 xl:col-span-2"
     >
       <div className="mb-4 flex flex-wrap items-start justify-between gap-2.5">
         <div>

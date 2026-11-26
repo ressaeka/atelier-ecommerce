@@ -123,7 +123,7 @@ export default function SalesChart({ data }: SalesChartProps) {
                 border: '1px solid #E8E4DC',
                 boxShadow: '0 8px 24px rgba(26,26,26,0.06)',
                 fontSize: 12,
-                fontFamily: 'Poppins, system-ui, -apple-system, sans-serif',
+                fontFamily: 'var(--font-sans)',
               }}
               formatter={(value: number | string) => [
                 formatFullRp(Number(value)),

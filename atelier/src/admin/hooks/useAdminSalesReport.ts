@@ -8,7 +8,13 @@ import type {
 } from '../../types/api';
 
 // Exported for backward compatibility with other report hooks/pages
-export type ReportPreset = 'today' | '7d' | '30d' | 'this_month' | 'custom';
+export type ReportPreset =
+  | 'today'
+  | '7d'
+  | '30d'
+  | '1y'
+  | 'this_month'
+  | 'custom';
 
 const WIB_OFFSET_MS = 7 * 60 * 60 * 1000;
 const SEARCH_DEBOUNCE_MS = 350;
@@ -101,6 +107,16 @@ export function computePresetDates(preset: ReportPreset): {
     return { startDate: `${y}-${m}-${d}`, endDate: todayYmd };
   }
 
+  if (preset === '1y') {
+    const pastYear = new Date(
+      Date.UTC(year, month - 1, day) - 364 * 24 * 60 * 60 * 1000,
+    );
+    const y = pastYear.getUTCFullYear();
+    const m = String(pastYear.getUTCMonth() + 1).padStart(2, '0');
+    const d = String(pastYear.getUTCDate()).padStart(2, '0');
+    return { startDate: `${y}-${m}-${d}`, endDate: todayYmd };
+  }
+
   if (preset === 'this_month') {
     const mStr = String(month).padStart(2, '0');
     return { startDate: `${year}-${mStr}-01`, endDate: todayYmd };
@@ -148,30 +164,27 @@ function formatNowWibTime(): string {
 
 export function useAdminSalesReport() {
   const initialWib = useMemo(() => getWibDateParts(), []);
-  const initialMonthlyRange = useMemo(
-    () => computePeriodRangeWib('monthly', initialWib.month, initialWib.year),
-    [initialWib.month, initialWib.year],
-  );
+  const initialRange = useMemo(() => computePresetDates('30d'), []);
 
   // UI state for filter controls (instant response)
   const [periodType, setPeriodTypeState] =
-    useState<SalesReportPeriodType>('monthly');
+    useState<SalesReportPeriodType>('custom');
   const [month, setMonthState] = useState<number>(initialWib.month);
   const [year, setYearState] = useState<number>(initialWib.year);
   const [startDate, setStartDateState] = useState<string>(
-    initialMonthlyRange.startDate,
+    initialRange.startDate,
   );
   const [endDate, setEndDateState] = useState<string>(
-    initialMonthlyRange.endDate,
+    initialRange.endDate,
   );
 
   // Committed period state that drives API queries (avoids double requests on custom dates)
   const [committedPeriod, setCommittedPeriod] = useState<CommittedPeriodState>({
-    periodType: 'monthly',
+    periodType: 'custom',
     month: initialWib.month,
     year: initialWib.year,
-    startDate: initialMonthlyRange.startDate,
-    endDate: initialMonthlyRange.endDate,
+    startDate: initialRange.startDate,
+    endDate: initialRange.endDate,
   });
 
   const [statusFilter, setStatusFilterState] = useState<string>('ALL');

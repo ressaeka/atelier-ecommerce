@@ -6,7 +6,6 @@ import {
   ChevronRight,
   DollarSign,
   Package,
-  RefreshCw,
   Search,
   ShoppingBag,
   TrendingUp,
@@ -15,14 +14,8 @@ import {
 
 import { useAdminBestSellingProducts } from '../hooks/useAdminBestSellingProducts';
 import { formatPrice, resolveImageUrl } from '../../lib/utils';
-import type { ReportPreset } from '../hooks/useAdminSalesReport';
-
-const PRESET_BUTTONS: Array<{ id: ReportPreset; label: string }> = [
-  { id: 'today', label: 'Hari Ini' },
-  { id: '7d', label: '7 Hari Terakhir' },
-  { id: '30d', label: '30 Hari Terakhir' },
-  { id: 'this_month', label: 'Bulan Ini' },
-];
+import { PeriodFilter, ReportPageHeader } from '../components/ReportControls';
+import { exportSimpleTablePdf } from '../utils/pdfReportGenerator';
 
 function ProductThumb({
   src,
@@ -62,8 +55,6 @@ export default function AdminBestSellingProductsPage() {
     startDate,
     endDate,
     search,
-    sortBy,
-    sortOrder,
     page,
     applyPreset,
     setStartDate,
@@ -73,6 +64,8 @@ export default function AdminBestSellingProductsPage() {
     setPage,
     refetch,
   } = useAdminBestSellingProducts();
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
   const summary = data?.summary ?? {
     totalUnitsSold: 0,
@@ -91,168 +84,140 @@ export default function AdminBestSellingProductsPage() {
 
   const topThree = products.slice(0, 3);
 
+  const handleExportCsv = () => {
+    if (products.length === 0) return;
+
+    const headers = [
+      'Peringkat',
+      'Produk',
+      'Kategori',
+      'Unit Terjual',
+      'Pendapatan (IDR)',
+      'Pesanan',
+      'Rata-rata Harga Jual (IDR)',
+      'Stok Saat Ini',
+    ];
+    const rows = products.map((product) => [
+      product.rank,
+      product.name,
+      product.categoryName,
+      product.unitsSold,
+      product.revenue,
+      product.orderCount,
+      product.averageSellingPrice,
+      product.currentStock,
+    ]);
+    const csv = [
+      headers,
+      ...rows.map((row) =>
+        row.map((value) => `"${String(value).replace(/"/g, '""')}"`),
+      ),
+    ]
+      .map((row) => row.join(','))
+      .join('\r\n');
+    const blob = new Blob(['\uFEFF', csv], {
+      type: 'text/csv;charset=utf-8;',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `produk-terlaris-${startDate}-sampai-${endDate}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportPdf = async () => {
+    if (!products.length || isExportingPdf) return;
+    setIsExportingPdf(true);
+    setExportError(null);
+    try {
+      await exportSimpleTablePdf({
+        title: 'Produk Terlaris',
+        periodLabel: data?.period
+          ? `${data.period.startDate} sampai ${data.period.endDate}`
+          : `${startDate} sampai ${endDate}`,
+        fileName: `produk-terlaris-${startDate}-sampai-${endDate}.pdf`,
+        headers: [
+          'Peringkat',
+          'Produk',
+          'Kategori',
+          'Unit terjual',
+          'Pendapatan (IDR)',
+          'Pesanan',
+          'Rata-rata harga (IDR)',
+          'Stok',
+        ],
+        rows: products.map((product) => [
+          product.rank,
+          product.name,
+          product.categoryName,
+          product.unitsSold,
+          product.revenue,
+          product.orderCount,
+          product.averageSellingPrice,
+          product.currentStock,
+        ]),
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Terjadi kendala saat mengekspor laporan PDF.';
+      setExportError(message);
+      console.error('Export PDF best-selling products failed:', error);
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8A847B]">
-            Admin · Laporan
-          </p>
-          <h1 className="mt-1.5 font-editorial text-[26px] font-medium tracking-tight text-[#1A1A1A] sm:text-[30px]">
-            Laporan Produk Terlaris
-          </h1>
-          <p className="mt-1.5 text-[13px] text-[#6B6B6B]">
-            Peringkat dan performa produk berdasarkan unit terjual, pendapatan, dan pesanan unik.
-          </p>
-        </div>
+      <ReportPageHeader
+        title="Produk Terlaris"
+        subtitle="Peringkat produk berdasarkan unit terjual, pendapatan, dan pesanan."
+        onRefresh={refetch}
+        isRefreshing={isLoading}
+        exportActions={[
+          {
+            format: 'csv',
+            label: 'Ekspor CSV',
+            onClick: handleExportCsv,
+            disabled: products.length === 0 || isLoading,
+          },
+          {
+            format: 'pdf',
+            label: isExportingPdf ? 'Menyiapkan PDF…' : 'Ekspor PDF',
+            onClick: () => void handleExportPdf(),
+            disabled: products.length === 0 || isLoading || isExportingPdf,
+            busy: isExportingPdf,
+          },
+        ]}
+      />
 
-        <button
-          type="button"
-          onClick={refetch}
-          disabled={isLoading}
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-[#D9E3EC] bg-[#F4F8FB] px-4 py-2.5 text-[12px] font-semibold text-[#2F5D86] transition-colors hover:bg-[#E8F1F8] disabled:opacity-50"
+      <PeriodFilter
+        activePreset={preset}
+        startDate={startDate}
+        endDate={endDate}
+        rangeStartDate={data?.period.startDate ?? startDate}
+        rangeEndDate={data?.period.endDate ?? endDate}
+        onPresetChange={applyPreset}
+        onApplyCustom={(customStart, customEnd) => {
+          setStartDate(customStart);
+          setEndDate(customEnd);
+        }}
+      />
+
+      {exportError && (
+        <div
+          role="alert"
+          className="rounded-2xl border border-[#F3B0A3] bg-[#FBD9D3] p-4 text-[#8C3A1E]"
         >
-          <RefreshCw
-            size={14}
-            className={isLoading ? 'animate-spin' : undefined}
-          />
-          Refresh Data
-        </button>
-      </header>
-
-      {/* Filter Card */}
-      <section className="rounded-2xl border border-[#E8E4DC] bg-white p-5 shadow-[0_1px_2px_rgba(26,26,26,0.03)] sm:p-6">
-        <div className="flex flex-col gap-4">
-          {/* Preset Buttons */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-[#8A847B]">
-                Periode:
-              </span>
-              {PRESET_BUTTONS.map((btn) => (
-                <button
-                  key={btn.id}
-                  type="button"
-                  onClick={() => applyPreset(btn.id)}
-                  className={`rounded-xl px-3 py-1.5 text-[12px] font-medium transition-colors ${
-                    preset === btn.id
-                      ? 'bg-[#1A1A1A] text-white shadow-sm'
-                      : 'border border-[#E8E4DC] bg-[#FAFAF8] text-[#4A4A4A] hover:bg-[#F0EDE7]'
-                  }`}
-                >
-                  {btn.label}
-                </button>
-              ))}
-              <span
-                className={`rounded-xl px-3 py-1.5 text-[12px] font-medium ${
-                  preset === 'custom'
-                    ? 'bg-[#2F5D86] text-white'
-                    : 'text-[#8A847B]'
-                }`}
-              >
-                {preset === 'custom' ? 'Kustom Terpilih' : ''}
-              </span>
-            </div>
-
-            {data?.period && (
-              <span className="text-[12px] text-[#8A847B]">
-                Rentang: <strong className="font-semibold text-[#1A1A1A]">{data.period.startDate} s/d {data.period.endDate}</strong> ({data.period.timezone})
-              </span>
-            )}
-          </div>
-
-          {/* Date inputs & Search input & Sort button */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="prodStartDate" className="text-[11px] font-medium text-[#6B6B6B]">
-                Dari Tanggal
-              </label>
-              <input
-                id="prodStartDate"
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="h-10 w-full rounded-xl border border-[#E8E4DC] bg-[#FAFAF8] px-3 text-[12px] text-[#1A1A1A] focus:border-[#B7C9D9] focus:bg-white focus:outline-none"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="prodEndDate" className="text-[11px] font-medium text-[#6B6B6B]">
-                Sampai Tanggal
-              </label>
-              <input
-                id="prodEndDate"
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="h-10 w-full rounded-xl border border-[#E8E4DC] bg-[#FAFAF8] px-3 text-[12px] text-[#1A1A1A] focus:border-[#B7C9D9] focus:bg-white focus:outline-none"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label htmlFor="prodSearch" className="text-[11px] font-medium text-[#6B6B6B]">
-                Cari Produk
-              </label>
-              <div className="relative">
-                <Search
-                  size={14}
-                  className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#A39E95]"
-                />
-                <input
-                  id="prodSearch"
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Ketik nama produk..."
-                  className="h-10 w-full rounded-xl border border-[#E8E4DC] bg-[#FAFAF8] pl-8 pr-3 text-[12px] text-[#1A1A1A] placeholder:text-[#A39E95] focus:border-[#B7C9D9] focus:bg-white focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[11px] font-medium text-[#6B6B6B]">
-                Urutkan Berdasarkan
-              </span>
-              <div className="flex gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => handleSortChange('sold')}
-                  className={`flex-1 rounded-xl px-2 py-2 text-[11px] font-medium transition-colors ${
-                    sortBy === 'sold'
-                      ? 'bg-[#EEF4F9] text-[#2F5D86] font-semibold border border-[#D9E3EC]'
-                      : 'border border-[#E8E4DC] bg-[#FAFAF8] text-[#6B6B6B] hover:bg-[#F3F1EC]'
-                  }`}
-                >
-                  Unit {sortBy === 'sold' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSortChange('revenue')}
-                  className={`flex-1 rounded-xl px-2 py-2 text-[11px] font-medium transition-colors ${
-                    sortBy === 'revenue'
-                      ? 'bg-[#EEF4F9] text-[#2F5D86] font-semibold border border-[#D9E3EC]'
-                      : 'border border-[#E8E4DC] bg-[#FAFAF8] text-[#6B6B6B] hover:bg-[#F3F1EC]'
-                  }`}
-                >
-                  Omzet {sortBy === 'revenue' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSortChange('orderCount')}
-                  className={`flex-1 rounded-xl px-2 py-2 text-[11px] font-medium transition-colors ${
-                    sortBy === 'orderCount'
-                      ? 'bg-[#EEF4F9] text-[#2F5D86] font-semibold border border-[#D9E3EC]'
-                      : 'border border-[#E8E4DC] bg-[#FAFAF8] text-[#6B6B6B] hover:bg-[#F3F1EC]'
-                  }`}
-                >
-                  Pesanan {sortBy === 'orderCount' ? (sortOrder === 'desc' ? '↓' : '↑') : ''}
-                </button>
-              </div>
-            </div>
-          </div>
+          <p className="text-[13px] font-semibold">Gagal mengekspor PDF</p>
+          <p className="mt-1 text-[12px]">{exportError}</p>
         </div>
-      </section>
+      )}
 
       {/* Error Alert */}
       {error && (
@@ -412,7 +377,7 @@ export default function AdminBestSellingProductsPage() {
 
       {/* Main Ranking Table Section */}
       <section className="overflow-hidden rounded-2xl border border-[#E8E4DC] bg-white shadow-[0_1px_2px_rgba(26,26,26,0.03)]">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#F0EDE7] px-5 py-4 sm:px-6">
+        <div className="flex flex-col gap-3 border-b border-[#F0EDE7] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div>
             <h2 className="font-editorial text-[18px] font-medium tracking-tight text-[#1A1A1A]">
               Peringkat Seluruh Produk
@@ -421,9 +386,26 @@ export default function AdminBestSellingProductsPage() {
               Daftar produk yang terjual pada rentang tanggal terpilih
             </p>
           </div>
-          <span className="text-[11px] uppercase tracking-[0.1em] text-[#8A847B]">
-            {meta.total} produk terdaftar
-          </span>
+          <div className="flex flex-col gap-2 sm:items-end">
+            <div className="relative w-full sm:w-[240px]">
+              <Search
+                size={15}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#8A847B]"
+                aria-hidden="true"
+              />
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Cari produk"
+                aria-label="Cari produk"
+                className="h-10 w-full rounded-[10px] border border-[#EDEAE3] bg-[#FAF8F5] pl-9 pr-3 text-[13px] text-[#1A1A1A] placeholder:text-[#8A847B] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#5B3F36]"
+              />
+            </div>
+            <span className="text-[12px] text-[#8A847B]">
+              {meta.total} produk terdaftar
+            </span>
+          </div>
         </div>
 
         {/* Loading Indicator */}

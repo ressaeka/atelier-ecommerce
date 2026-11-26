@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { ArrowUpDown, Calendar, RefreshCw } from 'lucide-react';
+import { ArrowUpDown, Calendar, RefreshCw, Search } from 'lucide-react';
 import { formatPrice } from '../../../lib/utils';
 import type {
   PaginationMeta,
@@ -33,11 +33,11 @@ const SalesTransactionRow = memo(function SalesTransactionRow({
       <td className="whitespace-nowrap px-4 py-3.5 text-[12.5px] tabular-nums text-[#3F3B36]">
         {formatFullIndonesianDateTime(tx.createdAt)}
       </td>
-      <td className="px-4 py-3.5">
+      <td className="px-3 py-3.5">
         <span className="text-[13px] font-bold tabular-nums text-[#5C4033]">
           {tx.orderNumber}
         </span>
-        <div className="mt-0.5 text-[11.5px] text-[#6F6A62]">
+        <div className="mt-0.5 break-words text-[11.5px] leading-4 text-[#6F6A62]">
           {tx.itemsCount} unit ·{' '}
           {tx.items
             .slice(0, 2)
@@ -46,11 +46,11 @@ const SalesTransactionRow = memo(function SalesTransactionRow({
           {tx.items.length > 2 ? ` +${tx.items.length - 2} lainnya` : ''}
         </div>
       </td>
-      <td className="px-4 py-3.5">
-        <p className="text-[13px] font-semibold text-[#1A1A1A]">
+      <td className="px-3 py-3.5">
+        <p className="break-words text-[13px] font-semibold text-[#1A1A1A]">
           {displayCustomer}
         </p>
-        <p className="mt-0.5 text-[11.5px] text-[#6F6A62]">
+        <p className="mt-0.5 break-words text-[11.5px] leading-4 text-[#6F6A62]">
           {[tx.city, tx.province].filter(Boolean).join(', ') || '—'}
         </p>
       </td>
@@ -174,6 +174,8 @@ interface SalesTransactionTableProps {
   totalRevenue: number;
   isInitialLoading: boolean;
   isFetching: boolean;
+  search: string;
+  onSearchChange: (value: string) => void;
   onSortChange: (field: SalesReportSortBy) => void;
   onPageChange: (page: number) => void;
 }
@@ -185,6 +187,8 @@ export const SalesTransactionTable = memo(function SalesTransactionTable({
   totalRevenue,
   isInitialLoading,
   isFetching,
+  search,
+  onSearchChange,
   onSortChange,
   onPageChange,
 }: SalesTransactionTableProps) {
@@ -193,7 +197,7 @@ export const SalesTransactionTable = memo(function SalesTransactionTable({
       aria-labelledby="transaction-details-heading"
       className="overflow-hidden rounded-2xl border border-[#ECE7DE] bg-white shadow-[0_1px_3px_rgba(26,22,18,0.04)]"
     >
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#ECE7DE] px-5 py-4 sm:px-6">
+      <div className="flex flex-col gap-3 border-b border-[#ECE7DE] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
         <div>
           <h2
             id="transaction-details-heading"
@@ -207,7 +211,22 @@ export const SalesTransactionTable = memo(function SalesTransactionTable({
             atau belum dibayar bernilai Rp 0 pada kolom Pendapatan Diakui
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+          <div className="relative w-full sm:w-[240px]">
+            <Search
+              size={14}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#8B7F79]"
+              aria-hidden="true"
+            />
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => onSearchChange(event.target.value)}
+              placeholder="Cari pelanggan atau pesanan"
+              aria-label="Cari pelanggan atau pesanan"
+              className="h-10 w-full rounded-[10px] border border-[#ECE6E0] bg-white pl-9 pr-3 text-[13px] text-[#2A201D] placeholder:text-[#8B7F79] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#5B3F36]"
+            />
+          </div>
           {isFetching && !isInitialLoading && (
             <span className="inline-flex items-center gap-1.5 rounded-lg border border-[#ECE7DE] bg-[#FAF8F4] px-2.5 py-1 text-[11px] font-medium text-[#5C4033]">
               <RefreshCw
@@ -257,10 +276,20 @@ export const SalesTransactionTable = memo(function SalesTransactionTable({
             isFetching && !isInitialLoading ? 'opacity-80' : 'opacity-100'
           }`}
         >
-          <table className="w-full min-w-[920px] border-collapse text-left">
+          <table className="w-full min-w-[1060px] table-fixed border-collapse text-left">
+            <colgroup>
+              <col className="w-[145px]" />
+              <col className="w-[190px]" />
+              <col className="w-[150px]" />
+              <col className="w-[135px]" />
+              <col className="w-[85px]" />
+              <col className="w-[85px]" />
+              <col className="w-[150px]" />
+              <col className="w-[120px]" />
+            </colgroup>
             <thead>
               <tr className="border-b border-[#ECE7DE] bg-[#FAF8F4]">
-                <th className="whitespace-nowrap px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6F6A62]">
+                <th className="whitespace-nowrap px-4 py-3 text-[12.5px] font-medium text-[#6F6A62]">
                   <button
                     type="button"
                     onClick={() => onSortChange('createdAt')}
@@ -270,13 +299,13 @@ export const SalesTransactionTable = memo(function SalesTransactionTable({
                     <ArrowUpDown size={12} aria-hidden="true" />
                   </button>
                 </th>
-                <th className="whitespace-nowrap px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6F6A62]">
+                <th className="whitespace-nowrap px-4 py-3 text-[12.5px] font-medium text-[#6F6A62]">
                   Nomor Pesanan
                 </th>
-                <th className="whitespace-nowrap px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6F6A62]">
+                <th className="whitespace-nowrap px-4 py-3 text-[12.5px] font-medium text-[#6F6A62]">
                   Nama Pelanggan
                 </th>
-                <th className="whitespace-nowrap px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6F6A62]">
+                <th className="whitespace-nowrap px-4 py-3 text-right text-[12.5px] font-medium text-[#6F6A62]">
                   <button
                     type="button"
                     onClick={() => onSortChange('total')}
@@ -286,13 +315,13 @@ export const SalesTransactionTable = memo(function SalesTransactionTable({
                     <ArrowUpDown size={12} aria-hidden="true" />
                   </button>
                 </th>
-                <th className="whitespace-nowrap px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6F6A62]">
+                <th className="whitespace-nowrap px-4 py-3 text-right text-[12.5px] font-medium text-[#6F6A62]">
                   Diskon
                 </th>
-                <th className="whitespace-nowrap px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6F6A62]">
+                <th className="whitespace-nowrap px-4 py-3 text-right text-[12.5px] font-medium text-[#6F6A62]">
                   Refund
                 </th>
-                <th className="whitespace-nowrap px-4 py-3 text-right text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6F6A62]">
+                <th className="whitespace-nowrap px-4 py-3 text-right text-[12.5px] font-medium text-[#6F6A62]">
                   <button
                     type="button"
                     onClick={() => onSortChange('recognizedRevenue')}
@@ -302,7 +331,7 @@ export const SalesTransactionTable = memo(function SalesTransactionTable({
                     <ArrowUpDown size={12} aria-hidden="true" />
                   </button>
                 </th>
-                <th className="whitespace-nowrap px-4 py-3 text-center text-[11px] font-semibold uppercase tracking-[0.06em] text-[#6F6A62]">
+                <th className="whitespace-nowrap px-4 py-3 text-center text-[12.5px] font-medium text-[#6F6A62]">
                   <button
                     type="button"
                     onClick={() => onSortChange('status')}

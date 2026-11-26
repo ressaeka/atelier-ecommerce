@@ -613,7 +613,7 @@ const Cart: React.FC = () => {
                 }`}
                 style={{
                   fontFamily: SERIF,
-                  fontWeight: 700,
+                  fontWeight: 600,
                 }}
               >
                 CHECKOUT(

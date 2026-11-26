@@ -7,9 +7,31 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Poppins', 'system-ui', '-apple-system', 'sans-serif'],
-        editorial: ['Poppins', 'system-ui', '-apple-system', 'sans-serif'],
-        serif: ['Poppins', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['Poppins', 'sans-serif'],
+        editorial: ['Poppins', 'sans-serif'],
+        serif: ['Poppins', 'sans-serif'],
+      },
+      fontWeight: {
+        thin: 'var(--weight-regular)',
+        extralight: 'var(--weight-regular)',
+        light: 'var(--weight-regular)',
+        normal: 'var(--weight-regular)',
+        medium: 'var(--weight-medium)',
+        semibold: 'var(--weight-semibold)',
+        bold: 'var(--weight-semibold)',
+        extrabold: 'var(--weight-semibold)',
+        black: 'var(--weight-semibold)',
+      },
+      fontSize: {
+        breadcrumb: ['var(--type-breadcrumb)', { lineHeight: '1.4' }],
+        'page-title': ['var(--type-page-title)', { lineHeight: '1.15' }],
+        subtitle: ['var(--type-subtitle)', { lineHeight: '1.5' }],
+        'card-title': ['var(--type-card-title)', { lineHeight: '1.4' }],
+        label: ['var(--type-label)', { lineHeight: '1.45' }],
+        metric: ['var(--type-metric)', { lineHeight: '1.2' }],
+        table: ['var(--type-table)', { lineHeight: '1.45' }],
+        'table-header': ['var(--type-table-header)', { lineHeight: '1.4' }],
+        control: ['var(--type-control)', { lineHeight: '1.4' }],
       },
       colors: {
         atelier: {

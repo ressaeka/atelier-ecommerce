@@ -37,7 +37,7 @@ export const TransactionStatusChart = memo(function TransactionStatusChart({
   statusTotals,
 }: TransactionStatusChartProps) {
   return (
-    <div className="flex flex-col justify-between rounded-2xl border border-[#ECE7DE] bg-white p-5 shadow-[0_1px_3px_rgba(26,22,18,0.04)] sm:p-6">
+    <div className="flex h-full flex-col justify-between rounded-2xl border border-[#ECE7DE] bg-white p-5 shadow-[0_1px_3px_rgba(26,22,18,0.04)] sm:p-6">
       <div>
         <h2 className="text-[17px] font-semibold tracking-tight text-[#1A1A1A]">
           Status Transaksi

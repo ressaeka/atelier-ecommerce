@@ -28,7 +28,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   }, [mobileOpen, closeMobile]);
 
   return (
-    <div className="min-h-screen bg-[#F6F4EF] font-sans text-[#1A1A1A] antialiased">
+    <div className="min-h-screen bg-[#FAF8F5] font-sans text-[#2A201D] antialiased">
       <AdminSidebar mobileOpen={mobileOpen} onCloseMobile={closeMobile} />
 
       <div className="flex min-h-screen flex-col lg:pl-[248px]">

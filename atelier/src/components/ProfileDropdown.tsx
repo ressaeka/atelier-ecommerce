@@ -120,7 +120,7 @@ export default function ProfileDropdown() {
 
               <p
                 className="text-xl text-gray-900 font-normal leading-snug"
-                style={{ fontFamily: "'Poppins', system-ui, -apple-system, sans-serif" }}
+                style={{ fontFamily: 'var(--font-sans)' }}
               >
                 {isAdminAccount ? 'Admin' : user.name}
               </p>
@@ -244,7 +244,7 @@ export default function ProfileDropdown() {
 
               <p
                 className="text-lg text-gray-900 font-normal mb-1"
-                style={{ fontFamily: "'Poppins', system-ui, -apple-system, sans-serif" }}
+                style={{ fontFamily: 'var(--font-sans)' }}
               >
                 Selamat datang di ATELIER
               </p>
@@ -308,7 +308,7 @@ export default function ProfileDropdown() {
 
               <h3
                 className="text-2xl text-gray-900 leading-tight mb-2"
-                style={{ fontFamily: "'Poppins', system-ui, -apple-system, sans-serif" }}
+                style={{ fontFamily: 'var(--font-sans)' }}
               >
                 Yakin ingin keluar?
               </h3>

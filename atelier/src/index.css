@@ -1,27 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --font-sans: 'Poppins', system-ui, -apple-system, sans-serif;
+    --font-sans: 'Poppins', sans-serif;
+    --weight-regular: 400;
+    --weight-medium: 500;
+    --weight-semibold: 600;
+    --type-breadcrumb: 14px;
+    --type-page-title: 38px;
+    --type-subtitle: 15px;
+    --type-card-title: 17px;
+    --type-label: 12.5px;
+    --type-metric: 30px;
+    --type-table: 13px;
+    --type-table-header: 12.5px;
+    --type-control: 14.5px;
   }
 
   html {
     scroll-behavior: smooth;
-    font-family: 'Poppins', system-ui, -apple-system, sans-serif;
   }
 
+  html,
   body,
   button,
   input,
   select,
-  textarea {
-    font-family:
-      'Poppins',
-      system-ui,
-      -apple-system,
-      sans-serif;
+  textarea,
+  table,
+  th,
+  td,
+  label,
+  svg text {
+    font-family: var(--font-sans);
   }
 
   body {
@@ -31,38 +46,27 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  b,
+  strong {
+    font-weight: var(--weight-semibold);
+  }
 }
 
   .font-sans {
-    font-family:
-      'Poppins',
-      system-ui,
-      -apple-system,
-      sans-serif !important;
+    font-family: var(--font-sans) !important;
   }
 
   .font-editorial {
-    font-family:
-      'Poppins',
-      system-ui,
-      -apple-system,
-      sans-serif !important;
+    font-family: var(--font-sans) !important;
   }
 
   .font-signature {
-    font-family:
-      'Poppins',
-      system-ui,
-      -apple-system,
-      sans-serif !important;
+    font-family: var(--font-sans) !important;
   }
 
   .font-serif {
-    font-family:
-      'Poppins',
-      system-ui,
-      -apple-system,
-      sans-serif !important;
+    font-family: var(--font-sans) !important;
   }
 
 /* Suppress focus ring for mouse/pointer users; keep for keyboard users */
@@ -143,11 +147,7 @@ img {
 .brand-marquee-logo {
   white-space: nowrap;
 
-  font-family:
-    'Poppins',
-    system-ui,
-    -apple-system,
-    sans-serif;
+  font-family: var(--font-sans);
 
   font-size: 22px;
   font-weight: 600;
@@ -161,11 +161,7 @@ img {
 .brand-marquee-logo sup {
   margin-left: 2px;
 
-  font-family:
-    'Poppins',
-    system-ui,
-    -apple-system,
-    sans-serif;
+  font-family: var(--font-sans);
 
   font-size: 6px;
   font-weight: 500;
@@ -195,11 +191,7 @@ img {
 .brand-marquee-text {
   white-space: nowrap;
 
-  font-family:
-    'Poppins',
-    system-ui,
-    -apple-system,
-    sans-serif;
+  font-family: var(--font-sans);
 
   font-size: 9px;
   font-weight: 500;
@@ -218,11 +210,7 @@ img {
 .brand-marquee-season {
   white-space: nowrap;
 
-  font-family:
-    'Poppins',
-    system-ui,
-    -apple-system,
-    sans-serif;
+  font-family: var(--font-sans);
 
   font-size: 13px;
   font-style: italic;

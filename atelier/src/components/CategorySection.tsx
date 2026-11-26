@@ -4,11 +4,9 @@ import CategoryCard from './CategoryCard';
 
 import type { Category } from '../types/api';
 
-const DISPLAY_FONT =
-  "'Poppins', system-ui, -apple-system, sans-serif";
+const DISPLAY_FONT = 'var(--font-sans)';
 
-const BODY_FONT =
-  "'Poppins', system-ui, -apple-system, sans-serif";
+const BODY_FONT = 'var(--font-sans)';
 
 interface CategorySectionProps {
   categories: Category[];

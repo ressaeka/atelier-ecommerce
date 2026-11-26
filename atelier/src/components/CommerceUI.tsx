@@ -8,7 +8,7 @@ import { ChevronDown, Check } from 'lucide-react';
  * the "- 1X +" stepper) so the four pages stay visually consistent.
  */
 
-export const SERIF = "'Poppins', system-ui, -apple-system, sans-serif";
+export const SERIF = 'var(--font-sans)';
 
 /** Editorial serif text — used for every heading, product name, price and label. */
 export const Serif: React.FC<{
@@ -118,7 +118,7 @@ export const QuantityStepper: React.FC<{
     </button>
     <span
       className="min-w-[34px] h-[26px] px-2 flex items-center justify-center bg-white border border-[#E2E0DA] text-[12px] text-[#1A1A1A]"
-      style={{ fontFamily: SERIF, fontWeight: 700 }}
+      style={{ fontFamily: SERIF, fontWeight: 600 }}
     >
       {quantity}X
     </span>

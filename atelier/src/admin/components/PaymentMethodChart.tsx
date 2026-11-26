@@ -95,7 +95,7 @@ export default function PaymentMethodChart({
                   borderRadius: 12,
                   border: '1px solid #ECE7DE',
                   fontSize: 12,
-                  fontFamily: 'Poppins, system-ui, -apple-system, sans-serif',
+                  fontFamily: 'var(--font-sans)',
                 }}
                 formatter={(value: number, name: string) => [
                   `${value}%`,

@@ -1,13 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import {
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
-  Download,
-  FileText,
   PieChart as PieChartIcon,
-  RefreshCw,
   Search,
   ShoppingBag,
   TrendingUp,
@@ -27,13 +23,7 @@ import {
   RankBadge,
 } from '../components/ui/AdminPrimitives';
 import { exportCategoryReportPdf } from '../utils/pdfReportGenerator';
-
-const PRESET_BUTTONS: Array<{ id: AnalyticsPreset; label: string }> = [
-  { id: '7d', label: '7 Hari Terakhir' },
-  { id: '30d', label: '30 Hari Terakhir' },
-  { id: '1y', label: '1 Tahun' },
-  { id: 'custom', label: 'Kustom' },
-];
+import { PeriodFilter, ReportPageHeader } from '../components/ReportControls';
 
 const numberFormatter = new Intl.NumberFormat('id-ID');
 const percentFormatter = new Intl.NumberFormat('id-ID', {
@@ -222,80 +212,42 @@ export default function AdminCategoryReportPage() {
 
   return (
     <div className="space-y-6">
-      {/* ── 1. Page Header ── */}
-      <header className="flex flex-col gap-3.5 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <nav
-            aria-label="Breadcrumb"
-            className="flex items-center gap-1.5 text-[12px] font-medium text-[#6F6A62]"
-          >
-            <Link to="/admin" className="transition-colors hover:text-[#5C4033]">
-              Admin
-            </Link>
-            <span aria-hidden="true">/</span>
-            <span>Laporan</span>
-            <span aria-hidden="true">/</span>
-            <span className="font-semibold text-[#5C4033]">
-              Performa Kategori
-            </span>
-          </nav>
+      <ReportPageHeader
+        title="Performa Kategori"
+        subtitle="Peringkat, kontribusi omzet, dan volume penjualan per kategori produk."
+        onRefresh={refetch}
+        isRefreshing={isLoading}
+        exportActions={[
+          {
+            format: 'csv',
+            label: 'Ekspor CSV',
+            onClick: handleExport,
+            disabled: categories.length === 0 || isLoading,
+          },
+          {
+            format: 'pdf',
+            label: 'Ekspor PDF',
+            onClick: () => void handleExportPdf(),
+            disabled: categories.length === 0 || isLoading || isExportingPdf,
+            busy: isExportingPdf,
+          },
+        ]}
+      />
 
-          <h1 className="mt-1 text-[26px] font-bold tracking-tight text-[#1A1A1A] sm:text-[28px]">
-            Performa Kategori
-          </h1>
-          <p className="mt-0.5 text-[13px] text-[#6F6A62]">
-            Peringkat, kontribusi omzet sah, dan distribusi volume penjualan per kategori produk.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          {data?.period ? (
-            <span className="mr-1 text-[12px] font-medium text-[#6F6A62]">
-              Periode: {data.period.startDate} s/d {data.period.endDate}
-            </span>
-          ) : null}
-
-          <button
-            type="button"
-            onClick={refetch}
-            disabled={isLoading}
-            className="inline-flex min-h-[40px] items-center justify-center gap-2 rounded-xl border border-[#ECE7DE] bg-white px-3.5 py-2 text-[12.5px] font-semibold text-[#3F3B36] shadow-[0_1px_2px_rgba(26,22,18,0.03)] transition-colors hover:bg-[#FAF8F4] hover:text-[#1A1A1A] disabled:opacity-50"
-          >
-            <RefreshCw
-              size={14}
-              className={isLoading ? 'animate-spin' : undefined}
-              aria-hidden="true"
-            />
-            <span>Muat Ulang</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleExport}
-            disabled={categories.length === 0 || isLoading}
-            className="inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-[#ECE7DE] bg-white px-3.5 py-2 text-[12.5px] font-semibold text-[#3F3B36] shadow-[0_1px_2px_rgba(26,22,18,0.03)] transition-colors hover:bg-[#FAF8F4] hover:text-[#1A1A1A] disabled:cursor-not-allowed disabled:opacity-40"
-            title="Unduh data kategori format CSV"
-          >
-            <Download size={14} strokeWidth={1.8} aria-hidden="true" />
-            <span>Ekspor CSV</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={handleExportPdf}
-            disabled={categories.length === 0 || isLoading || isExportingPdf}
-            className="inline-flex min-h-[40px] items-center gap-2 rounded-xl border border-[#D5C2B4] bg-[#F7F4EE] px-3.5 py-2 text-[12.5px] font-semibold text-[#5C4033] shadow-[0_1px_2px_rgba(92,64,51,0.06)] transition-colors hover:bg-[#EFE9E0] hover:text-[#3D2920] disabled:cursor-not-allowed disabled:opacity-40"
-            title="Unduh laporan performa kategori format PDF"
-          >
-            {isExportingPdf ? (
-              <RefreshCw size={14} className="animate-spin text-[#5C4033]" aria-hidden="true" />
-            ) : (
-              <FileText size={14} strokeWidth={1.8} aria-hidden="true" />
-            )}
-            <span>{isExportingPdf ? 'Mengekspor PDF…' : 'Ekspor PDF'}</span>
-          </button>
-        </div>
-      </header>
+      <PeriodFilter
+        activePreset={preset}
+        startDate={startDate}
+        endDate={endDate}
+        rangeStartDate={data?.period.startDate}
+        rangeEndDate={data?.period.endDate}
+        onPresetChange={handlePresetChange}
+        onApplyCustom={(customStart, customEnd) => {
+          setPreset('custom');
+          setStartDate(customStart);
+          setEndDate(customEnd);
+          setPage(1);
+        }}
+      />
 
       {error && (
         <div className="rounded-2xl border border-[#F3B0A3] bg-[#FBD9D3] p-4 text-[#8C3A1E]">
@@ -303,80 +255,6 @@ export default function AdminCategoryReportPage() {
           <p className="mt-1 text-[12px]">{error}</p>
         </div>
       )}
-
-      {/* ── 2. Filters Bar ── */}
-      <section
-        aria-label="Filter Periode dan Pencarian"
-        className="rounded-2xl border border-[#ECE7DE] bg-white p-4 shadow-[0_1px_3px_rgba(26,22,18,0.04)]"
-      >
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          {/* Preset Buttons */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            {PRESET_BUTTONS.map((btn) => {
-              const active = preset === btn.id;
-              return (
-                <button
-                  key={btn.id}
-                  type="button"
-                  onClick={() => handlePresetChange(btn.id)}
-                  className={`rounded-xl px-3.5 py-2 text-[12px] font-semibold transition-colors ${
-                    active
-                      ? 'bg-[#1A1A1A] text-white shadow-sm'
-                      : 'border border-[#ECE7DE] bg-[#FAF8F4] text-[#6F6A62] hover:bg-[#F3EFE8] hover:text-[#1A1A1A]'
-                  }`}
-                >
-                  {btn.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Search Box */}
-          <div className="relative w-full sm:w-[260px]">
-            <Search
-              size={14}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#A39D93]"
-              aria-hidden="true"
-            />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Cari nama kategori..."
-              className="h-10 w-full rounded-xl border border-[#ECE7DE] bg-[#FAF8F4] pl-9 pr-3 text-[12.5px] text-[#1A1A1A] placeholder:text-[#A39D93] focus:border-[#5C4033] focus:bg-white focus:outline-none"
-            />
-          </div>
-        </div>
-
-        {/* Custom Date Pickers (if preset === 'custom') */}
-        {preset === 'custom' && (
-          <div className="mt-3.5 flex flex-wrap items-center gap-3 border-t border-[#ECE7DE] pt-3 text-[12px]">
-            <span className="font-medium text-[#6F6A62]">Rentang Kustom:</span>
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  className="h-9 rounded-lg border border-[#ECE7DE] bg-[#FAF8F4] px-2.5 text-[12px] text-[#1A1A1A] focus:border-[#5C4033] focus:outline-none"
-                />
-              </div>
-              <span className="text-[#A39D93]">s/d</span>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
-                  className="h-9 rounded-lg border border-[#ECE7DE] bg-[#FAF8F4] px-2.5 text-[12px] text-[#1A1A1A] focus:border-[#5C4033] focus:outline-none"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-      </section>
 
       {/* ── 3. KPI Cards Grid ── */}
       <section
@@ -531,7 +409,7 @@ export default function AdminCategoryReportPage() {
         aria-labelledby="categories-table-heading"
         className="overflow-hidden rounded-2xl border border-[#ECE7DE] bg-white shadow-[0_1px_3px_rgba(26,22,18,0.04)]"
       >
-        <div className="flex flex-col gap-2 border-b border-[#ECE7DE] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+        <div className="flex flex-col gap-3 border-b border-[#ECE7DE] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
           <div>
             <h2
               id="categories-table-heading"
@@ -542,6 +420,24 @@ export default function AdminCategoryReportPage() {
             <p className="text-[12px] text-[#6F6A62]">
               Menampilkan {filteredCategories.length} kategori produk pada periode terpilih
             </p>
+          </div>
+          <div className="relative w-full sm:w-[240px]">
+            <Search
+              size={15}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#8B7F79]"
+              aria-hidden="true"
+            />
+            <input
+              type="search"
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
+              placeholder="Cari kategori"
+              aria-label="Cari kategori"
+              className="h-10 w-full rounded-[10px] border border-[#ECE6E0] bg-[#FAF8F5] pl-9 pr-3 text-[13px] text-[#2A201D] placeholder:text-[#8B7F79] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#5B3F36]"
+            />
           </div>
         </div>
 

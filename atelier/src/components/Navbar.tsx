@@ -472,7 +472,7 @@ const Navbar: React.FC<NavbarProps> = ({
                 "
                 style={{
                   fontFamily:
-                    "'Poppins', system-ui, -apple-system, sans-serif",
+                    "var(--font-sans)",
                 }}
               >
                 ATELIER
@@ -1035,7 +1035,7 @@ const Navbar: React.FC<NavbarProps> = ({
               "
               style={{
                 fontFamily:
-                  "'Libre Bodoni', 'Playfair Display', Georgia, serif",
+                  "var(--font-sans)",
               }}
             >
               ATELIER

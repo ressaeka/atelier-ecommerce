@@ -11,7 +11,6 @@ import type {
 } from '../../types/api';
 import { ADMIN_ORDER_STATUS_META } from '../components/AdminOrdersTable';
 import { SalesReportFilters } from '../components/sales-report/SalesReportFilters';
-import { SalesReportHeader } from '../components/sales-report/SalesReportHeader';
 import { SalesReportKpi } from '../components/sales-report/SalesReportKpi';
 import { SalesRevenueBreakdown } from '../components/sales-report/SalesRevenueBreakdown';
 import {
@@ -25,8 +24,13 @@ import {
   TransactionStatusChart,
 } from '../components/sales-report/TransactionStatusChart';
 import { formatFullIndonesianDateTime } from '../components/sales-report/salesReportUtils';
-import { useAdminSalesReport } from '../hooks/useAdminSalesReport';
+import {
+  computePresetDates,
+  useAdminSalesReport,
+} from '../hooks/useAdminSalesReport';
 import { exportSalesReportPdf } from '../utils/pdfReportGenerator';
+import { ReportPageHeader, PeriodFilter } from '../components/ReportControls';
+import type { AnalyticsPreset } from '../types/analytics';
 
 const DEFAULT_SUMMARY: SalesReportSummary = {
   totalRevenue: 0,
@@ -86,20 +90,13 @@ export default function AdminSalesReportPage() {
     isFetching,
     error,
     periodType,
-    month,
-    year,
     startDate,
     endDate,
     statusFilter,
     search,
     debouncedSearch,
     page,
-    lastUpdatedWib,
-    selectPeriodType,
-    selectMonth,
-    selectYear,
-    setStartDate,
-    setEndDate,
+    applyCustomDateRange,
     setStatusFilter,
     setSearch,
     handleSortChange,
@@ -110,6 +107,8 @@ export default function AdminSalesReportPage() {
   const [isExportingExcel, setIsExportingExcel] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [selectedPreset, setSelectedPreset] =
+    useState<AnalyticsPreset>('30d');
 
   const summary = data?.summary ?? DEFAULT_SUMMARY;
 
@@ -211,6 +210,18 @@ export default function AdminSalesReportPage() {
   const periodDisplayLabel =
     data?.period?.periodLabel ?? `${startDate} – ${endDate}`;
 
+  const handlePresetChange = (preset: AnalyticsPreset) => {
+    if (preset === 'custom') return;
+    setSelectedPreset(preset);
+    const range = computePresetDates(preset);
+    applyCustomDateRange(range.startDate, range.endDate);
+  };
+
+  const handleCustomRangeApply = (customStart: string, customEnd: string) => {
+    setSelectedPreset('custom');
+    applyCustomDateRange(customStart, customEnd);
+  };
+
   const handleExportExcel = useCallback(async () => {
     if (isExportingExcel) return;
     setIsExportingExcel(true);
@@ -220,11 +231,6 @@ export default function AdminSalesReportPage() {
         '/admin/reports/sales/export',
         {
           periodType,
-          month: periodType === 'monthly' ? month : undefined,
-          year:
-            periodType === 'monthly' || periodType === 'yearly'
-              ? year
-              : undefined,
           startDate,
           endDate,
           status: statusFilter,
@@ -253,8 +259,6 @@ export default function AdminSalesReportPage() {
   }, [
     isExportingExcel,
     periodType,
-    month,
-    year,
     startDate,
     endDate,
     statusFilter,
@@ -377,19 +381,49 @@ export default function AdminSalesReportPage() {
 
   return (
     <div className="space-y-5">
-      {/* 2.A. Compact Page Header */}
-      <SalesReportHeader
-        lastUpdatedWib={lastUpdatedWib}
-        isLoading={isLoading}
-        isFetching={isFetching}
-        isExportingExcel={isExportingExcel}
-        isExportingPdf={isExportingPdf}
-        hasTransactions={transactions.length > 0}
-        hasError={Boolean(error)}
-        onRefetch={refetch}
-        onExportCsv={handleExportCsv}
-        onExportExcel={handleExportExcel}
-        onExportPdf={handleExportPdf}
+      <ReportPageHeader
+        title="Laporan Penjualan"
+        subtitle="Ringkasan pendapatan, tren penjualan, dan rincian transaksi."
+        onRefresh={refetch}
+        isRefreshing={isFetching}
+        exportActions={[
+          {
+            format: 'csv',
+            label: 'Ekspor CSV',
+            onClick: handleExportCsv,
+            disabled: !transactions.length || isLoading,
+          },
+          {
+            format: 'pdf',
+            label: isExportingPdf ? 'Menyiapkan PDF…' : 'Ekspor PDF',
+            onClick: () => void handleExportPdf(),
+            disabled: !transactions.length || isLoading || isExportingPdf,
+            busy: isExportingPdf,
+          },
+          {
+            format: 'excel',
+            label: isExportingExcel ? 'Menyiapkan Excel…' : 'Ekspor Excel (.xlsx)',
+            onClick: () => void handleExportExcel(),
+            disabled: isExportingExcel || isLoading || Boolean(error),
+            busy: isExportingExcel,
+          },
+        ]}
+      />
+
+      <PeriodFilter
+        activePreset={selectedPreset}
+        startDate={startDate}
+        endDate={endDate}
+        rangeStartDate={data?.period.startDate ?? startDate}
+        rangeEndDate={data?.period.endDate ?? endDate}
+        rightContent={
+          <SalesReportFilters
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+          />
+        }
+        onPresetChange={handlePresetChange}
+        onApplyCustom={handleCustomRangeApply}
       />
 
       {/* Export Error Alert */}
@@ -416,26 +450,6 @@ export default function AdminSalesReportPage() {
           </button>
         </div>
       )}
-
-      {/* 2.B. Unified Period Filter & Search/Status Toolbar */}
-      <SalesReportFilters
-        periodType={periodType}
-        month={month}
-        year={year}
-        startDate={startDate}
-        endDate={endDate}
-        statusFilter={statusFilter}
-        search={search}
-        periodLabel={data?.period?.periodLabel}
-        comparisonLabel={data?.period?.comparisonLabel}
-        onSelectPeriodType={selectPeriodType}
-        onSelectMonth={selectMonth}
-        onSelectYear={selectYear}
-        onStartDateChange={setStartDate}
-        onEndDateChange={setEndDate}
-        onStatusFilterChange={setStatusFilter}
-        onSearchChange={setSearch}
-      />
 
       {/* Date Validation / API Error Alert (Previous data stays visible below!) */}
       {error && (
@@ -473,7 +487,7 @@ export default function AdminSalesReportPage() {
       />
 
       {/* 2.D. Revenue Trend Chart & Status Distribution */}
-      <section className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+      <section className="grid grid-cols-1 items-stretch gap-5 xl:grid-cols-3">
         <SalesRevenueChart
           chartSeries={chartSeries}
           hasChartRevenue={hasChartRevenue}
@@ -498,6 +512,8 @@ export default function AdminSalesReportPage() {
         totalRevenue={summary.totalRevenue}
         isInitialLoading={isLoading}
         isFetching={isFetching}
+        search={search}
+        onSearchChange={setSearch}
         onSortChange={handleSortChange}
         onPageChange={setPage}
       />

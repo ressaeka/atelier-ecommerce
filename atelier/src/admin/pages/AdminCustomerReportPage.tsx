@@ -1,10 +1,9 @@
 
+import { useState } from 'react';
 import {
   ArrowUpDown,
-  Calendar,
   ChevronLeft,
   ChevronRight,
-  Download,
   Mail,
   Phone,
   RefreshCw,
@@ -21,15 +20,9 @@ import {
   type CustomerTypeFilter,
 } from '../hooks/useAdminCustomerReport';
 import { formatPrice } from '../../lib/utils';
-import type { ReportPreset } from '../hooks/useAdminSalesReport';
 import type { CustomerReportItem } from '../../types/api';
-
-const PRESET_BUTTONS: Array<{ id: ReportPreset; label: string }> = [
-  { id: 'today', label: 'Hari Ini' },
-  { id: '7d', label: '7 Hari Terakhir' },
-  { id: '30d', label: '30 Hari Terakhir' },
-  { id: 'this_month', label: 'Bulan Ini' },
-];
+import { PeriodFilter, ReportPageHeader } from '../components/ReportControls';
+import { exportSimpleTablePdf } from '../utils/pdfReportGenerator';
 
 const CUSTOMER_TABS: Array<{
   id: CustomerTypeFilter;
@@ -132,6 +125,8 @@ function getInitials(name: string): string {
 }
 
 export default function AdminCustomerReportPage() {
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const {
     data,
     isLoading,
@@ -177,26 +172,53 @@ export default function AdminCustomerReportPage() {
   const hasInvalidDateRange =
     Boolean(startDate && endDate) && startDate > endDate;
 
-  const handleStartDateChange = (value: string) => {
-    setStartDate(value);
-
-    if (endDate && value > endDate) {
-      setEndDate(value);
-    }
-  };
-
-  const handleEndDateChange = (value: string) => {
-    setEndDate(value);
-
-    if (startDate && value < startDate) {
-      setStartDate(value);
-    }
-  };
-
   const handleExport = () => {
     if (hasInvalidDateRange || customers.length === 0) return;
 
     exportToCsv(customers, startDate, endDate);
+  };
+
+  const handleExportPdf = async () => {
+    if (hasInvalidDateRange || customers.length === 0 || isExportingPdf) return;
+
+    setIsExportingPdf(true);
+    setExportError(null);
+    try {
+      await exportSimpleTablePdf({
+        title: 'Laporan Pelanggan',
+        periodLabel: data?.period
+          ? `${data.period.startDate} sampai ${data.period.endDate}`
+          : `${startDate} sampai ${endDate}`,
+        fileName: `laporan-pelanggan-${startDate}-sampai-${endDate}.pdf`,
+        headers: [
+          'ID',
+          'Nama',
+          'Email',
+          'Telepon',
+          'Pesanan',
+          'Total Belanja (IDR)',
+          'Rata-rata Pesanan (IDR)',
+        ],
+        rows: customers.map((customer) => [
+          customer.id,
+          customer.name,
+          customer.email,
+          customer.phone ?? '-',
+          customer.totalOrders,
+          customer.totalSpent,
+          customer.averageOrderValue,
+        ]),
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Terjadi kendala saat mengekspor laporan PDF.';
+      setExportError(message);
+      console.error('Export PDF customer report failed:', error);
+    } finally {
+      setIsExportingPdf(false);
+    }
   };
 
   const handleSort = (column: CustomerSortBy) => {
@@ -205,49 +227,53 @@ export default function AdminCustomerReportPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[#8A847B]">
-            Admin · Laporan
-          </p>
+      <ReportPageHeader
+        title="Laporan Pelanggan"
+        subtitle="Analisis aktivitas belanja, omzet transaksi, dan pertumbuhan pelanggan terdaftar."
+        onRefresh={() => void refetch()}
+        isRefreshing={isLoading}
+        exportActions={[
+          {
+            format: 'csv',
+            label: 'Ekspor CSV',
+            onClick: handleExport,
+            disabled: customers.length === 0 || hasInvalidDateRange,
+          },
+          {
+            format: 'pdf',
+            label: isExportingPdf ? 'Menyiapkan PDF…' : 'Ekspor PDF',
+            onClick: () => void handleExportPdf(),
+            disabled:
+              customers.length === 0 ||
+              hasInvalidDateRange ||
+              isExportingPdf,
+            busy: isExportingPdf,
+          },
+        ]}
+      />
 
-          <h1 className="mt-1.5 font-editorial text-[26px] font-medium tracking-tight text-[#1A1A1A] sm:text-[30px]">
-            Laporan Pelanggan
-          </h1>
+      <PeriodFilter
+        activePreset={preset}
+        startDate={startDate}
+        endDate={endDate}
+        rangeStartDate={data?.period.startDate ?? startDate}
+        rangeEndDate={data?.period.endDate ?? endDate}
+        onPresetChange={applyPreset}
+        onApplyCustom={(customStart, customEnd) => {
+          setStartDate(customStart);
+          setEndDate(customEnd);
+        }}
+      />
 
-          <p className="mt-1.5 text-[13px] text-[#6B6B6B]">
-            Analisis aktivitas belanja, omzet transaksi, dan pertumbuhan
-            pelanggan terdaftar.
-          </p>
+      {exportError && (
+        <div
+          role="alert"
+          className="rounded-2xl border border-[#F3B0A3] bg-[#FBD9D3] p-4 text-[#8C3A1E]"
+        >
+          <p className="text-[13px] font-semibold">Gagal mengekspor PDF</p>
+          <p className="mt-1 text-[12px]">{exportError}</p>
         </div>
-
-        <div className="flex flex-wrap items-center gap-2.5">
-          <button
-            type="button"
-            onClick={handleExport}
-            disabled={customers.length === 0 || hasInvalidDateRange}
-            className="inline-flex items-center gap-2 rounded-xl border border-[#D9E3EC] bg-white px-3.5 py-2.5 text-[12px] font-semibold text-[#1A1A1A] transition-colors hover:bg-[#F3F1EC] disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            <Download size={15} strokeWidth={1.8} />
-            Ekspor CSV
-          </button>
-
-          <button
-            type="button"
-            onClick={() => void refetch()}
-            disabled={isLoading}
-            className="inline-flex items-center gap-2 rounded-xl border border-[#D9E3EC] bg-[#F4F8FB] px-3.5 py-2.5 text-[12px] font-semibold text-[#2F5D86] transition-colors hover:bg-[#E8F1F8] disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <RefreshCw
-              size={15}
-              strokeWidth={1.8}
-              className={isLoading ? 'animate-spin' : undefined}
-            />
-            Refresh Data
-          </button>
-        </div>
-      </header>
+      )}
 
       {/* KPI Cards */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -338,113 +364,6 @@ export default function AdminCustomerReportPage() {
         </div>
       </section>
 
-      {/* Filters */}
-      <section className="rounded-2xl border border-[#E8E4DC] bg-white p-5 shadow-[0_1px_2px_rgba(26,26,26,0.03)] sm:p-6">
-        <div className="space-y-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex flex-wrap items-center gap-1.5">
-              {PRESET_BUTTONS.map((item) => {
-                const active = preset === item.id;
-
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => applyPreset(item.id)}
-                    className={`rounded-xl px-3.5 py-2 text-[12px] font-medium transition-all ${
-                      active
-                        ? 'bg-[#1A1A1A] text-white shadow-sm'
-                        : 'bg-[#F7F5F0] text-[#4A4A4A] hover:bg-[#EFECE6] hover:text-[#1A1A1A]'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-1.5 rounded-xl border border-[#EDEAE3] bg-[#FCFBF9] px-3 py-1.5 text-[12px]">
-                <Calendar size={14} className="text-[#8A847B]" />
-                <input
-                  type="date"
-                  value={startDate}
-                  max={endDate || undefined}
-                  onChange={(event) =>
-                    handleStartDateChange(event.target.value)
-                  }
-                  className="bg-transparent text-[#1A1A1A] outline-none"
-                  aria-label="Tanggal mulai"
-                />
-              </div>
-
-              <span className="text-[12px] text-[#8A847B]">s/d</span>
-
-              <div className="flex items-center gap-1.5 rounded-xl border border-[#EDEAE3] bg-[#FCFBF9] px-3 py-1.5 text-[12px]">
-                <Calendar size={14} className="text-[#8A847B]" />
-                <input
-                  type="date"
-                  value={endDate}
-                  min={startDate || undefined}
-                  onChange={(event) =>
-                    handleEndDateChange(event.target.value)
-                  }
-                  className="bg-transparent text-[#1A1A1A] outline-none"
-                  aria-label="Tanggal akhir"
-                />
-              </div>
-            </div>
-          </div>
-
-          {hasInvalidDateRange && (
-            <p role="alert" className="text-xs text-red-600">
-              Tanggal mulai tidak boleh melewati tanggal akhir.
-            </p>
-          )}
-
-          <div className="flex flex-col gap-3 border-t border-[#F0EDE7] pt-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap items-center rounded-xl bg-[#F7F5F0] p-1 text-[12px]">
-              {CUSTOMER_TABS.map((tab) => {
-                const active = customerType === tab.id;
-
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => setCustomerType(tab.id)}
-                    className={`rounded-lg px-3 py-1.5 font-medium transition-colors ${
-                      active
-                        ? 'bg-white text-[#1A1A1A] shadow-sm'
-                        : 'text-[#6B6B6B] hover:text-[#1A1A1A]'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="relative w-full sm:w-[320px]">
-              <Search
-                size={15}
-                className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-[#A39E95]"
-              />
-
-              <input
-                type="search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Cari nama, email, atau telepon..."
-                aria-label="Cari pelanggan"
-                className="h-9 w-full rounded-xl border border-[#EDEAE3] bg-[#FCFBF9] pl-9 pr-3 text-[12.5px] text-[#1A1A1A] placeholder:text-[#A39E95] focus:border-[#B7C9D9] focus:bg-white focus:outline-none"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Error */}
       {error && (
         <div
@@ -475,8 +394,8 @@ export default function AdminCustomerReportPage() {
 
       {/* Customer Table */}
       <section className="overflow-hidden rounded-2xl border border-[#E8E4DC] bg-white shadow-[0_1px_2px_rgba(26,26,26,0.03)]">
-        <div className="flex flex-col gap-2 border-b border-[#EDEAE3] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <div>
+        <div className="flex flex-col gap-3 border-b border-[#EDEAE3] px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+          <div className="min-w-0">
             <h2 className="font-editorial text-[18px] font-medium tracking-tight text-[#1A1A1A]">
               Daftar Aktivitas Pelanggan
             </h2>
@@ -488,11 +407,49 @@ export default function AdminCustomerReportPage() {
                 : 'Terkecil ke terbesar'}
               )
             </p>
+            <div className="mt-3 flex flex-wrap items-center gap-1 rounded-xl bg-[#F7F5F0] p-1 text-[12px]">
+              {CUSTOMER_TABS.map((tab) => {
+                const active = customerType === tab.id;
+
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setCustomerType(tab.id)}
+                    className={`rounded-lg px-3 py-1.5 font-medium transition-colors ${
+                      active
+                        ? 'bg-white text-[#1A1A1A] shadow-sm'
+                        : 'text-[#6B6B6B] hover:text-[#1A1A1A]'
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <span className="text-[12px] text-[#8A847B]">
-            Total {meta.total} pelanggan
-          </span>
+          <div className="flex flex-col gap-2 sm:items-end">
+            <div className="relative w-full sm:w-[240px]">
+              <Search
+                size={15}
+                className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#A39E95]"
+                aria-hidden="true"
+              />
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Cari pelanggan"
+                aria-label="Cari pelanggan"
+                className="h-10 w-full rounded-[10px] border border-[#EDEAE3] bg-[#FCFBF9] pl-9 pr-3 text-[13px] text-[#1A1A1A] placeholder:text-[#A39E95] focus:border-[#5B3F36] focus:bg-white focus:outline-none"
+              />
+            </div>
+            <span className="text-[12px] text-[#8A847B]">
+              Total {meta.total} pelanggan
+            </span>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
