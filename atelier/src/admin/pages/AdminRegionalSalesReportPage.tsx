@@ -3,7 +3,11 @@ import {
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
+  MapPin,
   Search,
+  ShoppingBag,
+  TrendingUp,
+  Wallet,
 } from 'lucide-react';
 
 import { useAdminAnalyticsOverview } from '../hooks/useAdminAnalyticsOverview';
@@ -271,50 +275,100 @@ export default function AdminRegionalSalesReportPage() {
 
       <section
         aria-label="Ringkasan penjualan wilayah"
-        className="grid grid-cols-2 divide-x divide-y divide-[#ECE6E0] overflow-hidden rounded-2xl border border-[#ECE6E0] bg-white xl:grid-cols-4 xl:divide-y-0"
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
       >
-        <article className="min-w-0 p-4 sm:p-5">
-          <p className="text-[12px] text-[#8B7F79]">Total pendapatan</p>
-          <p className="mt-2 text-[24px] font-semibold leading-tight tabular-nums text-[#2A201D]">
-            {formatPrice(totalRevenue)}
-          </p>
-          <p className="mt-1 text-[12px] text-[#8B7F79]">
-            Dari pesanan selesai
-          </p>
+        <article className="flex min-h-[140px] flex-col justify-between rounded-2xl border border-[#ECE7DE] bg-white p-5 shadow-[0_1px_3px_rgba(26,22,18,0.04)]">
+          <div>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#F4EFE8] text-[#5C4033]">
+                  <Wallet size={16} strokeWidth={1.8} aria-hidden="true" />
+                </span>
+                <h2 className="text-[13px] font-medium text-[#3F3B36]">
+                  Total pendapatan
+                </h2>
+              </div>
+              <span className="rounded-md border border-[#ECE7DE] bg-[#FAF8F4] px-2 py-0.5 text-[10.5px] font-medium text-[#6F6A62]">
+                Omzet Sah
+              </span>
+            </div>
+            <p className="mt-3 text-[24px] font-bold leading-tight tracking-tight tabular-nums text-[#1A1A1A]">
+              {formatPrice(totalRevenue)}
+            </p>
+            <p className="mt-1 text-[11.5px] text-[#6F6A62]">
+              Dari pesanan selesai
+            </p>
+          </div>
         </article>
-        <article className="min-w-0 p-4 sm:p-5">
-          <p className="text-[12px] text-[#8B7F79]">Total pesanan</p>
-          <p className="mt-2 text-[24px] font-semibold leading-tight tabular-nums text-[#2A201D]">
-            {numberFormatter.format(totalOrders)}
-          </p>
-          <p className="mt-1 text-[12px] text-[#8B7F79]">
-            <span className="tabular-nums">{numberFormatter.format(totalUnits)}</span>{' '}
-            unit terjual
-          </p>
+
+        <article className="flex min-h-[140px] flex-col justify-between rounded-2xl border border-[#ECE7DE] bg-white p-5 shadow-[0_1px_3px_rgba(26,22,18,0.04)]">
+          <div>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#E7F3EC] text-[#2F7A4F]">
+                  <ShoppingBag size={16} strokeWidth={1.8} aria-hidden="true" />
+                </span>
+                <h2 className="text-[13px] font-medium text-[#3F3B36]">
+                  Total pesanan
+                </h2>
+              </div>
+            </div>
+            <p className="mt-3 text-[24px] font-bold leading-tight tracking-tight tabular-nums text-[#1A1A1A]">
+              {numberFormatter.format(totalOrders)}
+            </p>
+            <p className="mt-1 text-[11.5px] text-[#6F6A62]">
+              <span className="tabular-nums">{numberFormatter.format(totalUnits)}</span>{' '}
+              unit terjual
+            </p>
+          </div>
         </article>
-        <article className="min-w-0 p-4 sm:p-5">
-          <p className="text-[12px] text-[#8B7F79]">Provinsi teratas</p>
-          <p
-            className="mt-2 truncate text-[24px] font-semibold leading-tight text-[#2A201D]"
-            title={topRegion?.province ?? '-'}
-          >
-            {topRegion?.province ?? '-'}
-          </p>
-          <p className="mt-1 text-[12px] text-[#8B7F79]">
-            <span className="tabular-nums">
-              {formatPercent(topRegion?.percentageContribution ?? 0)}
-            </span>{' '}
-            dari omzet
-          </p>
+
+        <article className="flex min-h-[140px] flex-col justify-between rounded-2xl border border-[#ECE7DE] bg-white p-5 shadow-[0_1px_3px_rgba(26,22,18,0.04)]">
+          <div>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#FBF1E1] text-[#9A5B14]">
+                  <MapPin size={16} strokeWidth={1.8} aria-hidden="true" />
+                </span>
+                <h2 className="text-[13px] font-medium text-[#3F3B36]">
+                  Provinsi teratas
+                </h2>
+              </div>
+            </div>
+            <p
+              className="mt-3 truncate text-[24px] font-bold leading-tight tracking-tight text-[#1A1A1A]"
+              title={topRegion?.province ?? '-'}
+            >
+              {topRegion?.province ?? '-'}
+            </p>
+            <p className="mt-1 text-[11.5px] text-[#6F6A62]">
+              <span className="tabular-nums">
+                {formatPercent(topRegion?.percentageContribution ?? 0)}
+              </span>{' '}
+              dari omzet
+            </p>
+          </div>
         </article>
-        <article className="min-w-0 p-4 sm:p-5">
-          <p className="text-[12px] text-[#8B7F79]">Rata-rata per pesanan</p>
-          <p className="mt-2 text-[24px] font-semibold leading-tight tabular-nums text-[#2A201D]">
-            {formatPrice(averageOrderValue)}
-          </p>
-          <p className="mt-1 text-[12px] text-[#8B7F79]">
-            Dari semua wilayah
-          </p>
+
+        <article className="flex min-h-[140px] flex-col justify-between rounded-2xl border border-[#ECE7DE] bg-white p-5 shadow-[0_1px_3px_rgba(26,22,18,0.04)]">
+          <div>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#F4EFE8] text-[#5C4033]">
+                  <TrendingUp size={16} strokeWidth={1.8} aria-hidden="true" />
+                </span>
+                <h2 className="text-[13px] font-medium text-[#3F3B36]">
+                  Rata-rata per pesanan
+                </h2>
+              </div>
+            </div>
+            <p className="mt-3 text-[24px] font-bold leading-tight tracking-tight tabular-nums text-[#1A1A1A]">
+              {formatPrice(averageOrderValue)}
+            </p>
+            <p className="mt-1 text-[11.5px] text-[#6F6A62]">
+              Dari semua wilayah
+            </p>
+          </div>
         </article>
       </section>
 
@@ -397,7 +451,7 @@ export default function AdminRegionalSalesReportPage() {
                     Pendapatan <ArrowUpDown size={12} aria-hidden="true" />
                   </button>
                 </th>
-                <th scope="col" className="px-6 py-3 text-[12px] font-medium text-[#8B7F79]">
+                <th scope="col" className="w-[240px] px-6 py-3 text-right text-[12px] font-medium text-[#8B7F79]">
                   <button
                     type="button"
                     onClick={() => handleSort('percentageContribution')}
@@ -447,11 +501,11 @@ export default function AdminRegionalSalesReportPage() {
                       {formatPrice(region.revenue)}
                     </td>
                     <td className="px-6 py-3.5">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-center justify-end gap-3">
                         <ProgressBar
                           value={region.percentageContribution}
                           colorClass="bg-[#5B3F36]"
-                          className="w-full max-w-[160px]"
+                          className="w-full max-w-[140px]"
                         />
                         <span className="w-12 shrink-0 text-right text-[13px] font-medium tabular-nums text-[#2A201D]">
                           {formatPercent(region.percentageContribution)}

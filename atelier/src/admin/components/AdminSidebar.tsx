@@ -12,7 +12,6 @@ import {
   X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import AdminAccountMenu from './AdminAccountMenu';
 
 interface AdminSidebarProps {
   mobileOpen: boolean;
@@ -187,11 +186,6 @@ export default function AdminSidebar({
           })}
         </ul>
       </nav>
-
-      {/* Account section — Profile / Logout */}
-      <div className="p-3.5">
-        <AdminAccountMenu variant="sidebar" onNavigate={onCloseMobile} />
-      </div>
     </div>
   );
 

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { AlertCircle, ChevronRight, Inbox, Truck } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import './AdminDashboardResponsive.css';
 import AnalyticsSection from '../components/analytics/AnalyticsSection';
 import PaymentMethodChart from '../components/PaymentMethodChart';
 import RecentOrders from '../components/RecentOrders';
@@ -37,13 +38,13 @@ export default function AdminDashboard() {
   }, [data.paymentMethods, data.salesReport.totalOrders]);
 
   return (
-    <div className="space-y-6">
+    <div className="admin-dashboard-container space-y-6">
       {/* SCREEN 1: Unified Header + Business Analytics (Shared Period Filter) */}
       <AnalyticsSection todayLabel={today} />
 
       {/* SCREEN 2 (Row 4): Operational Monitoring, Payment Analytics & Reports Shortcut */}
       <section aria-label="Operasional Toko" className="space-y-5">
-        <div className="flex flex-col gap-1 border-b border-[#ECE7DE] pb-2.5 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col flex-wrap gap-1 border-b border-[#ECE7DE] pb-2.5 sm:flex-row sm:items-end sm:justify-between">
           <h2 className="font-editorial text-[24px] font-semibold tracking-tight text-[#1A1A1A]">
             Operasional & Laporan Hari Ini
           </h2>
@@ -53,10 +54,10 @@ export default function AdminDashboard() {
         </div>
 
         {isOpsLoading && (
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 min-[1440px]:grid-cols-3 xl:gap-6">
+          <div className="admin-dashboard-ops-grid">
             <div className="h-[400px] animate-pulse rounded-2xl border border-[#ECE7DE] bg-white/80" />
             <div className="h-[400px] animate-pulse rounded-2xl border border-[#ECE7DE] bg-white/80" />
-            <div className="h-[400px] animate-pulse rounded-2xl border border-[#ECE7DE] bg-white/80 lg:col-span-2 min-[1440px]:col-span-1" />
+            <div className="admin-dashboard-ops-summary h-[400px] animate-pulse rounded-2xl border border-[#ECE7DE] bg-white/80" />
           </div>
         )}
 
@@ -83,7 +84,7 @@ export default function AdminDashboard() {
         )}
 
         {!isOpsLoading && !opsError && (
-          <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2 min-[1440px]:grid-cols-3 xl:gap-6">
+          <div className="admin-dashboard-ops-grid items-stretch">
             <RecentOrders
               orders={data.recentOrders}
               totalOrdersCount={allTimeOrderCount}
@@ -98,8 +99,8 @@ export default function AdminDashboard() {
             />
 
             {/* Stacked Right Column: Ringkasan Hari Ini + Report Shortcuts */}
-            <div className="flex flex-col justify-between gap-5 lg:col-span-2 min-[1440px]:col-span-1">
-              <section className="flex flex-1 flex-col justify-between rounded-2xl border border-[#ECE7DE] bg-white p-5 shadow-[0_1px_3px_rgba(26,22,18,0.04)]">
+            <div className="admin-dashboard-ops-summary flex flex-col justify-between gap-5">
+              <section className="flex flex-1 flex-col gap-4 rounded-2xl border border-[#ECE7DE] bg-white p-5 shadow-[0_1px_3px_rgba(26,22,18,0.04)]">
                 <CardHeader
                   icon={Inbox}
                   title="Ringkasan Hari Ini"

@@ -71,7 +71,7 @@ export default function RecentOrders({
                   to="/admin/orders"
                   className="-mx-2 flex items-center justify-between gap-3 rounded-xl px-2 py-2.5 transition-colors hover:bg-[#FAF8F4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5C4033]"
                 >
-                  <span className="w-[70px] shrink-0 font-sans text-[13.5px] font-bold tabular-nums text-[#5C4033] underline-offset-2 hover:underline">
+                  <span className="min-w-[62px] shrink-0 font-sans text-[13.5px] font-bold tabular-nums text-[#5C4033] underline-offset-2 hover:underline">
                     {order.orderNumber}
                   </span>
 
@@ -88,7 +88,7 @@ export default function RecentOrders({
                     <StatusBadge status={order.status} />
                   </div>
 
-                  <span className="w-[96px] shrink-0 text-right font-sans text-[13.5px] font-bold tabular-nums text-[#1A1A1A]">
+                  <span className="shrink-0 whitespace-nowrap text-right font-sans text-[13.5px] font-bold tabular-nums text-[#1A1A1A]">
                     {formatPrice(order.total)}
                   </span>
                 </Link>

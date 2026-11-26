@@ -94,6 +94,7 @@ export default function AnalyticsCategoryChart({
         id="category-chart-title"
         icon={PieChartIcon}
         title="Performa Kategori"
+        titleTo="/admin/reports/categories"
         scope="Periode aktif"
         subtitle={
           categories.length > 0

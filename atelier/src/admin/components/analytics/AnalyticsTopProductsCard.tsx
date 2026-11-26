@@ -92,7 +92,7 @@ export default function AnalyticsTopProductsCard({
         </div>
       ) : (
         <div className="flex flex-1 flex-col justify-between">
-          <ol className="-mx-2.5 flex flex-col gap-1">
+          <ol className="flex flex-col gap-1">
             {products.map((item) => {
               const isTop = item.rank === 1;
 

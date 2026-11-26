@@ -179,6 +179,7 @@ export default function AnalyticsSalesTrendChart({
         id="sales-trend-title"
         icon={TrendingUp}
         title="Tren Penjualan"
+        titleTo="/admin/reports"
         scope="Periode aktif · pesanan valid"
         subtitle={getSubtitleByPreset(preset)}
         rightSlot={

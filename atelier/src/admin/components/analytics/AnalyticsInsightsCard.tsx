@@ -126,7 +126,7 @@ export function getInsightTargetRoute(
     case 'low_stock':
       return '/admin/products';
     case 'top_category':
-      return '/admin/reports/products';
+      return '/admin/reports/categories';
     case 'revenue_trend':
     case 'no_data':
     default:

@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import type { LucideIcon } from 'lucide-react';
 import {
   ADMIN_ORDER_STATUS_META,
@@ -15,6 +16,7 @@ interface CardHeaderProps {
   id?: string;
   icon: LucideIcon;
   title: string;
+  titleTo?: string;
   subtitle?: string;
   scope?: string;
   rightSlot?: React.ReactNode;
@@ -41,6 +43,7 @@ export function CardHeader({
   id,
   icon: Icon,
   title,
+  titleTo,
   subtitle,
   scope,
   rightSlot,
@@ -63,7 +66,16 @@ export function CardHeader({
               id={id}
               className="font-editorial text-[19px] font-semibold leading-tight tracking-tight text-[#1A1A1A]"
             >
-              {title}
+              {titleTo ? (
+                <Link
+                  to={titleTo}
+                  className="rounded-sm transition-colors hover:text-[#5C4033] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5C4033]/40"
+                >
+                  {title}
+                </Link>
+              ) : (
+                title
+              )}
             </h2>
             {scope && <ScopeLabel>{scope}</ScopeLabel>}
           </div>

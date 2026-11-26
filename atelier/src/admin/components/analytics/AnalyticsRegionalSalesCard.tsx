@@ -63,6 +63,7 @@ export default function AnalyticsRegionalSalesCard({
         id="regional-sales-title"
         icon={MapPin}
         title="Penjualan per Wilayah"
+        titleTo="/admin/reports/regions"
         scope="Periode aktif"
         subtitle={
           regions.length > 0

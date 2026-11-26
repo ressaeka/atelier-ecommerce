@@ -124,10 +124,16 @@ export function getCurrentTimestampWIB(): string {
   );
 }
 
+interface CapturedImage {
+  dataUrl: string;
+  width: number;
+  height: number;
+}
+
 /**
- * Capture an HTML/SVG element to high-res PNG image data URL.
+ * Capture an HTML/SVG element to high-res PNG image data URL with natural dimensions.
  */
-async function captureElementToImage(elementId: string): Promise<string | null> {
+async function captureElementToImage(elementId: string): Promise<CapturedImage | null> {
   if (typeof document === 'undefined') return null;
   const el = document.getElementById(elementId);
   if (!el) return null;
@@ -139,11 +145,57 @@ async function captureElementToImage(elementId: string): Promise<string | null> 
       logging: false,
       backgroundColor: '#FFFFFF',
     });
-    return canvas.toDataURL('image/png');
+    return {
+      dataUrl: canvas.toDataURL('image/png'),
+      width: canvas.width,
+      height: canvas.height,
+    };
   } catch (err) {
     console.warn(`[PDF Export] Gagal capture element #${elementId}:`, err);
     return null;
   }
+}
+
+/**
+ * Render captured chart while preserving its natural aspect ratio.
+ */
+function drawChartSection(
+  doc: jsPDF,
+  y: number,
+  sectionTitle: string,
+  captured: CapturedImage,
+  maxChartHeight = 88,
+): number {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const maxW = pageWidth - 28;
+  const aspect = captured.height > 0 ? captured.width / captured.height : 2.5;
+
+  let renderW = maxW;
+  let renderH = renderW / aspect;
+
+  if (renderH > maxChartHeight) {
+    renderH = maxChartHeight;
+    renderW = renderH * aspect;
+  }
+
+  if (y + renderH + 14 > 275) {
+    doc.addPage();
+    y = 16;
+  }
+
+  doc.setFont('Poppins', 'bold');
+  doc.setFontSize(8.5);
+  doc.setTextColor(COLOR_CHARCOAL[0], COLOR_CHARCOAL[1], COLOR_CHARCOAL[2]);
+  doc.text(sectionTitle, 14, y);
+  y += 3;
+
+  const offsetX = 14 + (maxW - renderW) / 2;
+  doc.setDrawColor(COLOR_LIGHT_BORDER[0], COLOR_LIGHT_BORDER[1], COLOR_LIGHT_BORDER[2]);
+  doc.setLineWidth(0.25);
+  doc.roundedRect(offsetX - 0.5, y - 0.5, renderW + 1, renderH + 1, 1.5, 1.5, 'S');
+  doc.addImage(captured.dataUrl, 'PNG', offsetX, y, renderW, renderH);
+
+  return y + renderH + 7;
 }
 
 /**
@@ -484,16 +536,31 @@ function renderExecutiveDecisionSupportPage(
   y = doc.lastAutoTable.finalY + 5;
 
   // 5. Data Governance & Limitations Note
-  if (y + 14 > 275) {
+  doc.setFont('Poppins', 'normal');
+  doc.setFontSize(5.6);
+  const noteMaxW = pageWidth - 34;
+  const note1Lines = doc.splitTextToSize(
+    '• Analisis disusun secara objektif dari data aktual transaksi PostgreSQL Atelier tanpa manipulasi. Pengakuan omzet sah secara konservatif hanya bersumber dari pesanan DELIVERED.',
+    noteMaxW,
+  ) as string[];
+  const note2Lines = doc.splitTextToSize(
+    '• Bila data historis periode lampau belum tercatat di sistem, indikator pertumbuhan dinyatakan sebagai "Belum ada pembanding". Fakta data, tafsiran sistemik, dan usulan manajerial dipisahkan secara tegas.',
+    noteMaxW,
+  ) as string[];
+
+  const totalNoteLines = note1Lines.length + note2Lines.length;
+  const boxH = 7.5 + totalNoteLines * 3.1;
+
+  if (y + boxH + 2 > 275) {
     doc.addPage();
     y = 16;
   }
 
   doc.setFillColor(245, 243, 238);
-  doc.rect(14, y, pageWidth - 28, 13, 'F');
+  doc.rect(14, y, pageWidth - 28, boxH, 'F');
   doc.setDrawColor(COLOR_LIGHT_BORDER[0], COLOR_LIGHT_BORDER[1], COLOR_LIGHT_BORDER[2]);
   doc.setLineWidth(0.2);
-  doc.rect(14, y, pageWidth - 28, 13, 'S');
+  doc.rect(14, y, pageWidth - 28, boxH, 'S');
 
   doc.setFont('Poppins', 'bold');
   doc.setFontSize(6.2);
@@ -503,16 +570,10 @@ function renderExecutiveDecisionSupportPage(
   doc.setFont('Poppins', 'normal');
   doc.setFontSize(5.6);
   doc.setTextColor(COLOR_MUTED[0], COLOR_MUTED[1], COLOR_MUTED[2]);
-  doc.text(
-    '• Analisis disusun secara objektif dari data aktual transaksi PostgreSQL Atelier tanpa manipulasi. Pengakuan omzet sah secara konservatif hanya bersumber dari pesanan DELIVERED.',
-    17,
-    y + 7.5,
-  );
-  doc.text(
-    '• Bila data historis periode lampau belum tercatat di sistem, indikator pertumbuhan dinyatakan sebagai "Belum ada pembanding". Fakta data, tafsiran sistemik, dan usulan manajerial dipisahkan secara tegas.',
-    17,
-    y + 10.7,
-  );
+  let noteY = y + 7.6;
+  doc.text(note1Lines, 17, noteY);
+  noteY += note1Lines.length * 3.1;
+  doc.text(note2Lines, 17, noteY);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -664,21 +725,7 @@ export async function exportSalesReportPdf(data: SalesReportPdfData): Promise<vo
   if (data.chartElementId) {
     const chartImg = await captureElementToImage(data.chartElementId);
     if (chartImg) {
-      if (y + 55 > 275) {
-        doc.addPage();
-        y = 16;
-      }
-
-      doc.setFont('Poppins', 'bold');
-      doc.setFontSize(8.5);
-      doc.setTextColor(COLOR_CHARCOAL[0], COLOR_CHARCOAL[1], COLOR_CHARCOAL[2]);
-      doc.text('VISUALISASI TREN PENDAPATAN & PESANAN', 14, y);
-      y += 3;
-
-      const chartWidth = doc.internal.pageSize.getWidth() - 28;
-      const chartHeight = 52;
-      doc.addImage(chartImg, 'PNG', 14, y, chartWidth, chartHeight);
-      y += chartHeight + 7;
+      y = drawChartSection(doc, y, 'VISUALISASI TREN PENDAPATAN & PESANAN', chartImg, 80);
     }
   }
 
@@ -890,16 +937,7 @@ export async function exportCategoryReportPdf(data: CategoryReportPdfData): Prom
   if (data.chartElementId) {
     const chartImg = await captureElementToImage(data.chartElementId);
     if (chartImg) {
-      doc.setFont('Poppins', 'bold');
-      doc.setFontSize(8.5);
-      doc.setTextColor(COLOR_CHARCOAL[0], COLOR_CHARCOAL[1], COLOR_CHARCOAL[2]);
-      doc.text('VISUALISASI DISTRIBUSI PENDAPATAN KATEGORI', 14, y);
-      y += 3;
-
-      const chartWidth = doc.internal.pageSize.getWidth() - 28;
-      const chartHeight = 56;
-      doc.addImage(chartImg, 'PNG', 14, y, chartWidth, chartHeight);
-      y += chartHeight + 8;
+      y = drawChartSection(doc, y, 'VISUALISASI DISTRIBUSI PENDAPATAN KATEGORI', chartImg, 88);
     }
   }
 
@@ -1096,16 +1134,7 @@ export async function exportRegionalReportPdf(data: RegionalReportPdfData): Prom
   if (data.chartElementId) {
     const chartImg = await captureElementToImage(data.chartElementId);
     if (chartImg) {
-      doc.setFont('Poppins', 'bold');
-      doc.setFontSize(8.5);
-      doc.setTextColor(COLOR_CHARCOAL[0], COLOR_CHARCOAL[1], COLOR_CHARCOAL[2]);
-      doc.text('VISUALISASI PERINGKAT DISTRIBUSI WILAYAH', 14, y);
-      y += 3;
-
-      const chartWidth = doc.internal.pageSize.getWidth() - 28;
-      const chartHeight = 56;
-      doc.addImage(chartImg, 'PNG', 14, y, chartWidth, chartHeight);
-      y += chartHeight + 8;
+      y = drawChartSection(doc, y, 'VISUALISASI PERINGKAT DISTRIBUSI WILAYAH', chartImg, 88);
     }
   }
 

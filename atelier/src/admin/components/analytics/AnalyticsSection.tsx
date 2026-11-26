@@ -168,7 +168,7 @@ export default function AnalyticsSection({
   return (
     <div className="space-y-5">
       {/* BARIS 0: Unified Dashboard Header + Shared Period Filter */}
-      <header className="flex flex-col gap-3.5 xl:flex-row xl:items-end xl:justify-between">
+      <header className="admin-dashboard-header flex flex-col gap-3.5">
         <div>
           <h1 className="mt-0.5 font-editorial text-[32px] font-semibold leading-tight tracking-tight text-[#1A1A1A]">
             Dashboard
@@ -315,7 +315,7 @@ export default function AnalyticsSection({
       {/* Loading State */}
       {isLoading && (
         <div aria-busy="true" className="space-y-5">
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4 xl:gap-6">
+          <div className="admin-dashboard-kpi-grid">
             {[0, 1, 2, 3].map((idx) => (
               <div
                 key={idx}
@@ -323,14 +323,14 @@ export default function AnalyticsSection({
               />
             ))}
           </div>
-          <div className="grid grid-cols-1 gap-5 xl:grid-cols-3 xl:gap-6">
-            <div className="h-[348px] animate-pulse rounded-2xl border border-[#ECE7DE] bg-white/80 xl:col-span-2" />
+          <div className="admin-dashboard-chart-grid">
+            <div className="h-[348px] animate-pulse rounded-2xl border border-[#ECE7DE] bg-white/80" />
             <div className="h-[348px] animate-pulse rounded-2xl border border-[#ECE7DE] bg-white/80" />
           </div>
-          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 min-[1440px]:grid-cols-3 xl:gap-6">
+          <div className="admin-dashboard-panel-grid">
             <div className="h-[300px] animate-pulse rounded-2xl border border-[#ECE7DE] bg-white/80" />
             <div className="h-[300px] animate-pulse rounded-2xl border border-[#ECE7DE] bg-white/80" />
-            <div className="h-[300px] animate-pulse rounded-2xl border border-[#ECE7DE] bg-white/80 lg:col-span-2 min-[1440px]:col-span-1" />
+            <div className="admin-dashboard-panel-summary h-[300px] animate-pulse rounded-2xl border border-[#ECE7DE] bg-white/80" />
           </div>
         </div>
       )}
@@ -358,7 +358,7 @@ export default function AnalyticsSection({
       {/* Loaded Sections (Baris 1, 2, 3) */}
       {!isLoading && !error && data && (
         <>
-          {/* BARIS 1 — KPI (4 Kolom ≥1280px, 2 Kolom <1024px) */}
+          {/* BARIS 1 — KPI mengikuti lebar konten dashboard */}
           <AnalyticsKpiGrid
             kpis={data.kpis}
             comparisonLabel={comparisonLabel}
@@ -366,8 +366,8 @@ export default function AnalyticsSection({
           />
 
           {/* BARIS 2 — SALES PERFORMANCE (2fr) + BUSINESS INSIGHTS (1fr) */}
-          <div className="grid grid-cols-1 items-stretch gap-5 xl:grid-cols-3 xl:gap-6">
-            <div className="xl:col-span-2">
+          <div className="admin-dashboard-chart-grid items-stretch">
+            <div>
               <AnalyticsSalesTrendChart
                 data={data.salesTrend}
                 preset={filter.preset}
@@ -379,11 +379,11 @@ export default function AnalyticsSection({
             </div>
           </div>
 
-          {/* BARIS 3 — PRODUK, KATEGORI, WILAYAH (3 kolom ≥1440px, 2+1 kolom 1280-1439px, 1 kolom <1024px) */}
-          <div className="grid grid-cols-1 items-stretch gap-5 lg:grid-cols-2 min-[1440px]:grid-cols-3 xl:gap-6">
+          {/* BARIS 3 — panel menyesuaikan ruang konten yang tersedia */}
+          <div className="admin-dashboard-panel-grid items-stretch">
             <AnalyticsTopProductsCard products={data.topProducts} />
             <AnalyticsCategoryChart categories={data.categoryPerformance} />
-            <div className="lg:col-span-2 min-[1440px]:col-span-1">
+            <div className="admin-dashboard-panel-summary">
               <AnalyticsRegionalSalesCard regions={data.regionalSales} />
             </div>
           </div>
